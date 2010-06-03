@@ -1,0 +1,34 @@
+Refiner: force
+	OPENCASCADE=
+	$(MAKE) static -C Matrix
+	$(MAKE) static -C Geometry
+	$(MAKE) static -C MeshDB
+	$(MAKE) static -C MeshGen
+	$(MAKE) static -C RevocapIO
+	$(MAKE) static -C Shape
+	$(MAKE) static -C Refiner
+
+RefinerSampleC: force
+	$(MAKE) sampleC -C Refiner
+	$(MAKE) sampleMultiStage -C Refiner
+	$(MAKE) sampleNodeVariable -C Refiner
+	$(MAKE) sampleHexa -C Refiner
+	$(MAKE) sampleHexa2 -C Refiner
+	$(MAKE) sampleMultiByType -C Refiner
+	$(MAKE) sampleMultiType -C Refiner
+	$(MAKE) sampleRefineGF -C Refiner
+
+RefinerSampleF: force
+	$(MAKE) sampleF -C Refiner
+
+RefinerDoc: force
+	$(MAKE) doc -C Refiner
+
+RefinerClean:
+	$(MAKE) clean -C Matrix
+	$(MAKE) clean -C Geometry
+	$(MAKE) clean -C MeshDB
+	$(MAKE) clean -C MeshGen
+	$(MAKE) clean -C RevocapIO
+	$(MAKE) clean -C Shape
+	$(MAKE) clean -C Refiner

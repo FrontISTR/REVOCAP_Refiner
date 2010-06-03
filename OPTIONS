@@ -1,0 +1,48 @@
+# This is the file describing options for REVOCAP_Mesh makefile.
+#
+# If Ruby is installed in your system, please give RUBY_PLATFORM to ARCH variable.
+# Otherwise ARCH variable should be a platform string (ex, i686-linux, etc)
+#
+# -fPIC is the option denoting Position Independent Code 
+
+#ARCH = $(shell ruby -e 'puts RUBY_PLATFORM')
+#ARCH = i386-cygwin
+ARCH = i486-linux
+
+#
+# for debug
+# 
+#export DEBUGFLAG = -D_DEBUG=3 # debug message enable even if in loop
+#export DEBUGFLAG = -D_DEBUG
+
+#
+# for OpenCASCADE
+# Please comment out when making Refiner
+#
+#OPENCASCADEFLAG = -DOPENCASCADE
+
+LIBDIR = lib
+AR = ar
+RM = rm -f
+CFLAGS = -O -Wall -fPIC $(DEBUGFLAG)
+CC = gcc
+CXX = g++
+CXXFLAGS = -O -Wall -fPIC $(DEBUGFLAG) $(OPENCASCADE)
+LDSHARED = g++ -shared
+RM = rm -f
+F90 = gfortran
+# F90 = ifort
+# F90 = pgf90
+# FFLAGS = -Wall -fPIC $(DEBUGFLAG)
+FFLAGS = -fPIC $(DEBUGFLAG)
+RUBY = ruby
+DOXYGEN = doxygen
+TAR = tar
+
+ifeq ($(ARCH),i386-cygwin)
+	export CFLAGS = -O -Wall $(DEBUGFLAG)
+	export CXX = g++-4
+	export CC = gcc-4
+endif
+
+export DATE = $(shell date +%Y%m%d)
