@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : FortranIO                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -25,6 +25,7 @@
 #include <stdint.h>
 #endif
 
+#include <cstdio>
 #include <cstring>
 
 kmb::FortranIO::FortranIO(void)
@@ -58,8 +59,8 @@ kmb::FortranIO::readString(std::ifstream &input, std::string &str)
 		int footer = 0;
 		input.read(reinterpret_cast<char*>(&size),sizeof(int));
 		if( endianFlag ){
-		  std::reverse( reinterpret_cast<uint8_t*>(&size),
-			  reinterpret_cast<uint8_t*>(&size) + sizeof(int));
+			std::reverse( reinterpret_cast<uint8_t*>(&size),
+				reinterpret_cast<uint8_t*>(&size) + sizeof(int));
 		}
 		char* buf = new char[size+1];
 		input.read(buf,size);

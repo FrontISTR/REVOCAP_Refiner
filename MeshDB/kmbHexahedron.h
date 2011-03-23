@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Hexahedron                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -43,30 +43,27 @@ public:
 
 
 
-
-	static	bool		isEquivalent(int index[8]);
+	static bool isEquivalent(int index[8]);
 
 
 
 	static int isOppositeFace(const kmb::ElementBase* hexa,const kmb::ElementBase* quad0,const kmb::ElementBase* quad1);
 public:
-	static const int	connectionTable[8][8];
-	static const int	faceTable[6][4];
-	static const int	edgeTable[12][2];
-
-
-
-
-
-
-
-
+	static const int connectionTable[8][8];
+	static const int faceTable[6][4];
+	static const int edgeTable[12][2];
 
 	static void shapeFunction(double s,double t,double u,double* coeff);
-	static bool getNaturalCoordinates(const double physicalCoords[3],const kmb::Point3D* points,double naturalCoords[3],double margin = 1.0);
-	static bool getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,double physicalCoords[3]);
-private:
-	static double newtonMethod(const double physicalCoords[3], const kmb::Point3D* points, double naturalCoords[3]);
+
+	static bool getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[3]);
+	static bool getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,kmb::Point3D &target);
+
+	static double checkShapeFunctionDomain(double s,double t,double u);
+
+	static double jacobian(double s, double t,double u,const kmb::Point3D* points);
+	static double jacobian_ds(double s, double t,double u,const kmb::Point3D* points);
+	static double jacobian_dt(double s, double t,double u,const kmb::Point3D* points);
+	static double jacobian_du(double s, double t,double u,const kmb::Point3D* points);
 };
 
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : NurbsCurve3D                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -47,8 +47,8 @@ public:
 	bool isDomain( double t ) const;
 	virtual bool getPoint( double t, kmb::Point3D& point ) const;
 	virtual void getDomain( double &min_t, double &max_t ) const;
+	virtual bool getNearest( const kmb::Point3D& point, double& t ) const;
 protected:
-	virtual bool newtonMethod( double &t, kmb::Point3D& point, double relax=1.0 ) const;
 
 	virtual bool getSubDerivative( double t, kmb::Vector3D& tangent ) const;
 	virtual bool getSubSecondDerivative( double t, kmb::Vector3D& tangent ) const;

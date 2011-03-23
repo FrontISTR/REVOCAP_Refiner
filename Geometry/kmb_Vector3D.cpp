@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Vector3D                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -118,3 +118,8 @@ kmb::Vector3D::abs(const double v[3])
 	return sqrt( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
 }
 
+double
+kmb::Vector3D::inner(const double v0[3],const double v1[3])
+{
+	return v0[0] * v1[0] + v0[1] * v1[1] + v0[2] * v1[2];
+}

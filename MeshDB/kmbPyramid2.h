@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Pyramid2                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -37,28 +37,14 @@ public:
 	Pyramid2(void);
 	Pyramid2(kmb::nodeIdType *ary);
 	virtual ~Pyramid2(void);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public:
-	static const int	connectionTable[13][13];
-	static const int	faceTable[5][8];
-	static const int	edgeTable[8][3];
+	static const int connectionTable[13][13];
+	static const int faceTable[5][8];
+	static const int edgeTable[8][3];
 
 	static void shapeFunction(double s,double t,double u,double* coeff);
+
+	static double checkShapeFunctionDomain(double s,double t,double u);
 };
 
 }

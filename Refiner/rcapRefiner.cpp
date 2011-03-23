@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 0.4                          #
+# Software Name : REVOCAP_Refiner version 1.0                          #
 # Program Name : rcapRefiner                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -12,10 +12,6 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-/*
- * g++ -c -DGFORTRAN -I.. -I. rcapRefiner.cpp
- */
-
 /*
  * 実装における注意点：
  *  細分される要素は refineElement の中では記憶しておく必要はないが、
@@ -32,51 +28,55 @@
  */
 
 #include "rcapRefiner.h"
+#include "rcapRefinerStruct.h"
+
 #include "Geometry/kmb_idTypes.h"
+#include "Geometry/kmb_Point3DContainerMArray.h"
+#include "Geometry/kmb_Calculator.h"
+
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbElement.h"
-#include "MeshGen/kmbMeshRefiner.h"
-#include "Geometry/kmb_Point3DContainerMArray.h"
 #include "MeshDB/kmbElementContainerNArray.h"
 #include "MeshDB/kmbElementContainerMixedArray.h"
 #include "MeshDB/kmbBoundaryExtractor.h"
 #include "MeshDB/kmbIntegerMapBindings.h"
+#include "MeshDB/kmbNodeMapperBindings.h"
+#include "MeshDB/kmbElementEvaluator.h"
+
+#include "MeshGen/kmbMeshRefiner.h"
 #include "MeshGen/kmbMiddleNodeManager.h"
 
 #include "RevocapIO/kmbFFBIO.h"
-#include "RevocapIO/kmbHECMWIO.h"
+#include "RevocapIO/kmbHecmwIO.h"
 #include "RevocapIO/kmbRevocapNeutralIO.h"
 #include "RevocapIO/kmbRevocapCouplerIO.h"
 
+#include "Shape/kmbRnfShapeIO.h"
+#include "Shape/kmbSurface3D.h"
+#include "Shape/kmbMiddleNodeManagerWithShape.h"
+
 #include <stdio.h>
 #include <string.h>
+#include <vector>
+#include <typeinfo>
 
-#ifdef WIN32
- #if _MSC_VER >= 1400
-  #define strcpy(ss0,ss1) strcpy_s(ss0,sizeof(ss1),ss1)
- #endif
+#if defined _MSC_VER && _MSC_VER >= 1400
+#define strcpy(ss0,ss1) strcpy_s(ss0,sizeof(ss1),ss1)
 #endif
 
-struct rcapRefinerInfo
-{
-	kmb::MeshData* mesh;
-	kmb::MeshRefiner* refiner;
-	kmb::MeshRefiner* boundaryRefiner;
-	kmb::MiddleNodeManager* middleMan;
-	int32_t nodeOffset;
-	int32_t elementOffset;
-	int32_t maxElementId;
-	int32_t maxRefinedElementId;
-} rcapRefinerDoc;
+#ifdef _MSC_VER
+#pragma warning(disable:4996)
+#endif
+
+struct rcapRefinerInfo rcapRefinerDoc;
 
 void rcapGetVersion( void )
 {
-	puts("REVOCAP Refiner version 0.4.0 (2010/6/1)");
+	puts("REVOCAP_Refiner Version 1.0.0 (2011/03/23)");
 }
 
 void rcapInitRefiner(int32_t node_Offset,int32_t element_Offset)
 {
-	REVOCAP_Debug("rcapInitRefiner start version 0.4.0 (2010/6/1)\n");
 	rcapRefinerDoc.mesh = NULL;
 	rcapRefinerDoc.refiner = NULL;
 	rcapRefinerDoc.boundaryRefiner = NULL;
@@ -103,22 +103,10 @@ void rcapInitRefiner(int32_t node_Offset,int32_t element_Offset)
 	rcapRefinerDoc.boundaryRefiner->setMiddleNodeManager(rcapRefinerDoc.middleMan);
 	rcapRefinerDoc.boundaryRefiner->setMesh(rcapRefinerDoc.mesh);
 
-	REVOCAP_Debug("rcapInitRefiner finish\n");
-}
-
-void rcapSetCADFilename( const char* filename )
-{
-}
-
-void rcapSetPartitionFilename( const char* filename )
-{
-	kmb::RevocapCouplerIO couplerIO;
-	couplerIO.loadLocalNodesFromPartitionFile(filename,rcapRefinerDoc.mesh);
 }
 
 void rcapClearRefiner( void )
 {
-	REVOCAP_Debug("rcapClearRefiner\n");
 	if(rcapRefinerDoc.mesh){
 		rcapRefinerDoc.mesh->removeAllBodies();
 	}
@@ -134,7 +122,6 @@ void rcapClearRefiner( void )
 
 void rcapTermRefiner( void )
 {
-	REVOCAP_Debug("rcapTermRefiner start\n");
 	if(rcapRefinerDoc.boundaryRefiner){
 		delete rcapRefinerDoc.boundaryRefiner;
 		rcapRefinerDoc.boundaryRefiner = NULL;
@@ -151,12 +138,219 @@ void rcapTermRefiner( void )
 		delete rcapRefinerDoc.mesh;
 		rcapRefinerDoc.mesh = NULL;
 	}
-	REVOCAP_Debug("rcapTermRefiner finish\n");
+	std::vector< kmb::Surface3D* >::iterator sIter = rcapRefinerDoc.surfaces.begin();
+	while( sIter != rcapRefinerDoc.surfaces.end () ){
+		kmb::Surface3D* surf = *sIter;
+		if( surf ){
+			delete surf;
+		}
+		++sIter;
+	}
+	rcapRefinerDoc.surfaces.clear();
+}
+
+void rcapSetNode64( size_t num, float64_t* coords, int32_t* globalIds, int32_t* localIds )
+{
+	if(rcapRefinerDoc.mesh == NULL){
+		return;
+	}
+	if( localIds==NULL || localIds[0] < rcapRefinerDoc.nodeOffset ){
+		for(unsigned int i=0;i<num;++i){
+			rcapRefinerDoc.mesh->insertNode(coords[3*i],coords[3*i+1],coords[3*i+2]);
+		}
+		if( globalIds != NULL && globalIds[0] >= rcapRefinerDoc.nodeOffset ){
+			kmb::MiddleNodeManagerWithShape* middleNodeManagerWithShape
+				= dynamic_cast<kmb::MiddleNodeManagerWithShape*>( rcapRefinerDoc.middleMan );
+			if( middleNodeManagerWithShape != NULL ){
+
+
+				std::map< kmb::nodeIdType, kmb::nodeIdType > imapper;
+				for(unsigned int i=0;i<num;++i){
+					imapper.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >( globalIds[i], static_cast<kmb::nodeIdType>(i) ) );
+				}
+				middleNodeManagerWithShape->replaceNodeIds( imapper );
+			}
+		}
+	}else{
+		for(unsigned int i=0;i<num;++i){
+			rcapRefinerDoc.mesh->insertNodeWithId(coords[3*i],coords[3*i+1],coords[3*i+2],localIds[i]-rcapRefinerDoc.nodeOffset);
+		}
+		if( globalIds != NULL && globalIds[0] >= rcapRefinerDoc.nodeOffset ){
+			kmb::MiddleNodeManagerWithShape* middleNodeManagerWithShape
+				= dynamic_cast<kmb::MiddleNodeManagerWithShape*>( rcapRefinerDoc.middleMan );
+			if( middleNodeManagerWithShape != NULL ){
+
+
+				std::map< kmb::nodeIdType, kmb::nodeIdType > imapper;
+				for(unsigned int i=0;i<num;++i){
+					imapper.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >( globalIds[i], localIds[i] ) );
+				}
+				middleNodeManagerWithShape->replaceNodeIds( imapper );
+			}
+		}
+	}
+}
+
+void rcapSetNode32( size_t num, float32_t* coords, int32_t* globalIds, int32_t* localIds )
+{
+	if(rcapRefinerDoc.mesh == NULL){
+		return;
+	}
+	if( localIds==NULL || localIds[0] < rcapRefinerDoc.nodeOffset ){
+		for(unsigned int i=0;i<num;++i){
+			rcapRefinerDoc.mesh->insertNode(coords[3*i],coords[3*i+1],coords[3*i+2]);
+		}
+		if( globalIds != NULL && globalIds[0] >= rcapRefinerDoc.nodeOffset ){
+			kmb::MiddleNodeManagerWithShape* middleNodeManagerWithShape
+				= dynamic_cast<kmb::MiddleNodeManagerWithShape*>( rcapRefinerDoc.middleMan );
+			if( middleNodeManagerWithShape != NULL ){
+
+
+				std::map< kmb::nodeIdType, kmb::nodeIdType > imapper;
+				for(unsigned int i=0;i<num;++i){
+					imapper.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >( static_cast<kmb::nodeIdType>(i), localIds[i] ) );
+				}
+				middleNodeManagerWithShape->replaceNodeIds( imapper );
+			}
+		}
+	}else{
+		for(unsigned int i=0;i<num;++i){
+			rcapRefinerDoc.mesh->insertNodeWithId(coords[3*i],coords[3*i+1],coords[3*i+2],localIds[i]-rcapRefinerDoc.nodeOffset);
+		}
+		if( globalIds != NULL && globalIds[0] >= rcapRefinerDoc.nodeOffset ){
+			kmb::MiddleNodeManagerWithShape* middleNodeManagerWithShape
+				= dynamic_cast<kmb::MiddleNodeManagerWithShape*>( rcapRefinerDoc.middleMan );
+			if( middleNodeManagerWithShape != NULL ){
+
+
+				std::map< kmb::nodeIdType, kmb::nodeIdType > imapper;
+				for(unsigned int i=0;i<num;++i){
+					imapper.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >( globalIds[i], localIds[i] ) );
+				}
+				middleNodeManagerWithShape->replaceNodeIds( imapper );
+			}
+		}
+	}
+}
+
+size_t rcapGetNodeCount( void )
+{
+	if(rcapRefinerDoc.mesh){
+		return rcapRefinerDoc.mesh->getNodeCount();
+	}else{
+		return 0;
+	}
+}
+
+void rcapGetNode64( size_t num, int32_t* localIds, float64_t* coords )
+{
+	if( rcapRefinerDoc.mesh != NULL ){
+		kmb::Point3D point;
+		for(size_t i=0;i<num;++i){
+			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(localIds[i]-rcapRefinerDoc.nodeOffset),point);
+			coords[3*i]   = point.x();
+			coords[3*i+1] = point.y();
+			coords[3*i+2] = point.z();
+		}
+	}
+}
+
+void rcapGetNode32( size_t num, int32_t* localIds, float32_t* coords )
+{
+	if( rcapRefinerDoc.mesh != NULL ){
+		kmb::Point3D point;
+		for(size_t i=0;i<num;++i){
+			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(localIds[i]-rcapRefinerDoc.nodeOffset),point);
+			coords[3*i]   = static_cast<float>(point.x());
+			coords[3*i+1] = static_cast<float>(point.y());
+			coords[3*i+2] = static_cast<float>(point.z());
+		}
+	}
+}
+
+void rcapGetNodeSeq64( size_t num, size_t initId, float64_t* coords )
+{
+	if( rcapRefinerDoc.mesh != NULL ){
+		size_t ini = initId - rcapRefinerDoc.nodeOffset;
+		kmb::Point3D point;
+		for(size_t i=ini;i<ini+num;++i){
+			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(i),point);
+			coords[3*i]   = point.x();
+			coords[3*i+1] = point.y();
+			coords[3*i+2] = point.z();
+		}
+	}
+}
+
+void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords )
+{
+	if( rcapRefinerDoc.mesh != NULL ){
+		size_t ini = initId - rcapRefinerDoc.nodeOffset;
+		kmb::Point3D point;
+		for(size_t i=ini;i<ini+num;++i){
+			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(i),point);
+			coords[3*i]   = static_cast<float>(point.x());
+			coords[3*i+1] = static_cast<float>(point.y());
+			coords[3*i+2] = static_cast<float>(point.z());
+		}
+	}
+}
+
+void rcapSetCADFilename( const char* filename )
+{
+	if( rcapRefinerDoc.refiner == NULL ){
+		printf("REVOCAP_Refiner Warning : call rcapSetCADFilename before rcapInitRefiner\n");
+	}
+
+	kmb::RnfShapeIO rnfshape;
+	rnfshape.loadFromFile( filename, rcapRefinerDoc.surfaces );
+
+
+	kmb::RevocapNeutralIO rnf;
+	rnf.loadFromRNFFile( filename, rcapRefinerDoc.mesh );
+
+	kmb::MiddleNodeManager* orgMiddleNodeManager = rcapRefinerDoc.middleMan;
+
+	kmb::MiddleNodeManagerWithShape* middelNodeManagerShape = new kmb::MiddleNodeManagerWithShape();
+	middelNodeManagerShape->setMappingData( reinterpret_cast< kmb::Vector2WithIntBindings<kmb::nodeIdType>* >(rcapRefinerDoc.mesh->getDataBindingsPtr("fitting") ) );
+	middelNodeManagerShape->setSurfaces( &rcapRefinerDoc.surfaces );
+	rcapRefinerDoc.middleMan = middelNodeManagerShape;
+
+	rcapRefinerDoc.refiner->setMiddleNodeManager(rcapRefinerDoc.middleMan);
+	rcapRefinerDoc.boundaryRefiner->setMiddleNodeManager(rcapRefinerDoc.middleMan);
+
+	if( orgMiddleNodeManager ){
+		delete orgMiddleNodeManager;
+	}
+}
+
+void rcapSetSecondFitting( int32_t flag )
+{
+	if( flag != 0 ){
+		rcapRefinerDoc.refiner->setSecondFitting(true);
+		rcapRefinerDoc.boundaryRefiner->setSecondFitting(true);
+	}else{
+		rcapRefinerDoc.refiner->setSecondFitting(false);
+		rcapRefinerDoc.boundaryRefiner->setSecondFitting(false);
+	}
+}
+
+void rcapSetPartitionFilename( const char* filename )
+{
+	kmb::RevocapCouplerIO couplerIO;
+	couplerIO.loadLocalNodesFromPartitionFile(filename,rcapRefinerDoc.mesh);
+	kmb::DataBindings* data = rcapRefinerDoc.mesh->getDataBindingsPtr("GlobalId");
+	kmb::NodeMapperBindings<kmb::nodeIdType>* nodeMapper
+		= dynamic_cast<kmb::NodeMapperBindings<kmb::nodeIdType>*>(data);
+	kmb::MiddleNodeManagerWithShape* middleNodeManagerWithShape
+		= dynamic_cast<kmb::MiddleNodeManagerWithShape*>( rcapRefinerDoc.middleMan );
+	if( nodeMapper != NULL && middleNodeManagerWithShape != NULL ){
+		middleNodeManagerWithShape->replaceNodeIds( nodeMapper->getNodeMapper() );
+	}
 }
 
 size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t* resultNodeArray )
 {
-	REVOCAP_Debug("rcapRefineElement start\n");
 	size_t refinedNum = 0;
 	switch( etype ){
 		case kmb::SEGMENT:		refinedNum = 2*num;	break;
@@ -179,7 +373,6 @@ size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t*
 	if( resultNodeArray == NULL || resultNodeArray[0] < 0 ||
 		nodeArray == NULL || nodeArray[0] < 0 )
 	{
-		REVOCAP_Debug("rcapRefineElement return refined element count %d\n",refinedNum);
 		return refinedNum;
 	}
 	kmb::elementType elemType = static_cast<kmb::elementType>(etype);
@@ -194,7 +387,6 @@ size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t*
 
 
 
-	REVOCAP_Debug("rcapRefineElement new element container wrapper %d\n",refinedNum);
 	kmb::ElementContainerNArray* refineElements = new kmb::ElementContainerNArray( elemType, refinedNum, reinterpret_cast<kmb::nodeIdType*>(resultNodeArray), true, rcapRefinerDoc.nodeOffset );
 	refineElements->setOffsetId( rcapRefinerDoc.maxRefinedElementId+1 );
 
@@ -203,7 +395,6 @@ size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t*
 
 	rcapRefinerDoc.maxElementId = orgElements->getMaxId();
 	rcapRefinerDoc.maxRefinedElementId = refineElements->getMaxId();
-	REVOCAP_Debug("rcapRefineElement finish\n");
 	size_t count = refineElements->getCount();
 
 
@@ -213,93 +404,143 @@ size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t*
 
 size_t rcapRefineElementMulti( size_t num, int8_t* etypeArray, int32_t* nodeArray, size_t* refinedNum, int8_t* resultEtypeArray, int32_t* resultNodeArray )
 {
-	REVOCAP_Debug("rcapRefineElementMulti start\n");
 	if( num <= 0 || etypeArray == NULL || etypeArray[0] < 0 || refinedNum == NULL ){
 		return 0;
 	}
 	size_t refinedNodeArraySize = 0;
 	size_t refinedElementSize = *refinedNum;
-	REVOCAP_Debug("rcapRefineElementMulti argument refinedNum = %d\n", *refinedNumElementSize);
-	if( refinedElementSize <= 0 ){
+
+
+
+	if( resultNodeArray == NULL || resultNodeArray[0] < 0 || nodeArray == NULL || nodeArray[0] < 0 ){
 		refinedElementSize = 0;
 		for(size_t i=0;i<num;++i){
 			kmb::elementType etype = static_cast<kmb::elementType>( etypeArray[i] );
 			switch( etype ){
-				case kmb::SEGMENT:
-					refinedNodeArraySize += 2*2;
-					refinedElementSize += 2;
-					break;
-				case kmb::SEGMENT2:
-					refinedNodeArraySize += 2*3;
-					refinedElementSize += 2;
-					break;
-				case kmb::TRIANGLE:
-					refinedNodeArraySize += 4*3;
-					refinedElementSize += 4;
-					break;
-				case kmb::TRIANGLE2:
-					refinedNodeArraySize += 4*6;
-					refinedElementSize += 4;
-					break;
-				case kmb::QUAD:
-					refinedNodeArraySize += 4*4;
-					refinedElementSize += 4;
-					break;
-				case kmb::QUAD2:
-					refinedNodeArraySize += 4*8;
-					refinedElementSize += 4;
-					break;
-				case kmb::TETRAHEDRON:
-					refinedNodeArraySize += 8*4;
-					refinedElementSize += 8;
-					break;
-				case kmb::TETRAHEDRON2:
-					refinedNodeArraySize += 8*10;
-					refinedElementSize += 8;
-					break;
-				case kmb::HEXAHEDRON:
-					refinedNodeArraySize += 8*8;
-					refinedElementSize += 8;
-					break;
-				case kmb::HEXAHEDRON2:
-					refinedNodeArraySize += 8*20;
-					refinedElementSize += 8;
-					break;
-				case kmb::WEDGE:
-					refinedNodeArraySize += 8*6;
-					refinedElementSize += 8;
-					break;
-				case kmb::WEDGE2:
-					refinedNodeArraySize += 8*15;
-					refinedElementSize += 8;
-					break;
-				case kmb::PYRAMID:
-					refinedNodeArraySize += (6*5 + 4*4);
-					refinedElementSize += 10;
-					break;
-				case kmb::PYRAMID2:
-					refinedNodeArraySize += (6*13 + 4*10);
-					refinedElementSize += 10;
-					break;
-				default:
-					break;
+			case kmb::SEGMENT:
+				refinedElementSize += 2;
+				refinedNodeArraySize += 2*2;
+				break;
+			case kmb::SEGMENT2:
+				refinedElementSize += 2;
+				refinedNodeArraySize += 2*3;
+				break;
+			case kmb::TRIANGLE:
+				refinedElementSize += 4;
+				refinedNodeArraySize += 4*3;
+				break;
+			case kmb::TRIANGLE2:
+				refinedElementSize += 4;
+				refinedNodeArraySize += 4*6;
+				break;
+			case kmb::QUAD:
+				refinedElementSize += 4;
+				refinedNodeArraySize += 4*4;
+				break;
+			case kmb::QUAD2:
+				refinedElementSize += 4;
+				refinedNodeArraySize += 4*8;
+				break;
+			case kmb::TETRAHEDRON:
+				refinedElementSize += 8;
+				refinedNodeArraySize += 8*4;
+				break;
+			case kmb::TETRAHEDRON2:
+				refinedElementSize += 8;
+				refinedNodeArraySize += 8*10;
+				break;
+			case kmb::HEXAHEDRON:
+				refinedElementSize += 8;
+				refinedNodeArraySize += 8*8;
+				break;
+			case kmb::HEXAHEDRON2:
+				refinedElementSize += 8;
+				refinedNodeArraySize += 8*20;
+				break;
+			case kmb::WEDGE:
+				refinedElementSize += 8;
+				refinedNodeArraySize += 8*6;
+				break;
+			case kmb::WEDGE2:
+				refinedElementSize += 8;
+				refinedNodeArraySize += 8*15;
+				break;
+			case kmb::PYRAMID:
+				refinedElementSize += 10;
+				refinedNodeArraySize += (6*5 + 4*4);
+				break;
+			case kmb::PYRAMID2:
+				refinedElementSize += 10;
+				refinedNodeArraySize += (6*13 + 4*10);
+				break;
+			default:
+				break;
 			}
 		}
-	}
-	if( resultNodeArray == NULL || resultNodeArray[0] < 0 ||
-		nodeArray == NULL || nodeArray[0] < 0 ){
 		*refinedNum = refinedElementSize;
 		return refinedNodeArraySize;
 	}
 
-	REVOCAP_Debug("rcapRefineElementMulti Org Element Count = %d\n", num);
+	for(size_t i=0;i<num;++i){
+		kmb::elementType etype = static_cast<kmb::elementType>( etypeArray[i] );
+		switch( etype ){
+			case kmb::SEGMENT:
+				refinedNodeArraySize += 2*2;
+				break;
+			case kmb::SEGMENT2:
+				refinedNodeArraySize += 2*3;
+				break;
+			case kmb::TRIANGLE:
+				refinedNodeArraySize += 4*3;
+				break;
+			case kmb::TRIANGLE2:
+				refinedNodeArraySize += 4*6;
+				break;
+			case kmb::QUAD:
+				refinedNodeArraySize += 4*4;
+				break;
+			case kmb::QUAD2:
+				refinedNodeArraySize += 4*8;
+				break;
+			case kmb::TETRAHEDRON:
+				refinedNodeArraySize += 8*4;
+				break;
+			case kmb::TETRAHEDRON2:
+				refinedNodeArraySize += 8*10;
+				break;
+			case kmb::HEXAHEDRON:
+				refinedNodeArraySize += 8*8;
+				break;
+			case kmb::HEXAHEDRON2:
+				refinedNodeArraySize += 8*20;
+				break;
+			case kmb::WEDGE:
+				refinedNodeArraySize += 8*6;
+				break;
+			case kmb::WEDGE2:
+				refinedNodeArraySize += 8*15;
+				break;
+			case kmb::PYRAMID:
+				refinedNodeArraySize += (6*5 + 4*4);
+				break;
+			case kmb::PYRAMID2:
+				refinedNodeArraySize += (6*13 + 4*10);
+				break;
+			default:
+				break;
+		}
+	}
+
+	std::fill_n( resultNodeArray, refinedNodeArraySize, kmb::nullNodeId );
+
 	kmb::ElementContainerMixedArray* orgElements = new kmb::ElementContainerMixedArray( num, reinterpret_cast<char*>(etypeArray), reinterpret_cast<kmb::nodeIdType*>(nodeArray), false, rcapRefinerDoc.nodeOffset );
 	orgElements->setOffsetId( rcapRefinerDoc.maxElementId+1 );
+
 	rcapRefinerDoc.mesh->appendBody( orgElements );
 
-	size_t count = 0;
+
 	if( resultEtypeArray != NULL && resultEtypeArray[0] >= 0 ){
-		REVOCAP_Debug("rcapRefineElementMulti Refined Element Count = %d\n", refinedElementSize);
+
 		kmb::ElementContainerMixedArray* refineElements = new kmb::ElementContainerMixedArray( refinedElementSize, reinterpret_cast<char*>(resultEtypeArray), reinterpret_cast<kmb::nodeIdType*>(resultNodeArray), true, rcapRefinerDoc.nodeOffset );
 		refineElements->setOffsetId( rcapRefinerDoc.maxRefinedElementId+1 );
 
@@ -307,10 +548,11 @@ size_t rcapRefineElementMulti( size_t num, int8_t* etypeArray, int32_t* nodeArra
 
 		rcapRefinerDoc.maxElementId = orgElements->getMaxId();
 		rcapRefinerDoc.maxRefinedElementId = refineElements->getMaxId();
-		count = refineElements->getCount();
+
+		refinedNodeArraySize = refineElements->getNodeTableSize();
 		delete refineElements;
 	}else{
-		REVOCAP_Debug("rcapRefineElementMulti Refined Element Count = %d (no etype)\n", refinedElementSize);
+
 		char* rEtypeArray = new char[ refinedElementSize ];
 		kmb::ElementContainerMixedArray* refineElements = new kmb::ElementContainerMixedArray( refinedElementSize, rEtypeArray, reinterpret_cast<kmb::nodeIdType*>(resultNodeArray), true, rcapRefinerDoc.nodeOffset );
 		refineElements->setOffsetId( rcapRefinerDoc.maxRefinedElementId+1 );
@@ -319,11 +561,11 @@ size_t rcapRefineElementMulti( size_t num, int8_t* etypeArray, int32_t* nodeArra
 
 		rcapRefinerDoc.maxElementId = orgElements->getMaxId();
 		rcapRefinerDoc.maxRefinedElementId = refineElements->getMaxId();
-		count = refineElements->getCount();
+
+		refinedNodeArraySize = refineElements->getNodeTableSize();
 		delete refineElements;
 		delete[] rEtypeArray;
 	}
-	REVOCAP_Debug("rcapRefineElementMulti finish\n");
 	*refinedNum = refinedElementSize;
 	return refinedNodeArraySize;
 }
@@ -339,123 +581,13 @@ void rcapCommit(void)
 			bext.appendBody(bodyId);
 		}
 		kmb::bodyIdType boundaryId = bext.getBoundary();
-		REVOCAP_Debug("rcapCommit boundary surface extract %d\n", rcapRefinerDoc.mesh->getElementCount(boundaryId) );
 		kmb::ElementContainer* boundaryBody = rcapRefinerDoc.mesh->getBodyPtr(boundaryId);
-		REVOCAP_Debug("boundary element count => %d\n", boundaryBody->getCount());
 		rcapRefinerDoc.boundaryRefiner->refineBody( boundaryBody, NULL );
 		rcapRefinerDoc.boundaryRefiner->commitData();
 	}
 	if(rcapRefinerDoc.refiner){
 		rcapRefinerDoc.refiner->commitData();
 	}
-}
-
-void rcapSetNode64( size_t num, float64_t* coords, int32_t* globalIds, int32_t* localIds )
-{
-	REVOCAP_Debug("rcapSetNode64 start\n");
-	/* まだ global Id を考慮していない */
-	if(rcapRefinerDoc.mesh == NULL){
-		return;
-	}
-	if( localIds==NULL || localIds[0] < rcapRefinerDoc.nodeOffset ){
-		REVOCAP_Debug("rcapSetNode64 localIds is NULL\n");
-		for(unsigned int i=0;i<num;++i){
-			rcapRefinerDoc.mesh->insertNode(coords[3*i],coords[3*i+1],coords[3*i+2]);
-		}
-	}else{
-		for(unsigned int i=0;i<num;++i){
-			rcapRefinerDoc.mesh->insertNodeWithId(coords[3*i],coords[3*i+1],coords[3*i+2],localIds[i]-rcapRefinerDoc.nodeOffset);
-		}
-	}
-	REVOCAP_Debug("rcapSetNode64 finish\n");
-}
-
-void rcapSetNode32( size_t num, float32_t* coords, int32_t* globalIds, int32_t* localIds )
-{
-	/* まだ global Id を考慮していない */
-	if(rcapRefinerDoc.mesh == NULL){
-		return;
-	}
-	if( localIds==NULL || localIds[0] < rcapRefinerDoc.nodeOffset ){
-		for(unsigned int i=0;i<num;++i){
-			rcapRefinerDoc.mesh->insertNode(coords[3*i],coords[3*i+1],coords[3*i+2]);
-		}
-	}else{
-		for(unsigned int i=0;i<num;++i){
-			rcapRefinerDoc.mesh->insertNodeWithId(coords[3*i],coords[3*i+1],coords[3*i+2],localIds[i]-rcapRefinerDoc.nodeOffset);
-		}
-	}
-}
-
-size_t rcapGetNodeCount( void )
-{
-	REVOCAP_Debug("rcapGetNodeCount start\n");
-	if(rcapRefinerDoc.mesh){
-		REVOCAP_Debug("rcapGetNodeCount ContainerType %s\n", rcapRefinerDoc.mesh->getNodes()->getContainerType() );
-		return rcapRefinerDoc.mesh->getNodeCount();
-	}else{
-		return 0;
-	}
-}
-
-void rcapGetNode64( size_t num, int32_t* localIds, float64_t* coords )
-{
-	REVOCAP_Debug("rcapGetNode64 start\n");
-	if( rcapRefinerDoc.mesh != NULL ){
-		kmb::Point3D point;
-		for(size_t i=0;i<num;++i){
-			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(localIds[i]-rcapRefinerDoc.nodeOffset),point);
-			coords[3*i]   = point.x();
-			coords[3*i+1] = point.y();
-			coords[3*i+2] = point.z();
-		}
-	}
-	REVOCAP_Debug("rcapGetNode64 finish\n");
-}
-
-void rcapGetNode32( size_t num, int32_t* localIds, float32_t* coords )
-{
-	if( rcapRefinerDoc.mesh != NULL ){
-		kmb::Point3D point;
-		for(size_t i=0;i<num;++i){
-			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(localIds[i]-rcapRefinerDoc.nodeOffset),point);
-			coords[3*i]   = static_cast<float>(point.x());
-			coords[3*i+1] = static_cast<float>(point.y());
-			coords[3*i+2] = static_cast<float>(point.z());
-		}
-	}
-}
-
-void rcapGetNodeSeq64( size_t num, size_t initId, float64_t* coords )
-{
-	REVOCAP_Debug("rcapGetNodeSeq64 start num = %d initId = %d\n", num, initId);
-	if( rcapRefinerDoc.mesh != NULL ){
-		size_t ini = initId - rcapRefinerDoc.nodeOffset;
-		kmb::Point3D point;
-		for(size_t i=ini;i<ini+num;++i){
-			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(i),point);
-			coords[3*i]   = point.x();
-			coords[3*i+1] = point.y();
-			coords[3*i+2] = point.z();
-		}
-	}
-	REVOCAP_Debug("rcapGetNodeSeq64 finish\n");
-}
-
-void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords )
-{
-	REVOCAP_Debug("rcapGetNodeSeq64 start num = %d initId = %d\n", num, initId);
-	if( rcapRefinerDoc.mesh != NULL ){
-		size_t ini = initId - rcapRefinerDoc.nodeOffset;
-		kmb::Point3D point;
-		for(size_t i=ini;i<ini+num;++i){
-			rcapRefinerDoc.mesh->getNode(static_cast<kmb::nodeIdType>(i),point);
-			coords[3*i]   = static_cast<float>(point.x());
-			coords[3*i+1] = static_cast<float>(point.y());
-			coords[3*i+2] = static_cast<float>(point.z());
-		}
-	}
-	REVOCAP_Debug("rcapGetNodeSeq64 finish\n");
 }
 
 int8_t rcapGetOriginal( int32_t localNodeId, int32_t* originalNodeArray )
@@ -489,7 +621,6 @@ int32_t rcapGetMiddle( int8_t etype, int32_t* originalNodeArray )
 
 void rcapAppendNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray )
 {
-	REVOCAP_Debug("Append Node Group [%s]\n",dataname);
 	kmb::DataBindings* data = rcapRefinerDoc.mesh->createDataBindings( dataname, kmb::DataBindings::NODEGROUP, kmb::PhysicalValue::NONE, "NG" );
 	if( data ){
 		for(size_t i=0;i<num;++i){
@@ -506,7 +637,6 @@ size_t rcapGetNodeGroupCount( const char dataname[80] )
 
 void rcapGetNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray )
 {
-	REVOCAP_Debug("Get Node Group [%s]\n",dataname);
 	const kmb::DataBindings* data = rcapRefinerDoc.mesh->getDataBindingsPtr( dataname, "NG" );
 	if( data && data->getBindingMode() == kmb::DataBindings::NODEGROUP ){
 		kmb::DataBindings::const_iterator dIter = data->begin();
@@ -524,7 +654,6 @@ void rcapGetNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray )
 
 void rcapAppendBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray )
 {
-	REVOCAP_Debug("Append Boundary Node Group [%s]\n",dataname);
 	kmb::DataBindings* data = rcapRefinerDoc.mesh->createDataBindings( dataname, kmb::DataBindings::NODEGROUP, kmb::PhysicalValue::NONE, "BNG" );
 	if( data ){
 		for(size_t i=0;i<num;++i){
@@ -541,7 +670,6 @@ size_t rcapGetBNodeGroupCount( const char dataname[80] )
 
 void rcapGetBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray )
 {
-	REVOCAP_Debug("Get Boundary Node Group [%s]\n",dataname);
 	const kmb::DataBindings* data = rcapRefinerDoc.mesh->getDataBindingsPtr( dataname, "BNG" );
 	if( data && data->getBindingMode() == kmb::DataBindings::NODEGROUP ){
 		kmb::DataBindings::const_iterator dIter = data->begin();
@@ -559,7 +687,6 @@ void rcapGetBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray 
 
 void rcapAppendBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray, int32_t* nodeVars )
 {
-	REVOCAP_Debug("Append Boundary Node Variable Int [%s]\n",dataname);
 	kmb::DataBindings* data = new kmb::IntegerMapBindings();
 	if( data ){
 		rcapRefinerDoc.mesh->setDataBindingsPtr( dataname, data, "BNVI" );
@@ -578,7 +705,6 @@ size_t rcapGetBNodeVarIntCount( const char dataname[80] )
 
 void rcapGetBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray, int32_t* nodeVars  )
 {
-	REVOCAP_Debug("Get Boundary Node Variable Int [%s]\n",dataname);
 	const kmb::DataBindings* data = rcapRefinerDoc.mesh->getDataBindingsPtr( dataname, "BNVI" );
 	if( data && data->getBindingMode() == kmb::DataBindings::NODEVARIABLE
 		&& data->getValueType() == kmb::PhysicalValue::INTEGER )
@@ -601,7 +727,6 @@ void rcapGetBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray
 
 void rcapAppendElementGroup( const char dataname[80], size_t num, int32_t* elementArray )
 {
-	REVOCAP_Debug("Append Element Group [%s]\n",dataname);
 	kmb::DataBindings* data = rcapRefinerDoc.mesh->createDataBindings( dataname, kmb::DataBindings::ELEMENTGROUP, kmb::PhysicalValue::NONE, "EG" );
 	if( data ){
 		for(size_t i=0;i<num;++i){
@@ -635,7 +760,6 @@ void rcapGetElementGroup( const char dataname[80], size_t num, int32_t* elementA
 
 void rcapAppendFaceGroup( const char dataname[80], size_t num, int32_t* faceArray )
 {
-	REVOCAP_Debug("Append Face Group [%s]\n",dataname);
 	kmb::DataBindings* data = rcapRefinerDoc.mesh->createDataBindings( dataname, kmb::DataBindings::FACEGROUP, kmb::PhysicalValue::NONE, "FG" );
 	if( data ){
 		for(size_t i=0;i<num;++i){
@@ -683,213 +807,46 @@ void rcapGetInterpolateMode( char mode[32] )
 	strcpy(mode,m);
 }
 
-int32_t rcapLoadGFFile( const char* gffile, const char* bounfile )
+
+void rcapQualityReport_local( const char name[80], std::ostream &output )
 {
-	kmb::FFBIO ffbIO;
-	rcapRefinerDoc.mesh->clearModel();
-	rcapRefinerDoc.mesh->beginModel();
-	ffbIO.loadFromMeshFile( gffile, rcapRefinerDoc.mesh );
-	ffbIO.loadFromBoundaryFile( bounfile, rcapRefinerDoc.mesh );
-	rcapRefinerDoc.mesh->endModel();
-	rcapRefinerDoc.maxElementId = rcapRefinerDoc.mesh->getMaxElementId();
-
-	rcapRefinerDoc.refiner->setMesh( rcapRefinerDoc.mesh );
-	rcapRefinerDoc.boundaryRefiner->setMesh( rcapRefinerDoc.mesh );
-
-
-
-
-
-
-
-
-
-
-	return rcapRefinerDoc.mesh->getElementCount();
-}
-
-int32_t rcapLoadHECFile( const char* hecfile )
-{
-	kmb::HECMWIO hecIO;
-	rcapRefinerDoc.mesh->clearModel();
-	hecIO.loadFromFile( hecfile, rcapRefinerDoc.mesh );
-	return rcapRefinerDoc.mesh->getElementCount();
-}
-
-
-
-
-void rcapRefineFFbModel( void )
-{
-	REVOCAP_Debug("inlt data size => %d\n", rcapRefinerDoc.mesh->getIdCount("BC_INLT") );
-	REVOCAP_Debug("wall data size => %d\n", rcapRefinerDoc.mesh->getIdCount("BC_WALL") );
-	REVOCAP_Debug("free data size => %d\n", rcapRefinerDoc.mesh->getIdCount("BC_FREE") );
-	size_t dataNum = 0;
-	dataNum += rcapRefinerDoc.mesh->getIdCount( "BC_INLT" );
-	dataNum += rcapRefinerDoc.mesh->getIdCount( "BC_WALL" );
-	dataNum += rcapRefinerDoc.mesh->getIdCount( "BC_FREE" );
-	int32_t* nodeArray = new int32_t[dataNum];
-	int32_t* nodeVars = new int32_t[dataNum];
-	unsigned int i= 0,j=0;
-	double inlet_v[3] = {0.0, 0.0, 1.0};
-	kmb::DataBindings::iterator dIterInlt = rcapRefinerDoc.mesh->getDataBindingsPtr( "BC_INLT" )->begin();
-	while( !dIterInlt.isFinished() ){
-		nodeArray[i] = dIterInlt.getId();
-		dIterInlt.getValue( inlet_v );
-		nodeVars[i] = 1;
-		++dIterInlt;
-		++i;
-	}
-	kmb::DataBindings::iterator dIterWall = rcapRefinerDoc.mesh->getDataBindingsPtr( "BC_WALL" )->begin();
-	while( !dIterWall.isFinished() ){
-		nodeArray[i] = dIterWall.getId();
-		nodeVars[i] = 3;
-		++dIterWall;
-		++i;
-	}
-	kmb::DataBindings::iterator dIterFree = rcapRefinerDoc.mesh->getDataBindingsPtr( "BC_FREE" )->begin();
-	while( !dIterFree.isFinished() ){
-		nodeArray[i] = dIterFree.getId();
-		nodeVars[i] = 5;
-		++dIterFree;
-		++i;
-	}
-	rcapAppendBNodeVarInt( "BC", dataNum, nodeArray, nodeVars );
-	delete[] nodeArray;
-	delete[] nodeVars;
-	REVOCAP_Debug("data size = %d\n", rcapGetBNodeVarIntCount("BC") );
-
-
-	size_t elementCount = rcapRefinerDoc.mesh->getElementCount(0);
-	REVOCAP_Debug("refine element count = %d\n", elementCount );
-	int32_t* nodeTable = new int32_t[elementCount*8];
-	int8_t* typeTable = new int8_t[elementCount];
-
-	kmb::ElementContainer::const_iterator eIter = rcapRefinerDoc.mesh->getBodyPtr(0)->begin();
-	i = 0; j = 0;
-	while( !eIter.isFinished() ){
-		int num = eIter.getNodeCount();
-		for(int k=0;k<num;++k){
-			nodeTable[i+k] = eIter.getCellId(k);
-		}
-		typeTable[j] = eIter.getType();
-		i += num;
-		++j;
-		++eIter;
-	}
-	REVOCAP_Debug("input data generated.\n");
-
-	size_t refineNum = 0;
-	size_t refineNodeCount = 0;
-	refineNodeCount = rcapRefineElementMulti( elementCount, typeTable, nodeTable, &refineNum, NULL, NULL );
-	REVOCAP_Debug("refineElementCount = %d, refineNodeTableSize = %d\n", refineNum, refineNodeCount);
-	int32_t* refineNodeTable = new int32_t[refineNodeCount];
-	int8_t* refineTypeTable = new int8_t[refineNum];
-	refineNodeTable[0] = 0;
-	REVOCAP_Debug("RefineElement\n");
-	rcapRefineElementMulti( elementCount, typeTable, nodeTable, &refineNum, refineTypeTable, refineNodeTable );
-
-	REVOCAP_Debug("Commit\n");
-	rcapCommit();
-
-	rcapRefinerDoc.mesh->clearBody(0);
-	rcapRefinerDoc.mesh->beginElement( refineNum );
-	kmb::nodeIdType nodes[20];
-	i = 0;
-	for(j=0;j<refineNum;++j){
-		kmb::elementType etype = static_cast<kmb::elementType>(refineTypeTable[j]);
-		int num = kmb::Element::getNodeCount( etype );
-		for(int k=0;k<num;++k){
-			nodes[k] = refineNodeTable[i+k];
-		}
-		i += num;
-		rcapRefinerDoc.mesh->addElement( etype, nodes );
-	}
-	rcapRefinerDoc.mesh->endElement();
-
-
-	REVOCAP_Debug("refined data size = %d\n", rcapRefinerDoc.mesh->getIdCount("BC") );
-	kmb::DataBindings::iterator dIterBC = rcapRefinerDoc.mesh->getDataBindingsPtr( "BC" )->begin();
-	kmb::DataBindings* inlt = rcapRefinerDoc.mesh->getDataBindingsPtr( "BC_INLT" );
-	kmb::DataBindings* wall = rcapRefinerDoc.mesh->getDataBindingsPtr( "BC_WALL" );
-	kmb::DataBindings* free = rcapRefinerDoc.mesh->getDataBindingsPtr( "BC_FREE" );
-	inlt->clear();
-	wall->clear();
-	free->clear();
-	long l=0;
-	while( !dIterBC.isFinished() ){
-		if( dIterBC.getValue( &l ) ){
-			switch(l){
-				case 1:
-					inlt->setPhysicalValue( dIterBC.getId(), inlet_v );
-					break;
-				case 3:
-					wall->addId( dIterBC.getId() );
-					break;
-				case 5:
-					free->addId( dIterBC.getId() );
-					break;
-				default:
-					break;
+	output << "===== REVOCAP Refiner Mesh Quality Report =====" << std::endl;
+	if( strcmp(name,"AspectRatio")==0 ){
+		kmb::MinMaxWithId minmax;
+		kmb::Point3DContainer* nodes = rcapRefinerDoc.mesh->getNodes();
+		kmb::ElementEvaluator evaluator(nodes);
+		kmb::bodyIdType bCount = rcapRefinerDoc.mesh->getBodyCount();
+		for(kmb::bodyIdType bodyId = 0;bodyId<bCount;++bodyId){
+			kmb::ElementContainer* body = rcapRefinerDoc.mesh->getBodyPtr(bodyId);
+			if( body && body->isUniqueDim(3) ){
+				kmb::ElementContainer::iterator eIter = body->begin();
+				double ratio = 0.0;
+				while( !eIter.isFinished() ){
+					ratio = evaluator.getAspectRatio( eIter );
+					minmax.update(ratio,eIter.getId());
+					++eIter;
+				}
 			}
 		}
-		++dIterBC;
+		output << "Aspect Ratio" << std::endl;
+		output << "max value " << minmax.getMax() << " at " << minmax.getMaxId() << std::endl;
+		output << "min value " << minmax.getMin() << " at " << minmax.getMinId() << std::endl;
 	}
-	REVOCAP_Debug("refined inlt data size => %d\n", inlt->getIdCount());
-	REVOCAP_Debug("refined wall data size => %d\n", wall->getIdCount());
-	REVOCAP_Debug("refined free data size => %d\n", free->getIdCount());
+	output << "===== REVOCAP Refiner Mesh Quality Report End =====" << std::endl;
+}
 
-	size_t nodeCount = rcapRefinerDoc.mesh->getNodeCount();
-	int8_t etype;
-	int32_t orgNodes[20];
-	for(j=0;j<nodeCount;++j){
-		for(int k=0;k<8;++k){
-			orgNodes[k]= -1;
+void rcapQualityReport( const char mode[80], const char* filename )
+{
+	if( filename && strlen(filename) > 0 ){
+		std::ofstream output( filename, std::ios_base::out );
+		if( !output.fail() ){
+			rcapQualityReport_local(mode,output);
+			output.close();
+			return;
 		}
-		etype = rcapGetOriginal( j, orgNodes );
-		REVOCAP_Debug_3("original type %d => %d [%d %d %d %d %d %d %d %d]\n",
-										j ,etype,
-										orgNodes[0],
-										orgNodes[1],
-										orgNodes[2],
-										orgNodes[3],
-										orgNodes[4],
-										orgNodes[5],
-										orgNodes[6],
-										orgNodes[7]);
 	}
-
-	delete[] nodeTable;
-	delete[] refineNodeTable;
-	delete[] typeTable;
-	delete[] refineTypeTable;
-
-	rcapRefinerDoc.mesh->clearBody(1);
-	rcapRefinerDoc.mesh->clearBody(2);
-}
-
-int32_t rcapSaveGFFile( const char* gffile, const char* bounfile )
-{
-	kmb::FFBIO ffbIO;
-	ffbIO.saveToMeshFile( gffile, rcapRefinerDoc.mesh );
-	ffbIO.saveToBoundaryFile( bounfile, rcapRefinerDoc.mesh );
-	kmb::RevocapNeutralIO rnfIO;
-	rnfIO.saveToRNFFile( "output.rnf" , rcapRefinerDoc.mesh );
-	return rcapRefinerDoc.mesh->getElementCount();
-}
-
-int32_t rcapSaveHECFile( const char* hecfile )
-{
-	kmb::HECMWIO hecIO;
-	hecIO.saveToFile( hecfile, rcapRefinerDoc.mesh );
-	return rcapRefinerDoc.mesh->getElementCount();
-}
-
-int32_t rcapSaveRNFFile( const char* rnffile )
-{
-	kmb::RevocapNeutralIO rnfIO;
-	rnfIO.saveToRNFFile( rnffile, rcapRefinerDoc.mesh );
-	return rcapRefinerDoc.mesh->getElementCount();
+	rcapQualityReport_local(mode,std::cerr);
+	return;
 }
 
 /* rcapxxx_  すべて小文字 */
@@ -900,6 +857,7 @@ void rcapclearrefiner_( void ){ rcapClearRefiner(); }
 void rcaptermrefiner_( void ){ rcapTermRefiner(); }
 
 void rcapsetcadfilename_( const char* filename ){ rcapSetCADFilename( filename ); }
+void rcapsetsecondfitting_( int32_t* flag ){ rcapSetSecondFitting( *flag ); }
 void rcapsetpartitionfilename_( const char* filename ){ rcapSetPartitionFilename( filename ); }
 
 void rcapsetnode64_( int32_t* num, float64_t* coords, int32_t* globalIds, int32_t* localIds ){
@@ -1009,23 +967,8 @@ int32_t rcapgetmiddle_( int8_t *etype, int32_t* originalNodeArray ){
 	return rcapGetMiddle(*etype,originalNodeArray);
 }
 
-int32_t rcaploadgffile_( const char* gffile, const char* bounfile ){
-	return rcapLoadGFFile( gffile, bounfile );
+void rcapqualityreport_( const char mode[80], const char* filename ){
+	rcapQualityReport(mode,filename);
 }
 
-int32_t rcaploadhecfile_( const char* hecfile ){
-	return rcapLoadHECFile( hecfile );
-}
-
-int32_t rcapsavegffile_( const char* gffile, const char* bounfile ){
-	return rcapSaveGFFile( gffile, bounfile );
-}
-
-int32_t rcapsavehecfile_( const char* hecfile ){
-	return rcapSaveHECFile( hecfile );
-}
-
-int32_t rcapsavernffile_( const char* hecfile ){
-	return rcapSaveRNFFile( hecfile );
-}
 #endif

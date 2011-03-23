@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ScalarValueBindings                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -15,7 +15,13 @@
 #include "MeshDB/kmbScalarValueBindings.h"
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 kmb::ScalarValueBindings::ScalarValueBindings(size_t count,kmb::DataBindings::bindingMode bmode)

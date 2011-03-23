@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Sphere                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -33,12 +33,12 @@ namespace kmb{
 
 class Sphere : public Region
 {
-public:
-	Sphere(void);
-	virtual ~Sphere(void);
 private:
 	Point3D center;
 	double radius;
+public:
+	Sphere(void);
+	virtual ~Sphere(void);
 public:
 
 	void setCenter(Point3D &pt);
@@ -58,17 +58,17 @@ public:
 	double eval(const kmb::Point3D &point) const;
 
 
-	static Sphere* createInscribedSphere(Point3D &a,Point3D &b,Point3D &c,Point3D &d);
+	static Sphere* createInscribedSphere(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
 
-	static double getInscribedRadius(Point3D &a,Point3D &b,Point3D &c,Point3D &d);
+	static double getInscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
 
-	static Point3D getInscribedCenter(Point3D &a,Point3D &b,Point3D &c,Point3D &d);
+	static Point3D getInscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
 
-	static Sphere*	createCircumscribedSphere(Point3D &a,Point3D &b,Point3D &c,Point3D &d);
+	static Sphere* createCircumscribedSphere(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
 
-	static double getCircumscribedRadius(Point3D &a,Point3D &b,Point3D &c,Point3D &d);
+	static double getCircumscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
 
-	static Point3D getCircumscribedCenter(Point3D &a,Point3D &b,Point3D &c,Point3D &d);
+	static Point3D getCircumscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
 };
 
 }

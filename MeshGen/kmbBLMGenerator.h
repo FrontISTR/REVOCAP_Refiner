@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BLMGenerator                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -43,6 +43,12 @@ class Quad;
 
 class BLMGenerator
 {
+protected:
+
+
+	int layerNum;
+	double* layerThick;
+	MeshDB* meshDB;
 public:
 	BLMGenerator(void);
 	BLMGenerator(MeshDB* meshDB);
@@ -55,57 +61,51 @@ public:
 
 
 
-	virtual bool generate(kmb::bodyIdType bodyID,kmb::bodyIdType &layerID,kmb::bodyIdType &boundaryID);
+	virtual bool generate(kmb::bodyIdType bodyId,kmb::bodyIdType &layerId,kmb::bodyIdType &boundaryId);
+
+
+
+
+
+	virtual bool generateFromData(const char* faceGroup,kmb::bodyIdType &layerId);
 
 
 
 
 
 
-	void		setLayer(int layerNum,double* thicks);
+	void setLayer(int layerNum,double* thicks);
 
-	void		setMeshDB(MeshDB* meshDB);
+	void setMeshDB(MeshDB* meshDB);
 protected:
 
 
-	int			layerNum;
-	double*		layerThick;
-	MeshDB* meshDB;
+
+	bool appendLayerElements( kmb::bodyIdType bodyId, kmb::ElementBase &upper, kmb::ElementBase &lower);
+
+
+
+	bool appendLayerElements( kmb::bodyIdType bodyId, kmb::ElementBase &upper, kmb::nodeIdType lowerId);
+
+
+
+	bool appendLayerElements( kmb::bodyIdType bodyId, kmb::nodeIdType upperId, kmb::ElementBase &lower);
 
 
 
 
 
 
-	kmb::elementType appendElement2D( kmb::bodyIdType bodyID,std::vector< kmb::nodeIdType >* nodes );
-
-
-
-
-	bool appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::ElementBase &lower);
-
-
-
-	bool appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::nodeIdType lowerID);
-
-
-
-	bool appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID, kmb::ElementBase &lower);
+	bool appendLayerElements( kmb::bodyIdType bodyId, kmb::ElementBase &upper, kmb::nodeIdType lowerId0, kmb::nodeIdType lowerId1);
 
 
 
 
 
 
-	bool appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::nodeIdType lowerID0, kmb::nodeIdType lowerID1);
+	bool appendLayerElements( kmb::bodyIdType bodyId, kmb::nodeIdType upperId0, kmb::nodeIdType upperId1, kmb::ElementBase &lower);
 
-
-
-
-
-
-	bool appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::nodeIdType upperID1, kmb::ElementBase &lower);
-
+/*
 
 
 
@@ -117,6 +117,7 @@ protected:
 
 
 	bool appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::nodeIdType upperID1, std::vector<kmb::nodeIdType>& lowerID0, std::vector<kmb::nodeIdType>& lowerID1);
+*/
 
 
 
@@ -132,11 +133,10 @@ protected:
 
 
 
-
-	kmb::nodeIdType		getLayerNodeId(kmb::nodeIdType outerNodeID, kmb::nodeIdType innerNodeID, int layerIndex );
+	kmb::nodeIdType getLayerNodeId(kmb::nodeIdType outerNodeID, kmb::nodeIdType innerNodeID, int layerIndex );
 private:
-	std::map< std::pair<kmb::nodeIdType,kmb::nodeIdType>, kmb::nodeIdType* >	layerNodes;
-	void				clearLayerNodes(void);
+	std::map< std::pair<kmb::nodeIdType,kmb::nodeIdType>, kmb::nodeIdType* > layerNodes;
+	void clearLayerNodes(void);
 };
 
 }

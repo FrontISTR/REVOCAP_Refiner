@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Tetrahedron                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,9 +30,14 @@
 #include "Geometry/kmb_Sphere.h"
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
 #endif
 
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
 
 /********************************************************************************
 =begin
@@ -155,216 +160,6 @@ kmb::Tetrahedron::~Tetrahedron(void)
 {
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void
 kmb::Tetrahedron::shapeFunction(double s,double t,double u,double* coeff)
 {
@@ -374,14 +169,24 @@ kmb::Tetrahedron::shapeFunction(double s,double t,double u,double* coeff)
 	coeff[3] = u;
 }
 
+double
+kmb::Tetrahedron::checkShapeFunctionDomain(double s,double t,double u)
+{
+	kmb::Minimizer minimizer;
+	minimizer.update( 1.0-s-t-u );
+	minimizer.update( s );
+	minimizer.update( t );
+	minimizer.update( u );
+	return minimizer.getMin();
+}
+
 bool
-kmb::Tetrahedron::getNaturalCoordinates(const double physicalCoords[3],const kmb::Point3D* points,double naturalCoords[3],double margin)
+kmb::Tetrahedron::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[3])
 {
 	if( points == NULL ){
 		return false;
 	}
 	double coords[4] = {0.0,0.0,0.0,0.0};
-	kmb::Point3D target( physicalCoords[0], physicalCoords[1], physicalCoords[2] );
 	kmb::Point3D::calcMinorCoordinate( points[0], points[1], points[2], points[3], target, coords);
 	double sum = coords[0] + coords[1] + coords[2] + coords[3];
 	if( sum != 0.0 ){
@@ -394,19 +199,18 @@ kmb::Tetrahedron::getNaturalCoordinates(const double physicalCoords[3],const kmb
 }
 
 bool
-kmb::Tetrahedron::getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,double physicalCoords[3])
+kmb::Tetrahedron::getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,kmb::Point3D &target)
 {
 	if( points == NULL ){
 		return false;
 	}
 	double coeff[4];
 	shapeFunction( naturalCoords[0], naturalCoords[1], naturalCoords[2], coeff );
+	target.zero();
 	for(int i=0;i<3;++i){
-		physicalCoords[i] = 0.0;
 		for(int j=0;j<4;++j){
-			physicalCoords[i] += points[j].getCoordinate(i) * coeff[j];
+			target.addCoordinate(i,points[j].getCoordinate(i) * coeff[j]);
 		}
 	}
 	return true;
 }
-

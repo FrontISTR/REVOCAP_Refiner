@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point2DContainerMap                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -31,6 +31,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 
@@ -504,6 +509,18 @@ kmb::Point2DContainerMap::_iteratorMap::getPoint(kmb::Point2D &point) const
 	}else{
 		return false;
 	}
+}
+
+double
+kmb::Point2DContainerMap::_iteratorMap::x(void) const
+{
+	return  pointIter->second->x();
+}
+
+double
+kmb::Point2DContainerMap::_iteratorMap::y(void) const
+{
+	return  pointIter->second->y();
 }
 
 bool

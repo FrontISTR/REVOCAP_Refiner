@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Quad                                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,6 +24,14 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbQuad.h"
+#include "Geometry/kmb_Geometry2D.h"
+#include "Geometry/kmb_Geometry3D.h"
+#include <cfloat>
+
+#include "Matrix/kmbMatrix.h"
+#include "Matrix/kmbVector.h"
+#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmb_Optimization.h"
 
 /********************************************************************************
 =begin
@@ -104,6 +112,207 @@ kmb::Quad::shapeFunction(double s,double t,double* coeff)
 	coeff[1] = 0.25*(1.0+s)*(1.0-t);
 	coeff[2] = 0.25*(1.0+s)*(1.0+t);
 	coeff[3] = 0.25*(1.0-s)*(1.0+t);
+}
+
+void
+kmb::Quad::shapeFunction_ds(double s,double t,double* coeff)
+{
+	coeff[0] = 0.25*(-1.0+t);
+	coeff[1] = 0.25*( 1.0-t);
+	coeff[2] = 0.25*( 1.0+t);
+	coeff[3] = 0.25*(-1.0-t);
+}
+
+void
+kmb::Quad::shapeFunction_dt(double s,double t,double* coeff)
+{
+	coeff[0] = 0.25*(-1.0+s);
+	coeff[1] = 0.25*(-1.0-s);
+	coeff[2] = 0.25*( 1.0+s);
+	coeff[3] = 0.25*( 1.0-s);
+}
+
+void
+kmb::Quad::shapeFunction_dsds(double s,double t,double* coeff)
+{
+	coeff[0] = 0.0;
+	coeff[1] = 0.0;
+	coeff[2] = 0.0;
+	coeff[3] = 0.0;
+}
+
+void
+kmb::Quad::shapeFunction_dsdt(double s,double t,double* coeff)
+{
+	coeff[0] =  0.25;
+	coeff[1] = -0.25;
+	coeff[2] =  0.25;
+	coeff[3] = -0.25;
+}
+
+void
+kmb::Quad::shapeFunction_dtdt(double s,double t,double* coeff)
+{
+	coeff[0] = 0.0;
+	coeff[1] = 0.0;
+	coeff[2] = 0.0;
+	coeff[3] = 0.0;
+}
+
+double
+kmb::Quad::checkShapeFunctionDomain(double s,double t)
+{
+	kmb::Minimizer minimizer;
+	minimizer.update( 1.0-s );
+	minimizer.update( 1.0+s );
+	minimizer.update( 1.0-t );
+	minimizer.update( 1.0+t );
+	return minimizer.getMin();
+}
+
+
+
+bool
+kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[2])
+{
+	if( points == NULL ){
+		return false;
+	}
+	/*
+	 * 4角形の要素座標を求めるためにニュートン法を行う
+	 */
+	class nr_local : public kmb::OptTargetVV {
+	public:
+		kmb::Point3D target;
+		const kmb::Point3D* points;
+		int getDomainDim(void) const { return 2; };
+		int getRangeDim(void) const { return 2; };
+		bool f(const kmb::ColumnVector &t,kmb::ColumnVector &val){
+			int len = kmb::Element::getNodeCount(kmb::QUAD);
+			double coeff[4] = { 0.0, 0.0, 0.0, 0.0 };
+			kmb::Quad::shapeFunction( t[0], t[1], coeff );
+			double g[3] = {0.0,0.0,0.0};
+			double dgds[3] = {0.0,0.0,0.0};
+			double dgdt[3] = {0.0,0.0,0.0};
+			for(int i=0;i<len;++i){
+				g[0] += coeff[i] * points[i].x();
+				g[1] += coeff[i] * points[i].y();
+				g[2] += coeff[i] * points[i].z();
+			}
+			g[0] -= target[0];
+			g[1] -= target[1];
+			g[2] -= target[2];
+
+			kmb::Quad::shapeFunction_ds(t[0],t[1],coeff);
+			for(int i=0;i<3;++i){
+				dgds[i] = 0.0;
+				for(int j=0;j<len;++j){
+					dgds[i] += coeff[j] * points[j][i];
+				}
+			}
+
+			kmb::Quad::shapeFunction_dt(t[0],t[1],coeff);
+			for(int i=0;i<3;++i){
+				dgdt[i] = 0.0;
+				for(int j=0;j<len;++j){
+					dgdt[i] += coeff[j] * points[j][i];
+				}
+			}
+			val[0] = kmb::Vector3D::inner(g,dgds);
+			val[1] = kmb::Vector3D::inner(g,dgdt);
+			return true;
+		}
+		bool df(const ColumnVector &t,Matrix &jac){
+			int len = kmb::Element::getNodeCount(kmb::QUAD);
+			double g[3] = {0.0,0.0,0.0};
+			double dgds[3] = {0.0,0.0,0.0};
+			double dgdt[3] = {0.0,0.0,0.0};
+			double dgdss[3] = {0.0,0.0,0.0};
+			double dgdst[3] = {0.0,0.0,0.0};
+			double dgdtt[3] = {0.0,0.0,0.0};
+			double coeff[4] = { 0.0, 0.0, 0.0, 0.0 };
+			kmb::Quad::shapeFunction( t[0], t[1], coeff );
+			for(int i=0;i<len;++i){
+				g[0] += coeff[i] * points[i].x();
+				g[1] += coeff[i] * points[i].y();
+				g[2] += coeff[i] * points[i].z();
+			}
+			g[0] -= target[0];
+			g[1] -= target[1];
+			g[2] -= target[2];
+
+			kmb::Quad::shapeFunction_ds(t[0],t[1],coeff);
+			for(int i=0;i<3;++i){
+				dgds[i] = 0.0;
+				for(int j=0;j<len;++j){
+					dgds[i] += coeff[j] * points[j][i];
+				}
+			}
+
+			kmb::Quad::shapeFunction_dt(t[0],t[1],coeff);
+			for(int i=0;i<3;++i){
+				dgdt[i] = 0.0;
+				for(int j=0;j<len;++j){
+					dgdt[i] += coeff[j] * points[j][i];
+				}
+			}
+
+			kmb::Quad::shapeFunction_dsds(t[0],t[1],coeff);
+			for(int i=0;i<3;++i){
+				dgdss[i] = 0.0;
+				for(int j=0;j<len;++j){
+					dgdss[i] += coeff[j] * points[j][i];
+				}
+			}
+
+			kmb::Quad::shapeFunction_dsdt(t[0],t[1],coeff);
+			for(int i=0;i<3;++i){
+				dgdst[i] = 0.0;
+				for(int j=0;j<len;++j){
+					dgdst[i] += coeff[j] * points[j][i];
+				}
+			}
+
+			kmb::Quad::shapeFunction_dtdt(t[0],t[1],coeff);
+			for(int i=0;i<3;++i){
+				dgdtt[i] = 0.0;
+				for(int j=0;j<len;++j){
+					dgdtt[i] += coeff[j] * points[j][i];
+				}
+			}
+			jac.set(0,0,kmb::Vector3D::inner(dgds,dgds)+kmb::Vector3D::inner(g,dgdss));
+			jac.set(0,1,kmb::Vector3D::inner(dgds,dgdt)+kmb::Vector3D::inner(g,dgdst));
+			jac.set(1,0,jac.get(0,1));
+			jac.set(1,1,kmb::Vector3D::inner(dgdt,dgdt)+kmb::Vector3D::inner(g,dgdtt));
+			return true;
+		}
+		nr_local(const kmb::Point3D &t,const kmb::Point3D* pt)
+		: target(t), points(pt){}
+	};
+	nr_local opt_obj(target,points);
+
+
+	double init_t[2]  = { 0.0,  0.0};
+	kmb::Optimization opt;
+	bool res = opt.calcZero_DN( opt_obj, naturalCoords, init_t );
+	return res;
+}
+
+bool
+kmb::Quad::getPhysicalCoordinates(const double naturalCoords[2],const kmb::Point3D* points,kmb::Point3D &target)
+{
+	if( points == NULL ){
+		return false;
+	}
+	double coeff[4] = { 0.0, 0.0, 0.0, 0.0 };
+	shapeFunction( naturalCoords[0], naturalCoords[1], coeff );
+	target.zero();
+	for(int i=0;i<3;++i){
+		for(int j=0;j<4;++j){
+			target.addCoordinate(i,points[j].getCoordinate(i) * coeff[j]);
+		}
+	}
+	return true;
 }
 
 bool
@@ -337,3 +546,64 @@ kmb::Quad::isCoincident(kmb::nodeIdType t00,kmb::nodeIdType t01,kmb::nodeIdType 
 		return 0;
 	}
 }
+
+double
+kmb::Quad::jacobian(double s, double t,const kmb::Point2D* points)
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	double jsx = 0.25 * ( -points[0].x() + points[1].x() + points[2].x() - points[3].x() )
+		+ 0.25 * t * ( points[0].x() - points[1].x() + points[2].x() - points[3].x() );
+	double jsy = 0.25 * ( -points[0].y() + points[1].y() + points[2].y() - points[3].y() )
+		+ 0.25 * t * ( points[0].y() - points[1].y() + points[2].y() - points[3].y() );
+	double jtx = 0.25 * ( -points[0].x() - points[1].x() + points[2].x() + points[3].x() )
+		+ 0.25 * s * ( points[0].x() - points[1].x() + points[2].x() - points[3].x() );
+	double jty = 0.25 * ( -points[0].y() - points[1].y() + points[2].y() + points[3].y() )
+		+ 0.25 * s * ( points[0].y() - points[1].y() + points[2].y() - points[3].y() );
+	return jsx * jty - jsy * jtx;
+}
+
+
+
+
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
+
+double
+kmb::Quad::jacobian_ds(double s, double t,const kmb::Point2D* points)
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	double jsxs = 0.25 * ( -points[0].x() + points[1].x() + points[2].x() - points[3].x() );
+	double jsys = 0.25 * ( -points[0].y() + points[1].y() + points[2].y() - points[3].y() );
+	double jtxs = 0.25 * (  points[0].x() - points[1].x() + points[2].x() - points[3].x() );
+	double jtys = 0.25 * (  points[0].y() - points[1].y() + points[2].y() - points[3].y() );
+	return jsxs * jtys - jsys * jtxs;
+}
+
+double
+kmb::Quad::jacobian_dt(double s, double t,const kmb::Point2D* points)
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	double jsxt = 0.25 * (  points[0].x() - points[1].x() + points[2].x() - points[3].x() );
+	double jsyt = 0.25 * (  points[0].y() - points[1].y() + points[2].y() - points[3].y() );
+	double jtxt = 0.25 * ( -points[0].x() - points[1].x() + points[2].x() + points[3].x() );
+	double jtyt = 0.25 * ( -points[0].y() - points[1].y() + points[2].y() + points[3].y() );
+	return jsxt * jtyt - jsyt * jtxt;
+}
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BoundingBox                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,6 +24,7 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "Geometry/kmb_BoundingBox.h"
+#include "Geometry/kmb_Calculator.h"
 #include <cfloat>
 
 kmb::BoundingBox::BoundingBox(void)
@@ -82,7 +83,7 @@ kmb::BoundingBox::update(const double x, const double y,const double z)
 
 
 bool
-kmb::BoundingBox::update(const BoundingBox& box)
+kmb::BoundingBox::update(const BoxRegion& box)
 {
 	bool flag = false;
 	if( update( box.getMax() ) ){
@@ -92,6 +93,12 @@ kmb::BoundingBox::update(const BoundingBox& box)
 		flag = true;
 	}
 	return flag;
+}
+
+bool
+kmb::BoundingBox::valid(void) const
+{
+	return ( minPoint.x() <= maxPoint.x() && minPoint.y() <= maxPoint.y() && minPoint.z() <= maxPoint.z() );
 }
 
 kmb::BoundingBox2D::BoundingBox2D(void)
@@ -140,6 +147,12 @@ kmb::BoundingBox2D::update(const double x, const double y)
 	return flag;
 }
 
+bool
+kmb::BoundingBox2D::valid(void) const
+{
+	return ( minPoint.x() <= maxPoint.x() && minPoint.y() <= maxPoint.y() );
+}
+
 kmb::BoundingBox1D::BoundingBox1D(void)
 {
 	initialize();
@@ -180,4 +193,42 @@ double
 kmb::BoundingBox1D::range(void) const
 {
 	return maxValue - minValue;
+}
+
+bool
+kmb::BoundingBox1D::valid(void) const
+{
+	return ( minValue <= maxValue );
+}
+
+bool
+kmb::BoundingBox1D::intersect(const kmb::BoundingBox1D& box) const
+{
+	double low = kmb::Maximizer::getMax( getMin(), box.getMin() );
+	double high = kmb::Minimizer::getMin( getMax(), box.getMax() );
+	if( low < high ){
+		return true;
+	}else{
+		return false;
+	}
+}
+
+double
+kmb::BoundingBox1D::intersectLength(const kmb::BoundingBox1D& box) const
+{
+	double low = kmb::Maximizer::getMax( getMin(), box.getMin() );
+	double high = kmb::Minimizer::getMin( getMax(), box.getMax() );
+	if( low < high ){
+		return high - low;
+	}else{
+		return 0.0;
+	}
+}
+
+double
+kmb::BoundingBox1D::distanceSq(const kmb::BoundingBox1D& box) const
+{
+	return
+		( this->maxValue - box.getMax() ) * ( this->maxValue - box.getMax() ) +
+		( this->minValue - box.getMin() ) * ( this->minValue - box.getMin() );
 }

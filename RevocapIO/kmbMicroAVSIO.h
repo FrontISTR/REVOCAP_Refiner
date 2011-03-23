@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MicroAVSIO                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -36,6 +36,7 @@ private:
 	kmb::elementIdType elementOffset;
 
 	bool asVector3;
+	bool summary;
 
 	int version;
 	int nodeCount;
@@ -63,6 +64,8 @@ public:
 	int saveToFile(const char* filename,kmb::MeshData* mesh);
 
 	void setReadAsVector3( bool flag );
+
+	void setSummary( bool flag );
 };
 
 }

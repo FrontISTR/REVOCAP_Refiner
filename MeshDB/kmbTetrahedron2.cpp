@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Tetrahedron2                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -28,6 +28,10 @@
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbElementRelation.h"
 #include "Geometry/kmb_Sphere.h"
+
+#include "Matrix/kmbMatrix.h"
+#include "Matrix/kmbVector.h"
+#include "Geometry/kmb_Optimization.h"
 
 /********************************************************************************
 =begin
@@ -151,8 +155,64 @@ kmb::Tetrahedron2::shapeFunction(double s,double t,double u,double* coeff)
 	coeff[9] = 4.0*u*t;
 }
 
+void
+kmb::Tetrahedron2::shapeFunction_ds(double s,double t,double u,double* coeff)
+{
+	coeff[0] = -3.0 + 4.0*s + 4.0*t + 4.0*u;
+	coeff[1] = -1.0 + 4.0*s;
+	coeff[2] =  0.0;
+	coeff[3] =  0.0;
+	coeff[4] =              + 4.0*t;
+	coeff[5] =              - 4.0*t;
+	coeff[6] =  4.0 - 8.0*s - 4.0*t - 4.0*u;
+	coeff[7] =                      - 4.0*u;
+	coeff[8] =                      + 4.0*u;
+	coeff[9] =  0.0;
+}
+
+void
+kmb::Tetrahedron2::shapeFunction_dt(double s,double t,double u,double* coeff)
+{
+	coeff[0] = -3.0 + 4.0*s + 4.0*t + 4.0*u;
+	coeff[1] =  0.0;
+	coeff[2] = -1.0         + 4.0*t;
+	coeff[3] =  0.0;
+	coeff[4] =      + 4.0*s;
+	coeff[5] =  4.0 - 4.0*s - 8.0*t - 4.0*u;
+	coeff[6] =      - 4.0*s;
+	coeff[7] =                      - 4.0*u;
+	coeff[8] =  0.0;
+	coeff[9] =                      + 4.0*u;
+}
+
+void
+kmb::Tetrahedron2::shapeFunction_du(double s,double t,double u,double* coeff)
+{
+	coeff[0] = -3.0 + 4.0*s + 4.0*t + 4.0*u;
+	coeff[1] =  0.0;
+	coeff[2] =  0.0;
+	coeff[3] = -1.0                 + 4.0*u;
+	coeff[4] =  0.0;
+	coeff[5] =              - 4.0*t;
+	coeff[6] =      - 4.0*s;
+	coeff[7] =  4.0 - 4.0*s - 4.0*t - 8.0*u;
+	coeff[8] =      + 4.0*s;
+	coeff[9] =              + 4.0*t;
+}
+
+double
+kmb::Tetrahedron2::checkShapeFunctionDomain(double s,double t,double u)
+{
+	kmb::Minimizer minimizer;
+	minimizer.update( 1.0-s-t-u );
+	minimizer.update( s );
+	minimizer.update( t );
+	minimizer.update( u );
+	return minimizer.getMin();
+}
+
 bool
-kmb::Tetrahedron2::getNaturalCoordinates(const double physicalCoords[3],const kmb::Point3D* points,double naturalCoords[3],double margin)
+kmb::Tetrahedron2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[3])
 {
 	if( points == NULL ){
 		return false;
@@ -160,650 +220,84 @@ kmb::Tetrahedron2::getNaturalCoordinates(const double physicalCoords[3],const km
 	/*
 	 * 4面体2次の要素座標を求めるためにニュートン法を行う
 	 */
-	const int len = 10;
-	double d = 0.0;
-	double thres = 1.0e-10;
-	kmb::BoundingBox bbox;
-	for(int i=0;i<len;++i){
-		bbox.update( points[i] );
-	}
-	bbox.expand( margin );
-	if( bbox.intersect(physicalCoords[0],physicalCoords[1],physicalCoords[2]) == kmb::BoxRegion::OUTSIDE ){
-		return false;
-	}
-
-	for(int j=0;j<10;++j){
-		for(int i=0;i<50;++i){
-			d = kmb::Tetrahedron2::newtonMethod(physicalCoords,points,naturalCoords);
-			if( d < thres &&
-				0.0 <= naturalCoords[0] && naturalCoords[0] <= 1.0 &&
-				0.0 <= naturalCoords[1] && naturalCoords[1] <= 1.0 &&
-				0.0 <= naturalCoords[2] && naturalCoords[2] <= 1.0 )
-			{
-				return true;
+	class nr_local : public kmb::OptTargetVV {
+	public:
+		kmb::Point3D target;
+		const kmb::Point3D* points;
+		int getDomainDim(void) const { return 3; };
+		int getRangeDim(void) const { return 3; };
+		bool f(const kmb::ColumnVector &t,kmb::ColumnVector &val){
+			double coeff[10] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+			kmb::Tetrahedron2::shapeFunction( t[0], t[1], t[2], coeff );
+			double x=0.0,y=0.0,z=0.0;
+			for(int i=0;i<10;++i){
+				x += coeff[i] * points[i].x();
+				y += coeff[i] * points[i].y();
+				z += coeff[i] * points[i].z();
 			}
-		}
-		if( d < thres &&
-			-margin <= naturalCoords[0] && naturalCoords[0] <= 1.0 + margin &&
-			-margin <= naturalCoords[1] && naturalCoords[1] <= 1.0 + margin &&
-			-margin <= naturalCoords[2] && naturalCoords[2] <= 1.0 + margin )
-		{
+			val.setRow(0,x-target[0]);
+			val.setRow(1,y-target[1]);
+			val.setRow(2,z-target[2]);
 			return true;
 		}
+		bool df(const kmb::ColumnVector &t,kmb::Matrix &jac){
+			double coeff[10];
+			double v = 0.0;
+
+			kmb::Tetrahedron2::shapeFunction_ds(t[0],t[1],t[2],coeff);
+			for(int i=0;i<3;++i){
+				v = 0.0;
+				for(int j=0;j<10;++j){
+					v += coeff[j] * points[j][i];
+				}
+				jac.set(i,0,v);
+			}
+
+			kmb::Tetrahedron2::shapeFunction_dt(t[0],t[1],t[2],coeff);
+			for(int i=0;i<3;++i){
+				v = 0.0;
+				for(int j=0;j<10;++j){
+					v += coeff[j] * points[j][i];
+				}
+				jac.set(i,1,v);
+			}
 
 
-		naturalCoords[0] = -0.01*j*naturalCoords[1];
-		naturalCoords[1] = -0.01*j*naturalCoords[2];
-		naturalCoords[2] = -0.01*j*naturalCoords[0];
-	}
-	return false;
+			kmb::Tetrahedron2::shapeFunction_du(t[0],t[1],t[2],coeff);
+			for(int i=0;i<3;++i){
+				v = 0.0;
+				for(int j=0;j<10;++j){
+					v += coeff[j] * points[j][i];
+				}
+				jac.set(i,2,v);
+			}
+			return true;
+		}
+		nr_local(const kmb::Point3D &t,const kmb::Point3D* pt)
+		: target(t), points(pt){}
+	};
+	nr_local opt_obj(target,points);
+	double min_t[3]  = { 0.0,  0.0,  0.0};
+	double max_t[3]  = { 1.0,  1.0,  1.0};
+	double init_t[3]  = { 0.25,  0.25,  0.25};
+	kmb::Optimization opt;
+	bool res = opt.calcZero_NR( opt_obj, naturalCoords, min_t, max_t, init_t );
+	return res;
 }
 
 bool
-kmb::Tetrahedron2::getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,double physicalCoords[3])
+kmb::Tetrahedron2::getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,kmb::Point3D &target)
 {
 	if( points == NULL ){
 		return false;
 	}
 	double coeff[10];
 	shapeFunction( naturalCoords[0], naturalCoords[1], naturalCoords[2], coeff );
+	target.zero();
 	for(int i=0;i<3;++i){
-		physicalCoords[i] = 0.0;
 		for(int j=0;j<10;++j){
-			physicalCoords[i] += points[j].getCoordinate(i) * coeff[j];
+			target.addCoordinate(i,points[j].getCoordinate(i) * coeff[j]);
 		}
 	}
 	return true;
 }
-
-double
-kmb::Tetrahedron2::newtonMethod(const double physicalCoords[3], const kmb::Point3D* nodes, double naturalCoords[3])
-{
-	double retVal = DBL_MAX;
-	if( nodes == NULL ){
-		return retVal;
-	}
-	double q[3];
-	if( !getPhysicalCoordinates( naturalCoords, nodes, q ) ){
-		return retVal;
-	}
-	double ds[3] = {0.0,0.0,0.0};
-	double dt[3] = {0.0,0.0,0.0};
-	double du[3] = {0.0,0.0,0.0};
-
-	for(int i=0;i<3;++i){
-		ds[i] =
-			  ( -3.0 + 4.0 * naturalCoords[0] + 4.0 * naturalCoords[1] + 4.0 * naturalCoords[2] )  * nodes[0].getCoordinate(i)
-			+ ( 4.0 * naturalCoords[0] - 1.0 ) * nodes[1].getCoordinate(i)
-			+ 4.0 * naturalCoords[1] * nodes[4].getCoordinate(i)
-			- 4.0 * naturalCoords[1] * nodes[5].getCoordinate(i)
-			+ 4.0 * ( 1.0 - 2.0 * naturalCoords[0] - naturalCoords[1] - naturalCoords[2] )  * nodes[6].getCoordinate(i)
-			- 4.0 * naturalCoords[2] * nodes[7].getCoordinate(i)
-			+ 4.0 * naturalCoords[2] * nodes[8].getCoordinate(i);
-		dt[i] =
-			  ( -3.0 + 4.0 * naturalCoords[0] + 4.0 * naturalCoords[1] + 4.0 * naturalCoords[2] )  * nodes[0].getCoordinate(i)
-			+ ( 4.0 * naturalCoords[1] - 1.0 ) * nodes[2].getCoordinate(i)
-			+ 4.0 * naturalCoords[0] * nodes[4].getCoordinate(i)
-			+ 4.0 * ( 1.0 - naturalCoords[0] - 2.0 * naturalCoords[1] - naturalCoords[2] )  * nodes[5].getCoordinate(i)
-			- 4.0 * naturalCoords[0] * nodes[6].getCoordinate(i)
-			- 4.0 * naturalCoords[2] * nodes[7].getCoordinate(i)
-			+ 4.0 * naturalCoords[2] * nodes[9].getCoordinate(i);
-		du[i] =
-			  ( -3.0 + 4.0 * naturalCoords[0] + 4.0 * naturalCoords[1] + 4.0 * naturalCoords[2] )  * nodes[0].getCoordinate(i)
-			+ ( 4.0 * naturalCoords[2] - 1.0 ) * nodes[3].getCoordinate(i)
-			- 4.0 * naturalCoords[1] * nodes[5].getCoordinate(i)
-			- 4.0 * naturalCoords[0] * nodes[6].getCoordinate(i)
-			+ 4.0 * ( 1.0 - naturalCoords[0] - naturalCoords[1] - 2.0 * naturalCoords[2] )  * nodes[7].getCoordinate(i)
-			+ 4.0 * naturalCoords[0] * nodes[8].getCoordinate(i)
-			+ 4.0 * naturalCoords[1] * nodes[9].getCoordinate(i);
-	}
-	kmb::Matrix3x3 mat(
-		ds[0],dt[0],du[0],
-		ds[1],dt[1],du[1],
-		ds[2],ds[2],du[2]);
-	kmb::Vector3D v( q[0]-physicalCoords[0], q[1]-physicalCoords[1], q[2]-physicalCoords[2] );
-	kmb::Vector3D* sol = mat.solve(v);
-	if( sol != NULL ){
-		naturalCoords[0] -= sol->x();
-		naturalCoords[1] -= sol->y();
-		naturalCoords[2] -= sol->z();
-		retVal = sol->length();
-		delete sol;
-	}
-	return retVal;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

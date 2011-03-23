@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Matrix_DoubleArray                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,6 +14,8 @@
 ----------------------------------------------------------------------*/
 #include "Matrix/kmbMatrix_DoubleArray.h"
 
+#include <algorithm>
+
 kmb::Matrix_DoubleArray::Matrix_DoubleArray(int rSize, int cSize)
 : Matrix(rSize,cSize)
 , m(NULL)
@@ -21,6 +23,7 @@ kmb::Matrix_DoubleArray::Matrix_DoubleArray(int rSize, int cSize)
 , colSize(cSize)
 {
 	m = new double[rowSize*colSize];
+	std::fill(m,m+(rowSize*colSize),0.0);
 }
 
 kmb::Matrix_DoubleArray::Matrix_DoubleArray(int rSize, int cSize,double* ary)
@@ -37,16 +40,39 @@ kmb::Matrix_DoubleArray::Matrix_DoubleArray(int rSize, int cSize,double* ary)
 
 kmb::Matrix_DoubleArray::~Matrix_DoubleArray(void)
 {
+	clear();
+}
+
+void
+kmb::Matrix_DoubleArray::clear(void)
+{
 	if( m ){
 		delete[] m;
 		m = NULL;
 	}
 }
 
-kmb::Matrix::matrixType
-kmb::Matrix_DoubleArray::getType(void) const
+int
+kmb::Matrix_DoubleArray::init(int rowSize, int colSize)
 {
-	return kmb::Matrix::DOUBLE_ARRAY;
+	if( rowSize > 0 && colSize > 0 ){
+		if( this->rowSize != rowSize || this->colSize != colSize || m ==NULL ){
+			clear();
+			this->rowSize = rowSize;
+			this->colSize = colSize;
+			m = new double[rowSize*colSize];
+		}
+		std::fill(m,m+(rowSize*colSize),0.0);
+		return 0;
+	}else{
+		return -1;
+	}
+}
+
+const char*
+kmb::Matrix_DoubleArray::getContainerType(void) const
+{
+	return "double_array";
 }
 
 int
@@ -71,6 +97,13 @@ bool
 kmb::Matrix_DoubleArray::set(int i,int j,double val)
 {
 	m[i+j*rowSize] = val;
+	return true;
+}
+
+bool
+kmb::Matrix_DoubleArray::add(int i,int j,double val)
+{
+	m[i+j*rowSize] += val;
 	return true;
 }
 
@@ -106,15 +139,14 @@ kmb::Matrix_DoubleArray::row_multi(int i0,double r)
 kmb::SquareMatrix_DoubleArray::SquareMatrix_DoubleArray(int size)
 : SquareMatrix(size)
 , m(NULL)
-, size(size)
 {
 	m = new double[size*size];
+	std::fill(m,m+(size*size),0.0);
 }
 
 kmb::SquareMatrix_DoubleArray::SquareMatrix_DoubleArray(int size,double* ary)
 : SquareMatrix(size)
 , m(NULL)
-, size(size)
 {
 	m = new double[size*size];
 	for(int i=0;i<size*size;++i){
@@ -124,29 +156,61 @@ kmb::SquareMatrix_DoubleArray::SquareMatrix_DoubleArray(int size,double* ary)
 
 kmb::SquareMatrix_DoubleArray::~SquareMatrix_DoubleArray(void)
 {
+	clear();
+}
+
+void
+kmb::SquareMatrix_DoubleArray::clear(void)
+{
 	if( m ){
 		delete[] m;
+		m = NULL;
 	}
 }
 
 int
-kmb::SquareMatrix_DoubleArray::getSize(void) const
+kmb::SquareMatrix_DoubleArray::init(int rowSize, int colSize)
 {
-	return size;
+	if( colSize == rowSize && rowSize > 0 ){
+		if( rowSize != this->mSize || m == NULL ){
+			clear();
+			this->mSize = rowSize;
+			m = new double[mSize*mSize];
+		}
+		std::fill(m,m+(rowSize*colSize),0.0);
+		return 0;
+	}else{
+		return -1;
+	}
+}
+
+const char*
+kmb::SquareMatrix_DoubleArray::getContainerType(void) const
+{
+	return "double_array_square";
 }
 
 double
 kmb::SquareMatrix_DoubleArray::get(int i,int j) const
 {
-	return m[i+j*size];
+	return m[i+j*mSize];
 }
 
 bool
 kmb::SquareMatrix_DoubleArray::set(int i,int j,double val)
 {
-	m[i+j*size] = val;
+	m[i+j*mSize] = val;
 	return true;
 }
+
+bool
+kmb::SquareMatrix_DoubleArray::add(int i,int j,double val)
+{
+	m[i+j*mSize] += val;
+	return true;
+}
+
+
 
 kmb::ColumnVector_DoubleArray::ColumnVector_DoubleArray(int size)
 : ColumnVector(size)
@@ -154,6 +218,7 @@ kmb::ColumnVector_DoubleArray::ColumnVector_DoubleArray(int size)
 , size(size)
 {
 	m = new double[size];
+	std::fill(m,m+size,0.0);
 }
 
 kmb::ColumnVector_DoubleArray::ColumnVector_DoubleArray(int size,double* ary)
@@ -167,11 +232,51 @@ kmb::ColumnVector_DoubleArray::ColumnVector_DoubleArray(int size,double* ary)
 	}
 }
 
+kmb::ColumnVector_DoubleArray::ColumnVector_DoubleArray(const kmb::ColumnVector &vec)
+: ColumnVector(vec.getSize())
+, m(NULL)
+, size(vec.getSize())
+{
+	m = new double[size];
+	for(int i=0;i<size;++i){
+		m[i] = vec[i];
+	}
+}
+
 kmb::ColumnVector_DoubleArray::~ColumnVector_DoubleArray(void)
+{
+	clear();
+}
+
+void
+kmb::ColumnVector_DoubleArray::clear(void)
 {
 	if( m ){
 		delete[] m;
+		m = NULL;
 	}
+}
+
+int
+kmb::ColumnVector_DoubleArray::init(int rowSize, int colSize)
+{
+	if( colSize == 1 && rowSize > 0 ){
+		if( rowSize != size || m == NULL ){
+			clear();
+			this->size = rowSize;
+			m = new double[size];
+		}
+		std::fill(m,m+size,0.0);
+		return 0;
+	}else{
+		return -1;
+	}
+}
+
+const char*
+kmb::ColumnVector_DoubleArray::getContainerType(void) const
+{
+	return "double_array_column";
 }
 
 int
@@ -192,18 +297,35 @@ kmb::ColumnVector_DoubleArray::setRow(int i,double val)
 	m[i] = val;
 }
 
+void
+kmb::ColumnVector_DoubleArray::addRow(int i,double val)
+{
+	m[i] += val;
+}
+
+kmb::ColumnVector_DoubleArray&
+kmb::ColumnVector_DoubleArray::operator=(const ColumnVector_DoubleArray& other)
+{
+	for(int i=0;i<size;++i){
+		m[i] = other[i];
+	}
+	return *this;
+}
+
 kmb::RowVector_DoubleArray::RowVector_DoubleArray(int size)
 : RowVector(size)
 , m(NULL)
 , size(size)
 {
 	m = new double[size];
+	std::fill(m,m+size,0.0);
 }
 
 kmb::RowVector_DoubleArray::RowVector_DoubleArray(int size,double* ary)
 : RowVector(size)
 , m(NULL)
 , size(size)
+
 {
 	m = new double[size];
 	for(int i=0;i<size;++i){
@@ -211,11 +333,51 @@ kmb::RowVector_DoubleArray::RowVector_DoubleArray(int size,double* ary)
 	}
 }
 
+kmb::RowVector_DoubleArray::RowVector_DoubleArray(const kmb::RowVector &vec)
+: RowVector(vec.getSize())
+, m(NULL)
+, size(vec.getSize())
+{
+	m = new double[size];
+	for(int i=0;i<size;++i){
+		m[i] = vec[i];
+	}
+}
+
 kmb::RowVector_DoubleArray::~RowVector_DoubleArray(void)
+{
+	clear();
+}
+
+void
+kmb::RowVector_DoubleArray::clear(void)
 {
 	if( m ){
 		delete[] m;
+		m = NULL;
 	}
+}
+
+int
+kmb::RowVector_DoubleArray::init(int rowSize, int colSize)
+{
+	if( rowSize == 1 && colSize > 0 ){
+		if( colSize != size || m == NULL ){
+			clear();
+			this->size = colSize;
+			m = new double[size];
+		}
+		std::fill(m,m+size,0.0);
+		return 0;
+	}else{
+		return -1;
+	}
+}
+
+const char*
+kmb::RowVector_DoubleArray::getContainerType(void) const
+{
+	return "double_array_row";
 }
 
 int
@@ -234,4 +396,19 @@ void
 kmb::RowVector_DoubleArray::setColumn(int i,double val)
 {
 	m[i] = val;
+}
+
+void
+kmb::RowVector_DoubleArray::addColumn(int i,double val)
+{
+	m[i] += val;
+}
+
+kmb::RowVector_DoubleArray&
+kmb::RowVector_DoubleArray::operator=(const RowVector_DoubleArray& other)
+{
+	for(int i=0;i<size;++i){
+		m[i] = other[i];
+	}
+	return *this;
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BSplineSurface3D                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -52,6 +52,18 @@ bool
 kmb::BSplineSurface3D::isDomain( double u, double v ) const
 {
 	return uBspline.isDomain(u) && vBspline.isDomain(v);
+}
+
+bool
+kmb::BSplineSurface3D::isUDomain( double u ) const
+{
+	return uBspline.isDomain(u);
+}
+
+bool
+kmb::BSplineSurface3D::isVDomain( double v ) const
+{
+	return vBspline.isDomain(v);
 }
 
 bool
@@ -163,9 +175,6 @@ kmb::BSplineSurface3D::getDerivative( kmb::Surface3D::derivativeType d, double u
 	tangent.zero();
 	unsigned int uDeg=0, vDeg=0;
 	getDegree( uDeg, vDeg );
-	if( uDeg < 0 || vDeg < 0 ){
-		return false;
-	}
 	int uNum = uBspline.getKnotCount()-uOrder;
 	int vNum = vBspline.getKnotCount()-vOrder;
 	switch( d )
@@ -248,7 +257,6 @@ kmb::BSplineSurface3D::getDerivative( kmb::Surface3D::derivativeType d, double u
 	default:
 		return false;
 	}
-	return false;
 }
 
 int

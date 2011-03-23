@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -129,8 +129,12 @@ kmb::MeshDB::convertToLinearBody( kmb::bodyIdType bodyId )
 
 
 
+
+
+
+
 kmb::bodyIdType
-kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const char* coupleName)
+kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const char* coupleName,kmb::coupleType ctype)
 {
 	kmb::ElementContainer* otherBody = otherMesh.getBodyPtr( bodyId );
 	if( otherBody == NULL ){
@@ -145,18 +149,36 @@ kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const ch
 		return kmb::Body::nullBodyId;
 	}
 
-	kmb::DataBindings* coupleData = NULL;
+	kmb::bodyIdType myBodyId = this->beginElement( otherBody->getCount() );
+
+	kmb::DataBindings* masterCoupleData = NULL;
+	kmb::DataBindings* slaveCoupleData = NULL;
 	if( coupleName != NULL ){
-		kmb::DataBindings* data = otherMesh.getDataBindingsPtr(coupleName);
-		if( data ){
-			if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-				data->getValueType() == kmb::PhysicalValue::INTEGER ){
-				coupleData = data;
+		if( ctype == kmb::MASTER || ctype == kmb::BOTH ){
+			kmb::DataBindings* data = this->getDataBindingsPtr(coupleName);
+			if( data ){
+				if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
+					data->getValueType() == kmb::PhysicalValue::INTEGER ){
+					masterCoupleData = data;
+				}
+			}else{
+				masterCoupleData = new kmb::NodeMapperBindings< kmb::nodeIdType >();
+				masterCoupleData->setTargetBodyId( bodyId );
+				this->setDataBindingsPtr( coupleName, masterCoupleData, "import" );
 			}
-		}else{
-			coupleData = new kmb::NodeMapperBindings< kmb::nodeIdType >();
-			coupleData->setTargetBodyId( bodyId );
-			otherMesh.setDataBindingsPtr( coupleName, coupleData, "import" );
+		}
+		if( ctype == kmb::SLAVE || ctype == kmb::BOTH ){
+			kmb::DataBindings* data = otherMesh.getDataBindingsPtr(coupleName);
+			if( data ){
+				if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
+					data->getValueType() == kmb::PhysicalValue::INTEGER ){
+					slaveCoupleData = data;
+				}
+			}else{
+				slaveCoupleData = new kmb::NodeMapperBindings< kmb::nodeIdType >();
+				slaveCoupleData->setTargetBodyId( myBodyId );
+				otherMesh.setDataBindingsPtr( coupleName, slaveCoupleData, "import" );
+			}
 		}
 	}
 
@@ -164,23 +186,65 @@ kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const ch
 
 
 
-	kmb::bodyIdType myBodyId = this->beginElement( otherBody->getCount() );
 	kmb::nodeIdType* cell = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	kmb::ElementContainer::iterator eIter = otherBody->begin();
 	long l = 0;
-	if( coupleData ){
+	if( slaveCoupleData && masterCoupleData ){
 
 		while( !eIter.isFinished() ){
 			const int len = eIter.getNodeCount();
 			for(int i=0;i<len;++i){
 				kmb::nodeIdType yourId = eIter.getCellId(i);
 				cell[i] = kmb::nullNodeId;
-				if( coupleData->getPhysicalValue( yourId, &l ) ){
+				if( slaveCoupleData->getPhysicalValue( yourId, &l ) ){
 					cell[i] = static_cast< kmb::nodeIdType >( l );
 				}else if( otherMesh.getNode( yourId, node ) ){
 					cell[i] = this->addNode( node );
 					l = cell[i];
-					coupleData->setPhysicalValue( yourId, &l );
+					slaveCoupleData->setPhysicalValue( yourId, &l );
+					l = yourId;
+					masterCoupleData->setPhysicalValue( cell[i], &l );
+				}
+			}
+			this->addElement( eIter.getType(), cell );
+			++eIter;
+		}
+	}else if( slaveCoupleData ){
+
+		while( !eIter.isFinished() ){
+			const int len = eIter.getNodeCount();
+			for(int i=0;i<len;++i){
+				kmb::nodeIdType yourId = eIter.getCellId(i);
+				cell[i] = kmb::nullNodeId;
+				if( slaveCoupleData->getPhysicalValue( yourId, &l ) ){
+					cell[i] = static_cast< kmb::nodeIdType >( l );
+				}else if( otherMesh.getNode( yourId, node ) ){
+					cell[i] = this->addNode( node );
+					l = cell[i];
+					slaveCoupleData->setPhysicalValue( yourId, &l );
+				}
+			}
+			this->addElement( eIter.getType(), cell );
+			++eIter;
+		}
+	}else if( masterCoupleData ){
+
+
+
+		std::map< kmb::nodeIdType, kmb::nodeIdType > nodeMapper;
+		while( !eIter.isFinished() ){
+			const int len = eIter.getNodeCount();
+			for(int i=0;i<len;++i){
+				kmb::nodeIdType yourId = eIter.getCellId(i);
+				cell[i] = kmb::nullNodeId;
+				std::map< kmb::nodeIdType, kmb::nodeIdType >::iterator nIter = nodeMapper.find( yourId );
+				if( nIter != nodeMapper.end() ){
+					cell[i] = nIter->second;
+				}else if( otherMesh.getNode( yourId, node ) ){
+					cell[i] = this->addNode( node );
+					nodeMapper.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >( yourId, cell[i] ) );
+					l = yourId;
+					masterCoupleData->setPhysicalValue( cell[i], &l );
 				}
 			}
 			this->addElement( eIter.getType(), cell );
@@ -231,8 +295,8 @@ kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshDB& otherMesh, kmb::bodyIdType 
 	if( coupleName != NULL ){
 		kmb::DataBindings* data = otherMesh.getDataBindingsPtr(coupleName);
 		if( data ){
-			if(	data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-					data->getValueType() == kmb::PhysicalValue::INTEGER ){
+			if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
+			    data->getValueType() == kmb::PhysicalValue::INTEGER ){
 				coupleData = data;
 			}
 		}else{
@@ -391,4 +455,48 @@ kmb::MeshDB::importNode(kmb::MeshDB& otherMesh)
 		}
 	}
 	return kmb::nullNodeId;
+}
+
+size_t
+kmb::MeshDB::importAllBody(const kmb::MeshData& otherMesh)
+{
+	if( otherMesh.getNodes() == NULL ){
+		return 0;
+	}
+	size_t appendElementCount = 0;
+	if( node3Ds == NULL ){
+		node3Ds = new kmb::Point3DContainerMap();
+	}
+
+	kmb::nodeIdType offsetNodeId = this->getMaxNodeId() + 1;
+	kmb::Point3D pt;
+	kmb::Point3DContainer::const_iterator pIter = otherMesh.getNodes()->begin();
+	while( !pIter.isFinished() ){
+		if( pIter.getPoint( pt ) ){
+			this->addNodeWithId( pt, pIter.getId() + offsetNodeId );
+		}
+		++pIter;
+	}
+
+	kmb::bodyIdType bCount = otherMesh.getBodyCount();
+	kmb::nodeIdType nodeTable[20];
+	for(kmb::bodyIdType i=0;i<bCount;++i){
+		const kmb::ElementContainer* body = otherMesh.getBodyPtr(i);
+		if( body ){
+			appendElementCount += body->getCount();
+			kmb::bodyIdType bodyId = this->beginElement( body->getCount() );
+			kmb::ElementContainer::const_iterator eIter = body->begin();
+			while( !eIter.isFinished() ){
+				int len = eIter.getNodeCount();
+				for(int j=0;j<len;++j){
+					nodeTable[j] = eIter[j] + offsetNodeId;
+				}
+				this->addElement( eIter.getType(), nodeTable );
+				++eIter;
+			}
+			this->endElement();
+			this->setBodyName(bodyId,body->getBodyName());
+		}
+	}
+	return appendElementCount;
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Segment2                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -36,15 +36,11 @@ public:
 	Segment2(nodeIdType *ary);
 	virtual ~Segment2(void);
 
-
-
-
-
-
-
 	static const int connectionTable[3][3];
 
 	static void shapeFunction(double s,double* coeff);
+
+	static double checkShapeFunctionDomain(double s);
 };
 
 }

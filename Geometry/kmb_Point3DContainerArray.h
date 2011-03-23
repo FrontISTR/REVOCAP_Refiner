@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainerArray                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -19,6 +19,10 @@ namespace kmb{
 
 class Point3DContainerArray : public Point3DContainer
 {
+private:
+	double* pointArray;
+	size_t index;
+	size_t size;
 public:
 	static const char* CONTAINER_TYPE;
 	Point3DContainerArray(void);
@@ -54,6 +58,9 @@ protected:
 		virtual nodeIdType getId(void) const;
 		virtual bool getXYZ(double &x,double &y,double &z) const;
 		virtual bool getPoint(kmb::Point3D &point) const;
+		virtual double x() const;
+		virtual double y() const;
+		virtual double z() const;
 		virtual bool setXYZ(double x,double y,double z) const;
 		virtual bool setPoint(kmb::Point3D &point) const;
 		virtual Point3DContainer::_iterator* operator++(void);
@@ -65,10 +72,6 @@ protected:
 		size_t index;
 		const Point3DContainerArray* points;
 	};
-private:
-	double* pointArray;
-	size_t index;
-	size_t size;
 };
 
 class Point3DContainerXYZArray : public Point3DContainer
@@ -112,6 +115,9 @@ protected:
 		virtual nodeIdType getId(void) const;
 		virtual bool getXYZ(double &x,double &y,double &z) const;
 		virtual bool getPoint(kmb::Point3D &point) const;
+		virtual double x() const;
+		virtual double y() const;
+		virtual double z() const;
 		virtual bool setXYZ(double x,double y,double z) const;
 		virtual bool setPoint(kmb::Point3D &point) const;
 		virtual Point3DContainer::_iterator* operator++(void);

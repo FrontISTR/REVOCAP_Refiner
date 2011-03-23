@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Line                                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -40,25 +40,25 @@ kmb::Line2D::~Line2D(void)
 }
 
 double
-kmb::Line2D::evaluate(kmb::Point2D &pt)
+kmb::Line2D::evaluate(const kmb::Point2D &pt) const
 {
 	return this->evaluate(pt.x(),pt.y());
 }
 
 double
-kmb::Line2D::evaluate(double x,double y)
+kmb::Line2D::evaluate(double x,double y) const
 {
 	return a*x+b*y+c;
 }
 
 double
-kmb::Line2D::distance(kmb::Point2D &pt)
+kmb::Line2D::distance(const kmb::Point2D &pt) const
 {
 	return fabs(this->evaluate(pt));
 }
 
 kmb::Line2D*
-kmb::Line2D::createFromPoints(kmb::Point2D &p,kmb::Point2D &q)
+kmb::Line2D::createFromPoints(const kmb::Point2D &p,const kmb::Point2D &q)
 {
 	kmb::Line2D* line = NULL;
 	double a = p.y() - q.y();
@@ -72,7 +72,7 @@ kmb::Line2D::createFromPoints(kmb::Point2D &p,kmb::Point2D &q)
 }
 
 kmb::Line2D*
-kmb::Line2D::createFromBaseDirection(kmb::Point2D &base,kmb::Vector2D &direction)
+kmb::Line2D::createFromBaseDirection(const kmb::Point2D &base,const kmb::Vector2D &direction)
 {
 	kmb::Line2D* line = NULL;
 	double a = direction.y();
@@ -86,7 +86,7 @@ kmb::Line2D::createFromBaseDirection(kmb::Point2D &base,kmb::Vector2D &direction
 }
 
 double
-kmb::Line2D::getXIntercept(void)
+kmb::Line2D::getXIntercept(void) const
 {
 	if( a != 0.0 ){
 		return -c/a;
@@ -96,7 +96,7 @@ kmb::Line2D::getXIntercept(void)
 }
 
 double
-kmb::Line2D::getYIntercept(void)
+kmb::Line2D::getYIntercept(void) const
 {
 	if( b != 0.0 ){
 		return -c/b;
@@ -106,7 +106,7 @@ kmb::Line2D::getYIntercept(void)
 }
 
 double
-kmb::Line2D::getXIntercept(kmb::Point2D &p,kmb::Point2D &q)
+kmb::Line2D::getXIntercept(const kmb::Point2D &p,const kmb::Point2D &q)
 {
 	double a = p.y() - q.y();
 	double c = p.x()*q.y() - p.y()*q.x();
@@ -118,7 +118,7 @@ kmb::Line2D::getXIntercept(kmb::Point2D &p,kmb::Point2D &q)
 }
 
 double
-kmb::Line2D::getYIntercept(kmb::Point2D &p,kmb::Point2D &q)
+kmb::Line2D::getYIntercept(const kmb::Point2D &p,const kmb::Point2D &q)
 {
 	double b = - (p.x() - q.x());
 	double c = p.x()*q.y() - p.y()*q.x();
@@ -129,7 +129,7 @@ kmb::Line2D::getYIntercept(kmb::Point2D &p,kmb::Point2D &q)
 	}
 }
 
-kmb::Line3D::Line3D(kmb::Point3D &b,kmb::Vector3D &v)
+kmb::Line3D::Line3D(const kmb::Point3D &b,const kmb::Vector3D &v)
 {
 	this->base = b;
 	this->direction = v;
@@ -139,8 +139,8 @@ kmb::Line3D::~Line3D(void)
 {
 }
 
-kmb::Line3D* kmb::Line3D::
-createFromPoints(kmb::Point3D &p,kmb::Point3D &q)
+kmb::Line3D*
+kmb::Line3D::createFromPoints(const kmb::Point3D &p,const kmb::Point3D &q)
 {
 	kmb::Line3D* line = NULL;
 	kmb::Vector3D v(p,q);
@@ -149,8 +149,8 @@ createFromPoints(kmb::Point3D &p,kmb::Point3D &q)
 	return line;
 }
 
-kmb::Line3D* kmb::Line3D::
-createFromBaseDirection(kmb::Point3D &base,kmb::Vector3D &direction)
+kmb::Line3D*
+kmb::Line3D::createFromBaseDirection(const kmb::Point3D &base,const kmb::Vector3D &direction)
 {
 	kmb::Line3D* line = NULL;
 	kmb::Vector3D v(direction);
@@ -159,8 +159,8 @@ createFromBaseDirection(kmb::Point3D &base,kmb::Vector3D &direction)
 	return line;
 }
 
-kmb::Vector3D kmb::Line3D::
-getDirection(void)
+kmb::Vector3D
+kmb::Line3D::getDirection(void) const
 {
 	return this->direction;
 }

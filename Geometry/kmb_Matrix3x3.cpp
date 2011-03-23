@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Matrix3x3                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -55,6 +55,26 @@ kmb::Matrix3x3::Matrix3x3(
 	m[2] = m20;	m[5] = m21;	m[8] = m22;
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
+
+int
+kmb::Matrix3x3::init(int rowSize, int colSize)
+{
+	return -1;
+}
+
+#if defined _MSC_VER || defined __INTEL_COMPILER
+#pragma warning(pop)
+#endif
+
 int
 kmb::Matrix3x3::getSize(void) const
 {
@@ -71,6 +91,13 @@ bool
 kmb::Matrix3x3::set(int i,int j,double val)
 {
 	m[i+j*3] = val;
+	return true;
+}
+
+bool
+kmb::Matrix3x3::add(int i,int j,double val)
+{
+	m[i+j*3] += val;
 	return true;
 }
 
@@ -118,6 +145,16 @@ kmb::Matrix3x3::convert(kmb::Tuple2D& tuple) const
 		w = 1.0/w;
 	}
 	tuple.setCoordinate( x*w, y*w );
+}
+
+void
+kmb::Matrix3x3::convert(kmb::Tuple3D& tuple) const
+{
+	double x = m[0]*tuple.x() + m[3]*tuple.y() + m[6]*tuple.z();
+	double y = m[1]*tuple.x() + m[4]*tuple.y() + m[7]*tuple.z();
+	double z = m[2]*tuple.x() + m[5]*tuple.y() + m[8]*tuple.z();
+
+	tuple.setCoordinate( x, y, z);
 }
 
 kmb::Vector3D
@@ -313,27 +350,39 @@ kmb::Matrix3x3::solve(const Vector3D& b,Vector3D& x) const
 
 	kmb::Matrix_DoubleArray mat(3,4,coef);
 
+	int ind = -1;
+	double m = 0.0;
 
-	if( mat.get(0,0) == 0.0 ){
-		if( mat.get(1,0) != 0.0 ){
-			mat.row_exchange(0,1);
-		}else if( mat.get(2,0) != 0.0 ){
-			mat.row_exchange(0,2);
-		}else{
-			return false;
+	for(int i=0;i<3;++i){
+		double d = fabs(mat.get(i,0));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
+	}
+	if( m == 0.0 ){
+		return false;
+	}else if(ind != 0){
+		mat.row_exchange(0,ind);
 	}
 	mat.row_multi(0, 1.0/mat.get(0,0));
 	mat.row_transf(0, 1, -mat.get(1,0));
 	mat.row_transf(0, 2, -mat.get(2,0));
 
 
-	if( mat.get(1,1) == 0.0 ){
-		if( mat.get(2,1) != 0.0 ){
-			mat.row_exchange(1,2);
-		}else{
-			return false;
+	ind = -1;
+	m = 0.0;
+	for(int i=1;i<3;++i){
+		double d = fabs(mat.get(i,1));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
+	}
+	if( m == 0.0 ){
+		return false;
+	}else if(ind != 1){
+		mat.row_exchange(1,ind);
 	}
 	mat.row_multi(1, 1.0/mat.get(1,1));
 	mat.row_transf(1, 2, -mat.get(2,1));
@@ -350,57 +399,74 @@ kmb::Matrix3x3::solve(const Vector3D& b,Vector3D& x) const
 	x.setCoordinate(0,mat.get(0,3));
 	x.setCoordinate(1,mat.get(1,3));
 	x.setCoordinate(2,mat.get(2,3));
+
 	return true;
-/*
+}
+
+bool
+kmb::Matrix3x3::solveSafely(const Vector3D& b,Vector3D& x,double thresh) const
+{
 
 	double coef[12] = {
-		m[0],m[3],m[6],b.x(),
-		m[1],m[4],m[7],b.y(),
-		m[2],m[5],m[8],b.z()
+		m[0],m[1],m[2],
+		m[3],m[4],m[5],
+		m[6],m[7],m[8],
+		b.x(),b.y(),b.z()
 	};
 
+	kmb::Matrix_DoubleArray mat(3,4,coef);
 
-	if( coef[0] == 0.0 ){
-		if( coef[4] != 0.0 ){
-			::row_exchange(coef,0,1);
-		}else if( coef[8] != 0.0 ){
-			::row_exchange(coef,0,2);
-		}else{
-			return false;
+	int ind = -1;
+	double m = 0.0;
+
+	for(int i=0;i<3;++i){
+		double d = fabs(mat.get(i,0));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
 	}
+	if( m < thresh ){
+		return false;
+	}else if(ind != 0){
+		mat.row_exchange(0,ind);
+	}
+	mat.row_multi(0, 1.0/mat.get(0,0));
+	mat.row_transf(0, 1, -mat.get(1,0));
+	mat.row_transf(0, 2, -mat.get(2,0));
 
-	::row_multi(coef, 0, 1.0/coef[0]);
-	::row_transf(coef, 0, 1, -coef[4]);
-	::row_transf(coef, 0, 2, -coef[8]);
 
-
-	if( coef[5] == 0.0 ){
-		if( coef[9] != 0.0 ){
-			::row_exchange(coef,1,2);
-		}else{
-			return false;
+	ind = -1;
+	m = 0.0;
+	for(int i=1;i<3;++i){
+		double d = fabs(mat.get(i,1));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
 	}
+	if( m < thresh ){
+		return false;
+	}else if(ind != 1){
+		mat.row_exchange(1,ind);
+	}
+	mat.row_multi(1, 1.0/mat.get(1,1));
+	mat.row_transf(1, 2, -mat.get(2,1));
+	mat.row_transf(1, 0, -mat.get(0,1));
 
-	::row_multi(coef, 1, 1.0/coef[5]);
-	::row_transf(coef, 1, 2, -coef[9]);
-	::row_transf(coef, 1, 0, -coef[1]);
 
-
-	if( coef[10] == 0.0 ){
+	if( fabs(mat.get(2,2)) < thresh ){
 		return false;
 	}
+	mat.row_multi(2, 1.0/mat.get(2,2));
+	mat.row_transf(2, 0, -mat.get(0,2));
+	mat.row_transf(2, 1, -mat.get(1,2));
 
-	::row_multi(coef, 2, 1.0/coef[10]);
-	::row_transf(coef, 2, 0, -coef[2]);
-	::row_transf(coef, 2, 1, -coef[6]);
+	x.setCoordinate(0,mat.get(0,3));
+	x.setCoordinate(1,mat.get(1,3));
+	x.setCoordinate(2,mat.get(2,3));
 
-	x.setCoordinate(0,coef[3]);
-	x.setCoordinate(1,coef[7]);
-	x.setCoordinate(2,coef[11]);
 	return true;
-*/
 }
 
 kmb::Matrix3x3*

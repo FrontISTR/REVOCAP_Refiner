@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainerArray                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -17,6 +17,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 const char* kmb::Point3DContainerArray::CONTAINER_TYPE = "double_array";
@@ -242,6 +247,24 @@ kmb::Point3DContainerArray::_iteratorArray::getPoint(kmb::Point3D &point) const
 		points->pointArray[3*index+1],
 		points->pointArray[3*index+2]);
 	return true;
+}
+
+double
+kmb::Point3DContainerArray::_iteratorArray::x() const
+{
+	return points->pointArray[3*index];
+}
+
+double
+kmb::Point3DContainerArray::_iteratorArray::y() const
+{
+	return points->pointArray[3*index+1];
+}
+
+double
+kmb::Point3DContainerArray::_iteratorArray::z() const
+{
+	return points->pointArray[3*index+2];
 }
 
 bool
@@ -540,6 +563,24 @@ kmb::Point3DContainerXYZArray::_iteratorXYZ::getPoint(kmb::Point3D &point) const
 		points->yArray[index],
 		points->zArray[index]);
 	return true;
+}
+
+double
+kmb::Point3DContainerXYZArray::_iteratorXYZ::x() const
+{
+	return points->xArray[index];
+}
+
+double
+kmb::Point3DContainerXYZArray::_iteratorXYZ::y() const
+{
+	return points->yArray[index];
+}
+
+double
+kmb::Point3DContainerXYZArray::_iteratorXYZ::z() const
+{
+	return points->zArray[index];
 }
 
 bool

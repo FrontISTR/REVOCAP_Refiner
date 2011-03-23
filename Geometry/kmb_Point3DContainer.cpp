@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -35,6 +35,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 bool
@@ -441,6 +446,25 @@ kmb::Point3DContainer::iterator::getPoint(kmb::Point3D &point) const
 	}
 }
 
+
+double
+kmb::Point3DContainer::iterator::x(void) const
+{
+	return _it->x();
+}
+
+double
+kmb::Point3DContainer::iterator::y(void) const
+{
+	return _it->y();
+}
+
+double
+kmb::Point3DContainer::iterator::z(void) const
+{
+	return _it->z();
+}
+
 bool
 kmb::Point3DContainer::iterator::setPoint(kmb::Point3D &point) const
 {
@@ -528,7 +552,7 @@ kmb::Point3DContainer::const_iterator::const_iterator(const kmb::Point3DContaine
 	}
 }
 
-const kmb::nodeIdType
+kmb::nodeIdType
 kmb::Point3DContainer::const_iterator::getId(void) const
 {
 	if( _it != NULL )
@@ -555,6 +579,25 @@ kmb::Point3DContainer::const_iterator::getPoint(kmb::Point3D &point) const
 	}else{
 		return false;
 	}
+}
+
+
+double
+kmb::Point3DContainer::const_iterator::x(void) const
+{
+	return _it->x();
+}
+
+double
+kmb::Point3DContainer::const_iterator::y(void) const
+{
+	return _it->y();
+}
+
+double
+kmb::Point3DContainer::const_iterator::z(void) const
+{
+	return _it->z();
 }
 
 kmb::Point3DContainer::const_iterator&

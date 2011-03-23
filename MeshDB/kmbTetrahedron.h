@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Tetrahedron                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -40,22 +40,17 @@ public:
 
 
 
-
-
-
-
-
-
-
 	static bool isEquivalent(int index[4]);
 
 	static void shapeFunction(double s,double t,double u,double* coeff);
-	static bool getNaturalCoordinates(const double physicalCoords[3],const kmb::Point3D* points,double naturalCoords[3],double margin=1.0);
-	static bool getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,double physicalCoords[3]);
+	static bool getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[3]);
+	static bool getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,kmb::Point3D &target);
 
-	static const int	connectionTable[4][4];
-	static const int	faceTable[4][4];
-	static const int	edgeTable[6][2];
+	static double checkShapeFunctionDomain(double s,double t,double u);
+
+	static const int connectionTable[4][4];
+	static const int faceTable[4][4];
+	static const int edgeTable[6][2];
 };
 
 }

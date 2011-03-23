@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -33,6 +33,8 @@ namespace kmb{
 
 class Point3DContainerVect : public Point3DContainer
 {
+private:
+	std::vector< kmb::Point3D* > points;
 public:
 	static const char* CONTAINER_TYPE;
 	Point3DContainerVect(void);
@@ -42,7 +44,6 @@ public:
 	virtual nodeIdType addPoint(const kmb::Point3D& point);
 	virtual nodeIdType addPoint(const double x,const double y,const double z,const nodeIdType id);
 	virtual nodeIdType addPoint(const kmb::Point3D& point,const nodeIdType id);
-
 	virtual bool getXYZ(nodeIdType id,double &x,double &y,double &z) const;
 	virtual bool getPoint(nodeIdType id,kmb::Point3D &point) const;
 	virtual nodeIdType getMaxId(void) const;
@@ -65,9 +66,11 @@ protected:
 		friend class Point3DContainerVect;
 	public:
 		virtual nodeIdType getId(void) const;
-
 		virtual bool getXYZ(double &x,double &y,double &z) const;
 		virtual bool getPoint(kmb::Point3D &point) const;
+		virtual double x() const;
+		virtual double y() const;
+		virtual double z() const;
 		virtual bool setXYZ(double x,double y,double z) const;
 		virtual bool setPoint(kmb::Point3D &point) const ;
 		virtual Point3DContainer::_iterator* operator++(void);
@@ -76,13 +79,9 @@ protected:
 	private:
 		_iteratorVect(void){};
 		~_iteratorVect(void){};
-		int							index;
-		const Point3DContainerVect*	vect;
+		int index;
+		const Point3DContainerVect* vect;
 	};
-
-private:
-	std::vector< kmb::Point3D* >	points;
-
 };
 
 }

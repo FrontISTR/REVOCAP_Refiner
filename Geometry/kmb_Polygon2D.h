@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Polygon2D                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -40,8 +40,11 @@ class Polygon2D
 	enum orientation{
 		UNKNOWN = -1,
 		CLOCKWISE,
-		UNTICLOCKWISE,
+		UNTICLOCKWISE
 	};
+protected:
+	std::vector< kmb::nodeIdType > nodeArray;
+	const kmb::Point2DContainer* points;
 public:
 	Polygon2D(void);
 	virtual ~Polygon2D(void);
@@ -63,9 +66,6 @@ public:
 
 
 	void branchPolygon(kmb::nodeIdType n0,kmb::nodeIdType n1,Polygon2D &negative,Polygon2D* &cancel);
-protected:
-	std::vector< kmb::nodeIdType > nodeArray;
-	const kmb::Point2DContainer* points;
 };
 
 }

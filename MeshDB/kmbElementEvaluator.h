@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementEvaluator                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -79,9 +79,24 @@ public:
 	bool getNormalVector(const Face &face, const kmb::ElementContainer* elements, kmb::Vector3D &vect) const;
 	bool getNormalVectorOfFace(const kmb::ElementBase &element, int index, kmb::Vector3D &vect) const;
 
-	bool getNaturalCoordinates(const kmb::ElementBase &element,const double x,const double y,const double z,double* retvals,double margin=1.0) const;
+	bool getNaturalCoordinates(const kmb::ElementBase &element,const double x,const double y,const double z,double* retvals) const;
+	bool getNaturalCoordinatesOfFace(const kmb::ElementBase &element,int index,const double x,const double y,const double z,double* retvals) const;
+	double checkShapeFunctionDomain(const kmb::ElementBase &element,double s,double t,double u);
 
-	bool getPhysicalCoordinates(const kmb::ElementBase &element,const double s,const double t,const double u,double* retvals) const;
+
+
+	double getWeightElement(const kmb::ElementBase &element,const double x,const double y,const double z,double* weights) const;
+	double getWeightElementFace(const kmb::ElementBase &element,int index,const double x,const double y,const double z,double* weights) const;
+
+	bool getPhysicalCoordinates(const kmb::ElementBase &element,const double s,const double t,const double u,kmb::Point3D &target) const;
+
+
+	double getMinInnerVolume(const kmb::ElementBase &element,const double x,const double y,const double z) const;
+
+
+	double getDistanceSq(const kmb::ElementBase &element,const double x,const double y,const double z) const;
+
+	double getDistanceSqOnBoundary(const kmb::ElementBase &element,const double x,const double y,const double z) const;
 
 
 
@@ -92,6 +107,12 @@ public:
 
 
 	int getConcaveInQuad(const kmb::ElementBase &quad);
+
+
+	bool getMinMaxJacobian(const kmb::ElementBase &element, double &min, double &max) const;
+
+
+	int getDuplicationNodeIdCount(const kmb::ElementBase &element);
 protected:
 	const kmb::Point3DContainer* points;
 	const kmb::Point2DContainer* point2Ds;

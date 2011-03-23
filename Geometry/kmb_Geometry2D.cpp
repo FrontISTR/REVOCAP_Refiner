@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Geometry2D                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -80,7 +80,7 @@ kmb::Tuple2D::operator =(const Tuple2D& other)
 	this->v[0] = other.x();
 	this->v[1] = other.y();
 	return *this;
-};
+}
 
 kmb::Point2D kmb::Point2D::infinity(DBL_MAX,DBL_MAX);
 
@@ -183,10 +183,22 @@ kmb::Point2D::dividingPoint(const Point2D& other,double m,double n) const
 		(n*this->y() + m*other.y()) / (m+n));
 }
 
+double
+kmb::Point2D::distance(const kmb::Point2D& a,const kmb::Point2D& b)
+{
+	return a.distance(b);
+}
+
+double
+kmb::Point2D::distanceSq(const kmb::Point2D& a,const kmb::Point2D& b)
+{
+	return a.distanceSq(b);
+}
+
 
 
 double
-kmb::Point2D::area(const Point2D& a,const Point2D& b,const Point2D &c)
+kmb::Point2D::area(const kmb::Point2D& a,const kmb::Point2D& b,const kmb::Point2D &c)
 {
 	if( LARGER_Y(a,b) ){
 
@@ -245,19 +257,19 @@ kmb::Point2D::area(const Point2D& a,const Point2D& b,const Point2D &c)
 }
 
 kmb::Point2D
-kmb::Point2D::getCenter(const Point2D& a,const Point2D& b)
+kmb::Point2D::getCenter(const kmb::Point2D& a,const kmb::Point2D& b)
 {
 	return kmb::Point2D( (a.x() + b.x())*0.5, (a.y() + b.y())*0.5 );
 }
 
 kmb::Point2D
-kmb::Point2D::getCenter(const Point2D& a,const Point2D& b,const Point2D &c)
+kmb::Point2D::getCenter(const kmb::Point2D& a,const kmb::Point2D& b,const kmb::Point2D &c)
 {
 	double r = 1.0/3.0;
 	return kmb::Point2D( (a.x() + b.x() + c.x())*r, (a.y() + b.y() + c.y())*r );
 }
 
-double kmb::Point2D::angle(const Point2D &a,const Point2D &b,const Point2D &c)
+double kmb::Point2D::angle(const kmb::Point2D &a,const kmb::Point2D &b,const kmb::Point2D &c)
 {
 	kmb::Vector2D v1(a,b);
 	kmb::Vector2D v2(c,b);
@@ -306,6 +318,17 @@ kmb::Point2D::calcMinorCoordinate
 	coordinate[2] = 0.5 * (xa % xb);
 }
 
+bool
+kmb::Point2D::intesectSegments(const kmb::Point2D& a0, const kmb::Point2D& a1, const kmb::Point2D& b0, const kmb::Point2D& b1)
+{
+	if( kmb::Point2D::area(a0,a1,b0) * kmb::Point2D::area(a0,a1,b1) <= 0.0 &&
+		kmb::Point2D::area(b0,b1,a0) * kmb::Point2D::area(b0,b1,a0) <= 0.0 )
+	{
+		return true;
+	}else{
+		return false;
+	}
+}
 
 
 kmb::Vector2D::Vector2D(const Point2D& p,const Point2D& q)
@@ -321,12 +344,6 @@ kmb::Vector2D::scalar(const double s) const
 	return kmb::Vector2D(s*x(),s*y());
 }
 
-kmb::Vector2D
-operator*(const double scalar,const kmb::Vector2D& vect)
-{
-	return kmb::Vector2D(scalar*vect.x(),scalar*vect.y());
-}
-
 double
 kmb::Vector2D::lengthSq() const
 {
@@ -337,6 +354,12 @@ kmb::Vector2D::lengthSq() const
 
 double
 kmb::Vector2D::length() const
+{
+	return sqrt(lengthSq());
+}
+
+double
+kmb::Vector2D::abs() const
 {
 	return sqrt(lengthSq());
 }

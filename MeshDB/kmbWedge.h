@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Wedge                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -39,35 +39,21 @@ public:
 	Wedge(kmb::nodeIdType *ary);
 	virtual ~Wedge(void);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 	static int divideIntoTetrahedrons(const kmb::ElementBase* element,kmb::nodeIdType tetrahedrons[][4]);
 
 
 
-	static	bool		isEquivalent(int index[6]);
+	static bool isEquivalent(int index[6]);
 public:
-	static const int	connectionTable[6][6];
-	static const int	faceTable[5][4];
-	static const int	edgeTable[9][2];
+	static const int connectionTable[6][6];
+	static const int faceTable[5][4];
+	static const int edgeTable[9][2];
 
 	static void shapeFunction(double s,double t,double u,double* coeff);
-	static bool getNaturalCoordinates(const double physicalCoords[3],const kmb::Point3D* points,double naturalCoords[3],double margin=1.0);
-	static bool getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,double physicalCoords[3]);
-private:
-	static double newtonMethod(const double physicalCoords[3], const kmb::Point3D* points, double naturalCoords[3]);
+	static bool getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[3]);
+	static bool getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,kmb::Point3D &target);
+
+	static double checkShapeFunctionDomain(double s,double t,double u);
 };
 
 }

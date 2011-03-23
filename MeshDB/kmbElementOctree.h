@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementOctree                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -21,51 +21,163 @@
 #include "Geometry/kmb_Geometry3D.h"
 #include "Geometry/kmb_BoundingBox.h"
 
+#include "Geometry/kmb_Octree.h"
+#include "MeshDB/kmbElementEvaluator.h"
+
 namespace kmb{
 
 class MeshData;
 
-class ElementOctree
+class Element3DOctree : public Octree<kmb::elementIdType>
 {
-public:
-	ElementOctree(int layer=0,int thres=256);
-	virtual ~ElementOctree(void);
-	void clear(void);
-
-
-
-
-
-	void generateSearchCache(kmb::MeshData* mesh,kmb::bodyIdType bodyId,double safetyRatio=1.0);
-
-
-
-
-
-
-
-	kmb::elementIdType searchElement(double x,double y,double z, const kmb::Point3DContainer* points, const kmb::ElementContainer* elements, double* coeff,double tolerance=0.0) const;
-
-
-	kmb::elementIdType searchElementWithNormal(double x,double y,double z, const Vector3D &normal, const kmb::Point3DContainer* points, const kmb::ElementContainer* elements, double* coeff,double tolerance=0.0) const;
-	int getLocalCount(void) const;
-	size_t getCount(void) const;
-
 private:
-	int layer;
-	int thres;
-	int count;
-	kmb::BoundingBox boundBox;
-	kmb::Point3D center;
-	kmb::elementIdType *elementIds;
-	kmb::ElementOctree **children;
-	int getChildIndex(double x,double y,double z) const;
+	const kmb::Point3DContainer* points;
+	const kmb::ElementContainer* elements;
+	kmb::ElementEvaluator* evaluator;
+public:
+	Element3DOctree(size_t mCount=256)
+	: Octree<kmb::elementIdType>(mCount)
+	, points(NULL)
+	, elements(NULL)
+	, evaluator(NULL)
+	{
+		maxExpand = true;
+	};
 
-	double getDistanceFromChildCell(double x,double y,double z,int i) const;
+	virtual ~Element3DOctree(void){
+		if( evaluator ){
+			delete evaluator;
+		}
+	};
 
-	void addElement(kmb::elementIdType elementId,kmb::BoundingBox* bbox,kmb::MeshData* mesh,double safetyRatio);
+	void setContainer(const kmb::Point3DContainer* pts,const kmb::ElementContainer* elems){
+		points = pts;
+		elements = elems;
+		evaluator = new kmb::ElementEvaluator(points);
+	}
 
-	void createChildren(kmb::MeshData* mesh,double safetyRatio);
+	int append(const kmb::elementIdType elementId,kmb::Octree<kmb::elementIdType>::OctreeNode* octNode=NULL)
+	{
+		if( points != NULL && elements != NULL ){
+			if( octNode == NULL ){
+				octNode = topNode;
+			}
+			kmb::BoundingBox bbox;
+			kmb::ElementContainer::const_iterator elem = elements->find(elementId);
+			if( !elem.isFinished() ){
+				bbox.initialize();
+				evaluator->getBoundingBox( elem, bbox );
+				return octNode->appendByRegion(bbox,elementId);
+			}
+		}
+		return 0;
+	}
+
+	int appendAll(kmb::Octree<kmb::elementIdType>::OctreeNode* octNode=NULL)
+	{
+		int res = 0;
+		if( points != NULL && elements != NULL ){
+			if( octNode == NULL ){
+				octNode = topNode;
+			}
+			kmb::BoundingBox bbox;
+			kmb::ElementContainer::const_iterator elem = elements->begin();
+			while( !elem.isFinished() ){
+				bbox.initialize();
+				evaluator->getBoundingBox( elem, bbox );
+				res += octNode->appendByRegion(bbox,elem.getId());
+				++elem;
+			}
+		}
+		return res;
+	}
+
+	double getDistanceSq(const double x,const double y,const double z,const kmb::elementIdType elementId) const;
+
+};
+
+class Element2DOctree : public Octree<kmb::elementIdType>
+{
+protected:
+	const kmb::Point3DContainer* points;
+	const kmb::ElementContainer* elements;
+	kmb::ElementEvaluator* evaluator;
+public:
+	Element2DOctree(size_t mCount=256)
+	: Octree<kmb::elementIdType>(mCount)
+	, points(NULL)
+	, elements(NULL)
+	, evaluator(NULL)
+	{
+		maxExpand = true;
+	};
+
+	virtual ~Element2DOctree(void){
+		if( evaluator ){
+			delete evaluator;
+		}
+	};
+
+	void setContainer(const kmb::Point3DContainer* pts,const kmb::ElementContainer* elems){
+		points = pts;
+		elements = elems;
+		evaluator = new kmb::ElementEvaluator(points);
+	}
+
+	int append(const kmb::elementIdType elementId,kmb::Octree<kmb::elementIdType>::OctreeNode* octNode=NULL)
+	{
+		if( points != NULL && elements != NULL ){
+			if( octNode == NULL ){
+				octNode = topNode;
+			}
+			kmb::BoundingBox bbox;
+			kmb::ElementContainer::const_iterator elem = elements->find(elementId);
+			evaluator->getBoundingBox( elem, bbox );
+			return octNode->appendByRegion(bbox,elementId);
+		}
+		return 0;
+	}
+
+	int appendAll(kmb::Octree<kmb::elementIdType>::OctreeNode* octNode=NULL)
+	{
+		int res = 0;
+		if( points != NULL && elements != NULL ){
+			if( octNode == NULL ){
+				octNode = topNode;
+			}
+			kmb::BoundingBox bbox;
+			kmb::ElementContainer::const_iterator elem = elements->begin();
+			while( !elem.isFinished() ){
+				bbox.initialize();
+				evaluator->getBoundingBox( elem, bbox );
+				res += octNode->appendByRegion(bbox,elem.getId());
+				++elem;
+			}
+		}
+		return res;
+	}
+
+	double getDistanceSq(const double x,const double y,const double z,const kmb::elementIdType elementId) const;
+};
+
+class Element2DOctreeWithNormal : public Element2DOctree
+{
+protected:
+	kmb::Vector3D normal;
+public:
+	Element2DOctreeWithNormal(const kmb::Vector3D nvec,size_t mCount=256)
+	: Element2DOctree(mCount)
+	{
+		normal = nvec;
+	};
+
+	virtual ~Element2DOctreeWithNormal(void){}
+
+	void setNormal(const kmb::Vector3D nvec){
+		normal = nvec;
+	}
+
+	double getDistanceSq(const double x,const double y,const double z,const kmb::elementIdType elementId) const;
 };
 
 }

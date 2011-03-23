@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Element                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -80,80 +80,81 @@ public:
 	virtual ~ElementBase(void){}
 
 
-	static const int getNodeCount(kmb::elementType type);
+	static int getNodeCount(kmb::elementType type);
 
 
-	static const int getVertexCount(kmb::elementType type);
-	static const int getBoundaryCount(kmb::elementType type);
-	static const int getEdgeCount(kmb::elementType type);
-	static const kmb::elementType getBoundaryType(kmb::elementType type,int index);
-	static const int getBoundaryNodeCount(kmb::elementType type,int index);
-	static const int getBoundaryVertexCount(kmb::elementType type,int index);
-	static const kmb::elementType getEdgeType(kmb::elementType type,int index);
-	static const int getEdgeNodeCount(kmb::elementType type,int index);
-	static const int getEdgeVertexCount(kmb::elementType type,int index);
-	static const int getDimension(kmb::elementType type);
-	static const int getDegree(kmb::elementType type);
+	static int getVertexCount(kmb::elementType type);
+	static int getBoundaryCount(kmb::elementType type);
+	static int getEdgeCount(kmb::elementType type);
+	static kmb::elementType getBoundaryType(kmb::elementType type,int index);
+	static int getBoundaryNodeCount(kmb::elementType type,int index);
+	static int getBoundaryVertexCount(kmb::elementType type,int index);
+	static kmb::elementType getEdgeType(kmb::elementType type,int index);
+	static int getEdgeNodeCount(kmb::elementType type,int index);
+	static int getEdgeVertexCount(kmb::elementType type,int index);
+	static int getDimension(kmb::elementType type);
+	static int getDegree(kmb::elementType type);
 	static const std::string getTypeString(kmb::elementType type);
 
-	static const kmb::elementType getType(std::string str);
-	static const kmb::elementType getLinearType(kmb::elementType type);
-	static const kmb::elementType getSecondType(kmb::elementType type);
-	static const int getDiagIndex(kmb::elementType type,int index);
 
-	virtual const kmb::elementType getType(void) const = 0;
-	virtual const kmb::nodeIdType getCellId(int cellIndex) const = 0;
+	static kmb::elementType getType(std::string str);
+	static kmb::elementType getLinearType(kmb::elementType type);
+	static kmb::elementType getSecondType(kmb::elementType type);
+	static int getDiagIndex(kmb::elementType type,int index);
+
+	virtual kmb::elementType getType(void) const = 0;
+	virtual kmb::nodeIdType getCellId(int cellIndex) const = 0;
 	virtual bool setCellId(int cellIndex, kmb::nodeIdType nodeId) = 0;
 	virtual kmb::nodeIdType operator[](const int i) const = 0;
 
 
-	const int getNodeCount(void) const;
-	const int getVertexCount(void) const;
-	const int getBoundaryCount(void) const;
-	const int getEdgeCount(void) const;
-	const kmb::elementType getBoundaryType(int index) const;
-	const kmb::elementType getEdgeType(int index) const;
-	const int getBoundaryNodeCount(int index) const;
-	const int getBoundaryVertexCount(int index) const;
-	const int getEdgeNodeCount(int index) const;
-	const int getEdgeVertexCount(int index) const;
-	const kmb::nodeIdType getBoundaryCellId(int index,int i) const;
-	const kmb::nodeIdType getEdgeCellId(int index,int i) const;
-	const int getDimension(void) const;
-	const int getDegree(void) const;
+	int getNodeCount(void) const;
+	int getVertexCount(void) const;
+	int getBoundaryCount(void) const;
+	int getEdgeCount(void) const;
+	kmb::elementType getBoundaryType(int index) const;
+	kmb::elementType getEdgeType(int index) const;
+	int getBoundaryNodeCount(int index) const;
+	int getBoundaryVertexCount(int index) const;
+	int getEdgeNodeCount(int index) const;
+	int getEdgeVertexCount(int index) const;
+	kmb::nodeIdType getBoundaryCellId(int index,int i) const;
+	kmb::nodeIdType getEdgeCellId(int index,int i) const;
+	int getDimension(void) const;
+	int getDegree(void) const;
 	const std::string getTypeString(void) const;
-	const kmb::elementType getLinearType(void) const;
-	const kmb::elementType getSecondType(void) const;
-	const int getDiagIndex(int index) const;
+	kmb::elementType getLinearType(void) const;
+	kmb::elementType getSecondType(void) const;
+	int getDiagIndex(int index) const;
 
-	const bool include(kmb::nodeIdType nodeId) const;
-	const bool includeVertex(kmb::nodeIdType nodeId) const;
+	bool include(kmb::nodeIdType nodeId) const;
+	bool includeVertex(kmb::nodeIdType nodeId) const;
 
-	const int indexOf(kmb::nodeIdType nodeId) const;
-	const int countCommonNode(kmb::ElementBase& other) const;
+	int indexOf(kmb::nodeIdType nodeId) const;
+	int countCommonNode(kmb::ElementBase& other) const;
 	bool replaceNodeId(kmb::nodeIdType oldNodeId,kmb::nodeIdType newNodeId);
 	int replaceNodeId(std::map<nodeIdType,nodeIdType> &idmap);
 
-	const elementType getBoundaryElement(int index,kmb::nodeIdType* cell) const;
+	kmb::elementType getBoundaryElement(int index,kmb::nodeIdType* cell) const;
 	bool getBoundaryElement(int index,kmb::ElementBase& elem) const;
-	const elementType getEdgeElement(int index,kmb::nodeIdType* cell) const;
+	kmb::elementType getEdgeElement(int index,kmb::nodeIdType* cell) const;
 	bool getEdgeElement(int index,kmb::ElementBase& elem) const;
 
 
 
 
 
-	const int isConnected(int index0,int index1) const;
+	int isConnected(int index0,int index1) const;
 
 
 
 
 
 
-	const int isFace(int index0,int index1,int &faceIndex) const;
-	const int isFace(int index0,int index1,int index2,int &faceIndex) const;
-	const int isFace(int index0,int index1,int index2,int index3,int &faceIndex) const;
-	const int isFace(const kmb::ElementBase &element, int &faceIndex) const;
+	int isFace(int index0,int index1,int &faceIndex) const;
+	int isFace(int index0,int index1,int index2,int &faceIndex) const;
+	int isFace(int index0,int index1,int index2,int index3,int &faceIndex) const;
+	int isFace(const kmb::ElementBase &element, int &faceIndex) const;
 
 	int getFaceIndex(int index0,int index1) const;
 
@@ -163,6 +164,7 @@ public:
 	int divideIntoTriangles(kmb::nodeIdType triangles[][3]) const;
 
 	int divideIntoTetrahedrons(kmb::nodeIdType tetrahedrons[][4]) const;
+
 
 	int getIndexMinNodeIdOfFace(int index) const;
 	int getIndexMinNodeId(void) const;
@@ -197,11 +199,11 @@ public:
 
 	static Element* create(kmb::elementType type,kmb::nodeIdType *ary=NULL);
 
-	virtual const kmb::elementType getType() const;
+	virtual kmb::elementType getType() const;
 public:
 
 	virtual bool setCellId(int index,kmb::nodeIdType nodeId);
-	virtual const kmb::nodeIdType getCellId(int index) const;
+	virtual kmb::nodeIdType getCellId(int index) const;
 	virtual kmb::nodeIdType operator[](const int i) const;
 protected:
 	elementType type;

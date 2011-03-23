@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : CADFileIO                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -67,8 +67,6 @@ kmb::CADFileIO::readIGES(char* filename,kmb::ShapeData* shapeData)
 	igesReader.TransferList(list);
 
 	shapeData->getShape() = igesReader.OneShape();
-
-
 }
 
 void
@@ -93,8 +91,6 @@ kmb::CADFileIO::readSTEP(char* filename,kmb::ShapeData* shapeData)
 	std::cout << "STEP roots transferred: " << NbTrans << std::endl;
 	std::cout << "Number of resulting shapes is: "<< stepReader.NbShapes() << std::endl;
 	shapeData->getShape() = stepReader.OneShape();
-
-
 }
 
 void

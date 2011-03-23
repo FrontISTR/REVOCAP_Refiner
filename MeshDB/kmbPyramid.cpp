@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Pyramid                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,6 +27,10 @@
 #include "MeshDB/kmbTetrahedron.h"
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbElementRelation.h"
+
+#include "Matrix/kmbMatrix.h"
+#include "Matrix/kmbVector.h"
+#include "Geometry/kmb_Optimization.h"
 
 /********************************************************************************
 =begin
@@ -163,8 +167,21 @@ kmb::Pyramid::shapeFunction(double s,double t,double u,double* coeff)
 	coeff[4]  = 0.125*(1.0-s)*(1.0+t)*(1.0-u);
 }
 
+double
+kmb::Pyramid::checkShapeFunctionDomain(double s,double t,double u)
+{
+	kmb::Minimizer minimizer;
+	minimizer.update( 1.0-s );
+	minimizer.update( 1.0+s );
+	minimizer.update( 1.0-t );
+	minimizer.update( 1.0+t );
+	minimizer.update( 1.0-u );
+	minimizer.update( 1.0+u );
+	return minimizer.getMin();
+}
+
 bool
-kmb::Pyramid::getNaturalCoordinates(const double physicalCoords[3],const kmb::Point3D* points,double naturalCoords[3],double margin)
+kmb::Pyramid::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[3])
 {
 	if( points == NULL ){
 		return false;
@@ -172,109 +189,76 @@ kmb::Pyramid::getNaturalCoordinates(const double physicalCoords[3],const kmb::Po
 	/*
 	 * pyramidの要素座標を求めるためにニュートン法を行う
 	 */
-	const int len = 5;
-	double d = 0.0;
-	double thres = 1.0e-10;
-	kmb::BoundingBox bbox;
-	for(int i=0;i<len;++i){
-		bbox.update( points[i] );
-	}
-	bbox.expand( margin );
-	if( bbox.intersect(physicalCoords[0],physicalCoords[1],physicalCoords[2]) == kmb::BoxRegion::OUTSIDE ){
-		return false;
-	}
-
-	for(int j=0;j<10;++j){
-		for(int i=0;i<50;++i){
-			d = kmb::Pyramid::newtonMethod(physicalCoords,points,naturalCoords);
-			if( d < thres &&
-				-1.0 <= naturalCoords[0] && naturalCoords[0] <= 1.0 &&
-				-1.0 <= naturalCoords[1] && naturalCoords[1] <= 1.0 &&
-				-1.0 <= naturalCoords[2] && naturalCoords[2] <= 1.0 )
-			{
-				return true;
+	class nr_local : public kmb::OptTargetVV {
+	public:
+		kmb::Point3D target;
+		const kmb::Point3D* points;
+		int getDomainDim(void) const { return 3; };
+		int getRangeDim(void) const { return 3; };
+		bool f(const kmb::ColumnVector &t,kmb::ColumnVector &val){
+			double coeff[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+			kmb::Pyramid::shapeFunction( t[0], t[1], t[2], coeff );
+			double x=0.0,y=0.0,z=0.0;
+			for(int i=0;i<5;++i){
+				x += coeff[i] * points[i].x();
+				y += coeff[i] * points[i].y();
+				z += coeff[i] * points[i].z();
 			}
-		}
-		if( d < thres &&
-			-margin-1.0 <= naturalCoords[0] && naturalCoords[0] <= 1.0 + margin &&
-			-margin-1.0 <= naturalCoords[1] && naturalCoords[1] <= 1.0 + margin &&
-			-margin-1.0 <= naturalCoords[2] && naturalCoords[2] <= 1.0 + margin )
-		{
+			val.setRow(0,x-target[0]);
+			val.setRow(1,y-target[1]);
+			val.setRow(2,z-target[2]);
 			return true;
 		}
+		bool df(const ColumnVector &t,Matrix &jac){
+			for(int i=0;i<3;++i){
 
+				jac.set(i,0,0.125 * (
+					-(1.0-t[1])*(1.0-t[2])*points[1][i]
+					+(1.0-t[1])*(1.0-t[2])*points[2][i]
+					+(1.0+t[1])*(1.0-t[2])*points[3][i]
+					-(1.0+t[1])*(1.0-t[2])*points[4][i] ) );
 
-		naturalCoords[0] = -0.01*j*naturalCoords[1];
-		naturalCoords[1] = -0.01*j*naturalCoords[2];
-		naturalCoords[2] = -0.01*j*naturalCoords[0];
-	}
-	return false;
+				jac.set(i,1,0.125 * (
+					-(1.0-t[0])*(1.0-t[2])*points[1][i]
+					-(1.0+t[0])*(1.0-t[2])*points[2][i]
+					+(1.0+t[0])*(1.0-t[2])*points[3][i]
+					+(1.0-t[0])*(1.0-t[2])*points[4][i] ) );
+
+				jac.set(i,2,0.125 * (
+					+4.0*points[0].getCoordinate(i)
+					-(1.0-t[0])*(1.0-t[1])*points[1][i]
+					-(1.0+t[0])*(1.0-t[1])*points[2][i]
+					-(1.0+t[0])*(1.0+t[1])*points[3][i]
+					-(1.0-t[0])*(1.0+t[1])*points[4][i] ) );
+			}
+			return true;
+		}
+		nr_local(const kmb::Point3D &t,const kmb::Point3D* pt)
+		: target(t), points(pt){}
+	};
+	nr_local opt_obj(target,points);
+	double min_t[3]  = {-1.0, -1.0, -1.0};
+	double max_t[3]  = { 1.0,  1.0,  1.0};
+	kmb::Optimization opt;
+	bool res = opt.calcZero_NR( opt_obj, naturalCoords, min_t, max_t );
+	return res;
 }
 
 bool
-kmb::Pyramid::getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,double physicalCoords[3])
+kmb::Pyramid::getPhysicalCoordinates(const double naturalCoords[3],const kmb::Point3D* points,kmb::Point3D &target)
 {
 	if( points == NULL ){
 		return false;
 	}
 	double coeff[5];
 	shapeFunction( naturalCoords[0], naturalCoords[1], naturalCoords[2], coeff );
+	target.zero();
 	for(int i=0;i<3;++i){
-		physicalCoords[i] = 0.0;
 		for(int j=0;j<5;++j){
-			physicalCoords[i] += points[j].getCoordinate(i) * coeff[j];
+			target.addCoordinate(i,points[j].getCoordinate(i) * coeff[j]);
 		}
 	}
 	return true;
-}
-
-double
-kmb::Pyramid::newtonMethod(const double physicalCoords[3], const kmb::Point3D* points, double naturalCoords[3])
-{
-	double retVal = DBL_MAX;
-	if( points == NULL ){
-		return retVal;
-	}
-	double q[3];
-	if( !getPhysicalCoordinates( naturalCoords, points, q ) ){
-		return retVal;
-	}
-	double ds[3] = {0.0,0.0,0.0};
-	double dt[3] = {0.0,0.0,0.0};
-	double du[3] = {0.0,0.0,0.0};
-
-	for(int i=0;i<3;++i){
-		ds[i] = 0.125 * (
-		-(1.0-naturalCoords[1])*(1.0-naturalCoords[2])*points[1].getCoordinate(i)
-		+(1.0-naturalCoords[1])*(1.0-naturalCoords[2])*points[2].getCoordinate(i)
-		+(1.0+naturalCoords[1])*(1.0-naturalCoords[2])*points[3].getCoordinate(i)
-		-(1.0+naturalCoords[1])*(1.0-naturalCoords[2])*points[4].getCoordinate(i) );
-		dt[i] = 0.125 * (
-		-(1.0-naturalCoords[0])*(1.0-naturalCoords[2])*points[1].getCoordinate(i)
-		-(1.0+naturalCoords[0])*(1.0-naturalCoords[2])*points[2].getCoordinate(i)
-		+(1.0+naturalCoords[0])*(1.0-naturalCoords[2])*points[3].getCoordinate(i)
-		+(1.0-naturalCoords[0])*(1.0-naturalCoords[2])*points[4].getCoordinate(i) );
-		du[i] = 0.125 * (
-		+4.0*points[0].getCoordinate(i)
-		-(1.0-naturalCoords[0])*(1.0-naturalCoords[1])*points[1].getCoordinate(i)
-		-(1.0+naturalCoords[0])*(1.0-naturalCoords[1])*points[2].getCoordinate(i)
-		-(1.0+naturalCoords[0])*(1.0+naturalCoords[1])*points[3].getCoordinate(i)
-		-(1.0-naturalCoords[0])*(1.0+naturalCoords[1])*points[4].getCoordinate(i) );
-	}
-	kmb::Matrix3x3 mat(
-		ds[0],dt[0],du[0],
-		ds[1],dt[1],du[1],
-		ds[2],ds[2],du[2]);
-	kmb::Vector3D v( q[0]-physicalCoords[0], q[1]-physicalCoords[1], q[2]-physicalCoords[2] );
-	kmb::Vector3D* sol = mat.solve(v);
-	if( sol != NULL ){
-		naturalCoords[0] -= sol->x();
-		naturalCoords[1] -= sol->y();
-		naturalCoords[2] -= sol->z();
-		retVal = sol->length();
-		delete sol;
-	}
-	return retVal;
 }
 
 int
@@ -315,213 +299,3 @@ kmb::Pyramid::divideIntoTetrahedrons(const kmb::ElementBase* element,kmb::nodeId
 	}
 	return num;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

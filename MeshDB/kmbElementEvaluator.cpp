@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementEvaluator                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -23,7 +23,10 @@
 #include "Geometry/kmb_Calculator.h"
 #include "Geometry/kmb_Point2DContainer.h"
 #include "Geometry/kmb_Point3DContainer.h"
+#include "Geometry/kmb_Integration.h"
 
+#include "MeshDB/kmbSegment.h"
+#include "MeshDB/kmbSegment2.h"
 #include "MeshDB/kmbTriangle.h"
 #include "MeshDB/kmbTriangle2.h"
 #include "MeshDB/kmbQuad.h"
@@ -31,8 +34,11 @@
 #include "MeshDB/kmbTetrahedron.h"
 #include "MeshDB/kmbTetrahedron2.h"
 #include "MeshDB/kmbHexahedron.h"
+#include "MeshDB/kmbHexahedron2.h"
 #include "MeshDB/kmbPyramid.h"
+#include "MeshDB/kmbPyramid2.h"
 #include "MeshDB/kmbWedge.h"
+#include "MeshDB/kmbWedge2.h"
 #include "MeshDB/kmbFace.h"
 
 kmb::ElementEvaluator::ElementEvaluator(const kmb::Point3DContainer* points)
@@ -64,10 +70,10 @@ kmb::ElementEvaluator::getAspectRatio(const kmb::ElementBase &eIter) const
 
 			{
 				kmb::Node n0,n1,n2,n3;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
 				 )
 				{
 					double inscribe = kmb::Sphere::getInscribedRadius( n0, n1, n2, n3 );
@@ -82,9 +88,9 @@ kmb::ElementEvaluator::getAspectRatio(const kmb::ElementBase &eIter) const
 		case TRIANGLE2:
 			{
 				kmb::Node n0,n1,n2;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
 				 )
 				{
 					double inscribe = kmb::Circle3D::getInscribedRadius( n0, n1, n2 );
@@ -166,10 +172,10 @@ kmb::ElementEvaluator::getEdgeLengthRatio(const kmb::ElementBase &eIter) const
 		case kmb::TETRAHEDRON2:
 			{
 				kmb::Node n0,n1,n2,n3;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
 				 )
 				{
 					kmb::BoundingBox1D bbox;
@@ -189,14 +195,14 @@ kmb::ElementEvaluator::getEdgeLengthRatio(const kmb::ElementBase &eIter) const
 		case kmb::HEXAHEDRON2:
 			{
 				kmb::Node n0,n1,n2,n3,n4,n5,n6,n7;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
-				 && points->getPoint( eIter.getCellId(4), n4 )
-				 && points->getPoint( eIter.getCellId(5), n5 )
-				 && points->getPoint( eIter.getCellId(6), n6 )
-				 && points->getPoint( eIter.getCellId(7), n7 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
+				 && points->getPoint( eIter[4], n4 )
+				 && points->getPoint( eIter[5], n5 )
+				 && points->getPoint( eIter[6], n6 )
+				 && points->getPoint( eIter[7], n7 )
 				 )
 				{
 					kmb::BoundingBox1D bbox;
@@ -222,12 +228,12 @@ kmb::ElementEvaluator::getEdgeLengthRatio(const kmb::ElementBase &eIter) const
 		case kmb::WEDGE2:
 			{
 				kmb::Node n0,n1,n2,n3,n4,n5;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
-				 && points->getPoint( eIter.getCellId(4), n4 )
-				 && points->getPoint( eIter.getCellId(5), n5 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
+				 && points->getPoint( eIter[4], n4 )
+				 && points->getPoint( eIter[5], n5 )
 				 )
 				{
 					kmb::BoundingBox1D bbox;
@@ -250,11 +256,11 @@ kmb::ElementEvaluator::getEdgeLengthRatio(const kmb::ElementBase &eIter) const
 		case kmb::PYRAMID2:
 			{
 				kmb::Node n0,n1,n2,n3,n4;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
-				 && points->getPoint( eIter.getCellId(4), n4 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
+				 && points->getPoint( eIter[4], n4 )
 				 )
 				{
 					kmb::BoundingBox1D bbox;
@@ -276,9 +282,9 @@ kmb::ElementEvaluator::getEdgeLengthRatio(const kmb::ElementBase &eIter) const
 		case TRIANGLE2:
 			{
 				kmb::Node n0,n1,n2;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
 				 )
 				{
 					kmb::BoundingBox1D bbox;
@@ -295,10 +301,10 @@ kmb::ElementEvaluator::getEdgeLengthRatio(const kmb::ElementBase &eIter) const
 		case QUAD2:
 			{
 				kmb::Node n0,n1,n2,n3;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
 				 )
 				{
 					kmb::BoundingBox1D bbox;
@@ -368,9 +374,9 @@ kmb::ElementEvaluator::getMinAngleCos(const kmb::ElementBase &eIter) const
 		case kmb::TRIANGLE2:
 			{
 				kmb::Node n0,n1,n2;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
 				 )
 				{
 					min.update( kmb::Point3D::cos(n0,n1,n2) );
@@ -383,10 +389,10 @@ kmb::ElementEvaluator::getMinAngleCos(const kmb::ElementBase &eIter) const
 		case kmb::QUAD2:
 			{
 				kmb::Node n0,n1,n2,n3;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
 				 )
 				{
 					min.update( kmb::Point3D::cos(n0,n1,n2) );
@@ -414,9 +420,9 @@ kmb::ElementEvaluator::getMaxAngleCos(const kmb::ElementBase &eIter) const
 		case kmb::TRIANGLE2:
 			{
 				kmb::Node n0,n1,n2;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
 				 )
 				{
 					max.update( kmb::Point3D::cos(n0,n1,n2) );
@@ -429,10 +435,10 @@ kmb::ElementEvaluator::getMaxAngleCos(const kmb::ElementBase &eIter) const
 		case kmb::QUAD2:
 			{
 				kmb::Node n0,n1,n2,n3;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 )
 				 )
 				{
 					max.update( kmb::Point3D::cos(n0,n1,n2) );
@@ -719,10 +725,10 @@ kmb::ElementEvaluator::getVolume(const kmb::ElementBase &eIter) const
 		case kmb::TETRAHEDRON2:
 			{
 				kmb::Node n0,n1,n2,n3;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
-				 && points->getPoint( eIter.getCellId(3), n3 ) )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
+				 && points->getPoint( eIter[3], n3 ) )
 				{
 					return kmb::Point3D::volume( n0, n1, n2, n3 );
 				}
@@ -811,9 +817,9 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 		case TRIANGLE2:
 			{
 				kmb::Point3D n0,n1,n2;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
-				 && points->getPoint( eIter.getCellId(2), n2 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[2], n2 )
 				 )
 				{
 					return kmb::Point3D::area( n0, n1, n2 );
@@ -826,10 +832,10 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 		case QUAD2:
 			{
 				kmb::Point3D a,b,c,d;
-				if( points->getPoint( eIter.getCellId(0), a )
-				 && points->getPoint( eIter.getCellId(1), b )
-				 && points->getPoint( eIter.getCellId(2), c )
-				 && points->getPoint( eIter.getCellId(3), d )
+				if( points->getPoint( eIter[0], a )
+				 && points->getPoint( eIter[1], b )
+				 && points->getPoint( eIter[2], c )
+				 && points->getPoint( eIter[3], d )
 				)
 				{
 					return 0.5 * (
@@ -852,9 +858,9 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 		case TRIANGLE2:
 			{
 				kmb::Point2D n0,n1,n2;
-				if( point2Ds->getPoint( eIter.getCellId(0), n0 )
-				 && point2Ds->getPoint( eIter.getCellId(1), n1 )
-				 && point2Ds->getPoint( eIter.getCellId(2), n2 )
+				if( point2Ds->getPoint( eIter[0], n0 )
+				 && point2Ds->getPoint( eIter[1], n1 )
+				 && point2Ds->getPoint( eIter[2], n2 )
 				 )
 				{
 					return kmb::Point2D::area( n0, n1, n2 );
@@ -867,10 +873,10 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 		case QUAD2:
 			{
 				kmb::Point2D a,b,c,d;
-				if( point2Ds->getPoint( eIter.getCellId(0), a )
-				 && point2Ds->getPoint( eIter.getCellId(1), b )
-				 && point2Ds->getPoint( eIter.getCellId(2), c )
-				 && point2Ds->getPoint( eIter.getCellId(3), d )
+				if( point2Ds->getPoint( eIter[0], a )
+				 && point2Ds->getPoint( eIter[1], b )
+				 && point2Ds->getPoint( eIter[2], c )
+				 && point2Ds->getPoint( eIter[3], d )
 				)
 				{
 					return
@@ -898,8 +904,8 @@ kmb::ElementEvaluator::getLength(const kmb::ElementBase &eIter) const
 		case SEGMENT2:
 			{
 				kmb::Node n0,n1;
-				if( points->getPoint( eIter.getCellId(0), n0 )
-				 && points->getPoint( eIter.getCellId(1), n1 )
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
 				 )
 				{
 					return n0.distance( n1 );
@@ -918,8 +924,8 @@ kmb::ElementEvaluator::getLength(const kmb::ElementBase &eIter) const
 		case SEGMENT2:
 			{
 				kmb::Point2D n0,n1;
-				if( point2Ds->getPoint( eIter.getCellId(0), n0 )
-				 && point2Ds->getPoint( eIter.getCellId(1), n1 )
+				if( point2Ds->getPoint( eIter[0], n0 )
+				 && point2Ds->getPoint( eIter[1], n1 )
 				 )
 				{
 					return n0.distance( n1 );
@@ -956,25 +962,25 @@ kmb::ElementEvaluator::getAngleByIndex(const kmb::ElementBase &eIter,int index) 
 		case TRIANGLE2:
 			switch(index){
 			case 0:
-				if( points->getPoint( eIter.getCellId(2), p0 ) &&
-					points->getPoint( eIter.getCellId(0), p1 ) &&
-					points->getPoint( eIter.getCellId(1), p2 ) )
+				if( points->getPoint( eIter[2], p0 ) &&
+					points->getPoint( eIter[0], p1 ) &&
+					points->getPoint( eIter[1], p2 ) )
 				{
 					angle = kmb::Point3D::angle(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( points->getPoint( eIter.getCellId(0), p0 ) &&
-					points->getPoint( eIter.getCellId(1), p1 ) &&
-					points->getPoint( eIter.getCellId(2), p2 ) )
+				if( points->getPoint( eIter[0], p0 ) &&
+					points->getPoint( eIter[1], p1 ) &&
+					points->getPoint( eIter[2], p2 ) )
 				{
 					angle = kmb::Point3D::angle(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( points->getPoint( eIter.getCellId(1), p0 ) &&
-					points->getPoint( eIter.getCellId(2), p1 ) &&
-					points->getPoint( eIter.getCellId(0), p2 ) )
+				if( points->getPoint( eIter[1], p0 ) &&
+					points->getPoint( eIter[2], p1 ) &&
+					points->getPoint( eIter[0], p2 ) )
 				{
 					angle = kmb::Point3D::angle(p0,p1,p2);
 				}
@@ -987,33 +993,33 @@ kmb::ElementEvaluator::getAngleByIndex(const kmb::ElementBase &eIter,int index) 
 		case QUAD2:
 			switch(index){
 			case 0:
-				if( points->getPoint( eIter.getCellId(3), p0 ) &&
-					points->getPoint( eIter.getCellId(0), p1 ) &&
-					points->getPoint( eIter.getCellId(1), p2 ) )
+				if( points->getPoint( eIter[3], p0 ) &&
+					points->getPoint( eIter[0], p1 ) &&
+					points->getPoint( eIter[1], p2 ) )
 				{
 					angle = kmb::Point3D::angle(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( points->getPoint( eIter.getCellId(0), p0 ) &&
-					points->getPoint( eIter.getCellId(1), p1 ) &&
-					points->getPoint( eIter.getCellId(2), p2 ) )
+				if( points->getPoint( eIter[0], p0 ) &&
+					points->getPoint( eIter[1], p1 ) &&
+					points->getPoint( eIter[2], p2 ) )
 				{
 					angle = kmb::Point3D::angle(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( points->getPoint( eIter.getCellId(1), p0 ) &&
-					points->getPoint( eIter.getCellId(2), p1 ) &&
-					points->getPoint( eIter.getCellId(3), p2 ) )
+				if( points->getPoint( eIter[1], p0 ) &&
+					points->getPoint( eIter[2], p1 ) &&
+					points->getPoint( eIter[3], p2 ) )
 				{
 					angle = kmb::Point3D::angle(p0,p1,p2);
 				}
 				break;
 			case 3:
-				if( points->getPoint( eIter.getCellId(2), p0 ) &&
-					points->getPoint( eIter.getCellId(3), p1 ) &&
-					points->getPoint( eIter.getCellId(0), p2 ) )
+				if( points->getPoint( eIter[2], p0 ) &&
+					points->getPoint( eIter[3], p1 ) &&
+					points->getPoint( eIter[0], p2 ) )
 				{
 					angle = kmb::Point3D::angle(p0,p1,p2);
 				}
@@ -1034,25 +1040,25 @@ kmb::ElementEvaluator::getAngleByIndex(const kmb::ElementBase &eIter,int index) 
 		case TRIANGLE2:
 			switch(index){
 			case 0:
-				if( point2Ds->getPoint( eIter.getCellId(2), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p2 ) )
+				if( point2Ds->getPoint( eIter[2], p0 ) &&
+					point2Ds->getPoint( eIter[0], p1 ) &&
+					point2Ds->getPoint( eIter[1], p2 ) )
 				{
 					angle = kmb::Point2D::angle(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( point2Ds->getPoint( eIter.getCellId(0), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p2 ) )
+				if( point2Ds->getPoint( eIter[0], p0 ) &&
+					point2Ds->getPoint( eIter[1], p1 ) &&
+					point2Ds->getPoint( eIter[2], p2 ) )
 				{
 					angle = kmb::Point2D::angle(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( point2Ds->getPoint( eIter.getCellId(1), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p2 ) )
+				if( point2Ds->getPoint( eIter[1], p0 ) &&
+					point2Ds->getPoint( eIter[2], p1 ) &&
+					point2Ds->getPoint( eIter[0], p2 ) )
 				{
 					angle = kmb::Point2D::angle(p0,p1,p2);
 				}
@@ -1065,33 +1071,33 @@ kmb::ElementEvaluator::getAngleByIndex(const kmb::ElementBase &eIter,int index) 
 		case QUAD2:
 			switch(index){
 			case 0:
-				if( point2Ds->getPoint( eIter.getCellId(3), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p2 ) )
+				if( point2Ds->getPoint( eIter[3], p0 ) &&
+					point2Ds->getPoint( eIter[0], p1 ) &&
+					point2Ds->getPoint( eIter[1], p2 ) )
 				{
 					angle = kmb::Point2D::angle(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( point2Ds->getPoint( eIter.getCellId(0), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p2 ) )
+				if( point2Ds->getPoint( eIter[0], p0 ) &&
+					point2Ds->getPoint( eIter[1], p1 ) &&
+					point2Ds->getPoint( eIter[2], p2 ) )
 				{
 					angle = kmb::Point2D::angle(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( point2Ds->getPoint( eIter.getCellId(1), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(3), p2 ) )
+				if( point2Ds->getPoint( eIter[1], p0 ) &&
+					point2Ds->getPoint( eIter[2], p1 ) &&
+					point2Ds->getPoint( eIter[3], p2 ) )
 				{
 					angle = kmb::Point2D::angle(p0,p1,p2);
 				}
 				break;
 			case 3:
-				if( point2Ds->getPoint( eIter.getCellId(2), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(3), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p2 ) )
+				if( point2Ds->getPoint( eIter[2], p0 ) &&
+					point2Ds->getPoint( eIter[3], p1 ) &&
+					point2Ds->getPoint( eIter[0], p2 ) )
 				{
 					angle = kmb::Point2D::angle(p0,p1,p2);
 				}
@@ -1120,25 +1126,25 @@ kmb::ElementEvaluator::getCosByIndex(const kmb::ElementBase &eIter,int index) co
 		case TRIANGLE2:
 			switch(index){
 			case 0:
-				if( points->getPoint( eIter.getCellId(2), p0 ) &&
-					points->getPoint( eIter.getCellId(0), p1 ) &&
-					points->getPoint( eIter.getCellId(1), p2 ) )
+				if( points->getPoint( eIter[2], p0 ) &&
+					points->getPoint( eIter[0], p1 ) &&
+					points->getPoint( eIter[1], p2 ) )
 				{
 					c = kmb::Point3D::cos(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( points->getPoint( eIter.getCellId(0), p0 ) &&
-					points->getPoint( eIter.getCellId(1), p1 ) &&
-					points->getPoint( eIter.getCellId(2), p2 ) )
+				if( points->getPoint( eIter[0], p0 ) &&
+					points->getPoint( eIter[1], p1 ) &&
+					points->getPoint( eIter[2], p2 ) )
 				{
 					c = kmb::Point3D::cos(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( points->getPoint( eIter.getCellId(1), p0 ) &&
-					points->getPoint( eIter.getCellId(2), p1 ) &&
-					points->getPoint( eIter.getCellId(0), p2 ) )
+				if( points->getPoint( eIter[1], p0 ) &&
+					points->getPoint( eIter[2], p1 ) &&
+					points->getPoint( eIter[0], p2 ) )
 				{
 					c = kmb::Point3D::cos(p0,p1,p2);
 				}
@@ -1151,33 +1157,33 @@ kmb::ElementEvaluator::getCosByIndex(const kmb::ElementBase &eIter,int index) co
 		case QUAD2:
 			switch(index){
 			case 0:
-				if( points->getPoint( eIter.getCellId(3), p0 ) &&
-					points->getPoint( eIter.getCellId(0), p1 ) &&
-					points->getPoint( eIter.getCellId(1), p2 ) )
+				if( points->getPoint( eIter[3], p0 ) &&
+					points->getPoint( eIter[0], p1 ) &&
+					points->getPoint( eIter[1], p2 ) )
 				{
 					c = kmb::Point3D::cos(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( points->getPoint( eIter.getCellId(0), p0 ) &&
-					points->getPoint( eIter.getCellId(1), p1 ) &&
-					points->getPoint( eIter.getCellId(2), p2 ) )
+				if( points->getPoint( eIter[0], p0 ) &&
+					points->getPoint( eIter[1], p1 ) &&
+					points->getPoint( eIter[2], p2 ) )
 				{
 					c = kmb::Point3D::cos(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( points->getPoint( eIter.getCellId(1), p0 ) &&
-					points->getPoint( eIter.getCellId(2), p1 ) &&
-					points->getPoint( eIter.getCellId(3), p2 ) )
+				if( points->getPoint( eIter[1], p0 ) &&
+					points->getPoint( eIter[2], p1 ) &&
+					points->getPoint( eIter[3], p2 ) )
 				{
 					c = kmb::Point3D::cos(p0,p1,p2);
 				}
 				break;
 			case 3:
-				if( points->getPoint( eIter.getCellId(2), p0 ) &&
-					points->getPoint( eIter.getCellId(3), p1 ) &&
-					points->getPoint( eIter.getCellId(0), p2 ) )
+				if( points->getPoint( eIter[2], p0 ) &&
+					points->getPoint( eIter[3], p1 ) &&
+					points->getPoint( eIter[0], p2 ) )
 				{
 					c = kmb::Point3D::cos(p0,p1,p2);
 				}
@@ -1198,25 +1204,25 @@ kmb::ElementEvaluator::getCosByIndex(const kmb::ElementBase &eIter,int index) co
 		case TRIANGLE2:
 			switch(index){
 			case 0:
-				if( point2Ds->getPoint( eIter.getCellId(2), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p2 ) )
+				if( point2Ds->getPoint( eIter[2], p0 ) &&
+					point2Ds->getPoint( eIter[0], p1 ) &&
+					point2Ds->getPoint( eIter[1], p2 ) )
 				{
 					c = kmb::Point2D::cos(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( point2Ds->getPoint( eIter.getCellId(0), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p2 ) )
+				if( point2Ds->getPoint( eIter[0], p0 ) &&
+					point2Ds->getPoint( eIter[1], p1 ) &&
+					point2Ds->getPoint( eIter[2], p2 ) )
 				{
 					c = kmb::Point2D::cos(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( point2Ds->getPoint( eIter.getCellId(1), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p2 ) )
+				if( point2Ds->getPoint( eIter[1], p0 ) &&
+					point2Ds->getPoint( eIter[2], p1 ) &&
+					point2Ds->getPoint( eIter[0], p2 ) )
 				{
 					c = kmb::Point2D::cos(p0,p1,p2);
 				}
@@ -1229,33 +1235,33 @@ kmb::ElementEvaluator::getCosByIndex(const kmb::ElementBase &eIter,int index) co
 		case QUAD2:
 			switch(index){
 			case 0:
-				if( point2Ds->getPoint( eIter.getCellId(3), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p2 ) )
+				if( point2Ds->getPoint( eIter[3], p0 ) &&
+					point2Ds->getPoint( eIter[0], p1 ) &&
+					point2Ds->getPoint( eIter[1], p2 ) )
 				{
 					c = kmb::Point2D::cos(p0,p1,p2);
 				}
 				break;
 			case 1:
-				if( point2Ds->getPoint( eIter.getCellId(0), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(1), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p2 ) )
+				if( point2Ds->getPoint( eIter[0], p0 ) &&
+					point2Ds->getPoint( eIter[1], p1 ) &&
+					point2Ds->getPoint( eIter[2], p2 ) )
 				{
 					c = kmb::Point2D::cos(p0,p1,p2);
 				}
 				break;
 			case 2:
-				if( point2Ds->getPoint( eIter.getCellId(1), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(2), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(3), p2 ) )
+				if( point2Ds->getPoint( eIter[1], p0 ) &&
+					point2Ds->getPoint( eIter[2], p1 ) &&
+					point2Ds->getPoint( eIter[3], p2 ) )
 				{
 					c = kmb::Point2D::cos(p0,p1,p2);
 				}
 				break;
 			case 3:
-				if( point2Ds->getPoint( eIter.getCellId(2), p0 ) &&
-					point2Ds->getPoint( eIter.getCellId(3), p1 ) &&
-					point2Ds->getPoint( eIter.getCellId(0), p2 ) )
+				if( point2Ds->getPoint( eIter[2], p0 ) &&
+					point2Ds->getPoint( eIter[3], p1 ) &&
+					point2Ds->getPoint( eIter[0], p2 ) )
 				{
 					c = kmb::Point2D::cos(p0,p1,p2);
 				}
@@ -1276,7 +1282,7 @@ kmb::ElementEvaluator::getBoundingBox(const kmb::ElementBase &element,kmb::Bound
 	const int nodeCount = element.getNodeCount();
 	kmb::Point3D node;
 	for(int i=0;i<nodeCount;++i){
-		if( points->getPoint( element.getCellId(i), node ) ){
+		if( points->getPoint( element[i], node ) ){
 			bbox.update( node );
 		}
 	}
@@ -1290,7 +1296,7 @@ kmb::ElementEvaluator::getBoundingBoxRadius(const kmb::ElementBase &element) con
 	const int nodeCount = element.getNodeCount();
 	kmb::Point3D node;
 	for(int i=0;i<nodeCount;++i){
-		if( points->getPoint( element.getCellId(i), node ) ){
+		if( points->getPoint( element[i], node ) ){
 			bbox.update( node );
 		}
 	}
@@ -1309,9 +1315,9 @@ kmb::ElementEvaluator::getNormalVector(const kmb::ElementBase &element, kmb::Vec
 		{
 		case kmb::TRIANGLE:
 		case kmb::TRIANGLE2:
-			if( points->getPoint( element.getCellId(0), a ) &&
-				points->getPoint( element.getCellId(1), b ) &&
-				points->getPoint( element.getCellId(2), c )  )
+			if( points->getPoint( element[0], a ) &&
+				points->getPoint( element[1], b ) &&
+				points->getPoint( element[2], c )  )
 			{
 				vect = kmb::Point3D::calcNormalVector( a, b, c );
 				return true;
@@ -1319,10 +1325,10 @@ kmb::ElementEvaluator::getNormalVector(const kmb::ElementBase &element, kmb::Vec
 			break;
 		case kmb::QUAD:
 		case kmb::QUAD2:
-			if( points->getPoint( element.getCellId(0), a) &&
-				points->getPoint( element.getCellId(1), b) &&
-				points->getPoint( element.getCellId(2), c) &&
-				points->getPoint( element.getCellId(3), d) )
+			if( points->getPoint( element[0], a) &&
+				points->getPoint( element[1], b) &&
+				points->getPoint( element[2], c) &&
+				points->getPoint( element[3], d) )
 			{
 				kmb::Vector3D n0 = kmb::Point3D::calcNormalVector( a, b, c );
 				kmb::Vector3D n1 = kmb::Point3D::calcNormalVector( a, c, d );
@@ -1435,7 +1441,7 @@ kmb::ElementEvaluator::getCosBetweenElements(const kmb::ElementBase &element0,co
 }
 
 bool
-kmb::ElementEvaluator::getNaturalCoordinates(const kmb::ElementBase &element,const double x,const double y,const double z,double* retvals,double margin) const
+kmb::ElementEvaluator::getNaturalCoordinates(const kmb::ElementBase &element,const double x,const double y,const double z,double* coords) const
 {
 	if( points == NULL ){
 		return false;
@@ -1445,63 +1451,68 @@ kmb::ElementEvaluator::getNaturalCoordinates(const kmb::ElementBase &element,con
 	case kmb::TETRAHEDRON:
 		{
 			kmb::Point3D pt[4];
-			double physCoords[3] = { x, y, z };
-			if( points->getPoint( element.getCellId(0), pt[0] )
-				&& points->getPoint( element.getCellId(1), pt[1] )
-				&& points->getPoint( element.getCellId(2), pt[2] )
-				&& points->getPoint( element.getCellId(3), pt[3] ) )
-			{
-				return kmb::Tetrahedron::getNaturalCoordinates( physCoords, pt, retvals, margin );
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<4;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return false;
+				}
 			}
-			break;
+			return kmb::Tetrahedron::getNaturalCoordinates( target, pt, coords );
 		}
 	case kmb::TETRAHEDRON2:
 		{
 			kmb::Point3D pt[10];
-			double physCoords[3] = { x, y, z };
+			kmb::Point3D target(x,y,z);
 			for(int i=0;i<10;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			return kmb::Tetrahedron2::getNaturalCoordinates( physCoords, pt, retvals, margin );
-			break;
+			return kmb::Tetrahedron2::getNaturalCoordinates( target, pt, coords );
 		}
 	case kmb::PYRAMID:
 		{
 			kmb::Point3D pt[5];
-			double physCoords[3] = { x, y, z };
+			kmb::Point3D target(x,y,z);
 			for(int i=0;i<5;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			return kmb::Pyramid::getNaturalCoordinates( physCoords, pt, retvals, margin );
-			break;
+			return kmb::Pyramid::getNaturalCoordinates( target, pt, coords );
 		}
 	case kmb::WEDGE:
 		{
 			kmb::Point3D pt[6];
-			double physCoords[3] = { x, y, z };
+			kmb::Point3D target(x,y,z);
 			for(int i=0;i<6;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			return kmb::Wedge::getNaturalCoordinates( physCoords, pt, retvals, margin );
-			break;
+			return kmb::Wedge::getNaturalCoordinates( target, pt, coords );
 		}
 	case kmb::HEXAHEDRON:
 		{
 			kmb::Point3D pt[8];
-			double physCoords[3] = { x, y, z };
+			kmb::Point3D target(x,y,z);
 			for(int i=0;i<8;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			return kmb::Hexahedron::getNaturalCoordinates( physCoords, pt, retvals, margin );
-			break;
+			return kmb::Hexahedron::getNaturalCoordinates( target, pt, coords );
+		}
+	case kmb::HEXAHEDRON2:
+		{
+			kmb::Point3D pt[20];
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<20;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return false;
+				}
+			}
+			return kmb::Hexahedron::getNaturalCoordinates( target, pt, coords );
 		}
 	default:
 		break;
@@ -1509,10 +1520,301 @@ kmb::ElementEvaluator::getNaturalCoordinates(const kmb::ElementBase &element,con
 	return false;
 }
 
-bool
-kmb::ElementEvaluator::getPhysicalCoordinates(const kmb::ElementBase &element,const double s,const double t,const double u,double* retvals) const
+double
+kmb::ElementEvaluator::checkShapeFunctionDomain(const kmb::ElementBase &element,double s,double t,double u)
 {
-	if( points == NULL || retvals == NULL ){
+	switch( element.getType() )
+	{
+	case kmb::TETRAHEDRON:
+		return kmb::Tetrahedron::checkShapeFunctionDomain(s,t,u);
+	case kmb::TETRAHEDRON2:
+		return kmb::Tetrahedron2::checkShapeFunctionDomain(s,t,u);
+	case kmb::HEXAHEDRON:
+		return kmb::Hexahedron::checkShapeFunctionDomain(s,t,u);
+	case kmb::HEXAHEDRON2:
+		return kmb::Hexahedron2::checkShapeFunctionDomain(s,t,u);
+	case kmb::WEDGE:
+		return kmb::Wedge::checkShapeFunctionDomain(s,t,u);
+	case kmb::WEDGE2:
+		return kmb::Wedge2::checkShapeFunctionDomain(s,t,u);
+	case kmb::PYRAMID:
+		return kmb::Pyramid::checkShapeFunctionDomain(s,t,u);
+	case kmb::PYRAMID2:
+		return kmb::Pyramid2::checkShapeFunctionDomain(s,t,u);
+	case kmb::TRIANGLE:
+		return kmb::Triangle::checkShapeFunctionDomain(s,t);
+	case kmb::TRIANGLE2:
+		return kmb::Triangle2::checkShapeFunctionDomain(s,t);
+	case kmb::QUAD:
+		return kmb::Triangle::checkShapeFunctionDomain(s,t);
+	case kmb::QUAD2:
+		return kmb::Triangle2::checkShapeFunctionDomain(s,t);
+	case kmb::SEGMENT:
+		return kmb::Segment::checkShapeFunctionDomain(s);
+	case kmb::SEGMENT2:
+		return kmb::Segment2::checkShapeFunctionDomain(s);
+	default:
+		break;
+	}
+	return -DBL_MAX;
+}
+
+double
+kmb::ElementEvaluator::getWeightElement(const kmb::ElementBase &element,const double x,const double y,const double z,double* weights) const
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	double coords[3] = {0.0,0.0,0.0};
+	switch( element.getType() )
+	{
+	case kmb::TETRAHEDRON:
+		{
+			kmb::Point3D pt[4];
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<4;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return -DBL_MAX;
+				}
+			}
+			coords[0] = 0.25;
+			coords[1] = 0.25;
+			coords[2] = 0.25;
+			if( kmb::Tetrahedron::getNaturalCoordinates( target, pt, coords ) ){
+				kmb::Tetrahedron::shapeFunction(coords[0], coords[1], coords[2], weights);
+				return kmb::Tetrahedron::checkShapeFunctionDomain(coords[0], coords[1], coords[2]);
+			}
+			break;
+		}
+	case kmb::TETRAHEDRON2:
+		{
+			kmb::Point3D pt[10];
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<10;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return -DBL_MAX;
+				}
+			}
+			coords[0] = 0.25;
+			coords[1] = 0.25;
+			coords[2] = 0.25;
+			if( kmb::Tetrahedron2::getNaturalCoordinates( target, pt, coords ) ){
+				kmb::Tetrahedron2::shapeFunction(coords[0], coords[1], coords[2], weights);
+				return kmb::Tetrahedron2::checkShapeFunctionDomain(coords[0], coords[1], coords[2]);
+			}
+			break;
+		}
+	case kmb::PYRAMID:
+		{
+			kmb::Point3D pt[5];
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<5;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return -DBL_MAX;
+				}
+			}
+			if( kmb::Pyramid::getNaturalCoordinates( target, pt, coords ) ){
+				kmb::Pyramid::shapeFunction(coords[0], coords[1], coords[2], weights);
+				return kmb::Pyramid::checkShapeFunctionDomain(coords[0], coords[1], coords[2]);
+			}
+			break;
+		}
+	case kmb::WEDGE:
+		{
+			kmb::Point3D pt[6];
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<6;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return -DBL_MAX;
+				}
+			}
+			if( kmb::Wedge::getNaturalCoordinates( target, pt, coords ) ){
+				kmb::Wedge::shapeFunction(coords[0], coords[1], coords[2], weights);
+				return kmb::Wedge::checkShapeFunctionDomain(coords[0], coords[1], coords[2]);
+			}
+			break;
+		}
+	case kmb::HEXAHEDRON:
+		{
+			kmb::Point3D pt[8];
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<8;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return -DBL_MAX;
+				}
+			}
+			if( kmb::Hexahedron::getNaturalCoordinates( target, pt, coords ) ){
+				kmb::Hexahedron::shapeFunction(coords[0], coords[1], coords[2], weights);
+				return kmb::Hexahedron::checkShapeFunctionDomain(coords[0], coords[1], coords[2]);
+			}
+			break;
+		}
+	case kmb::HEXAHEDRON2:
+		{
+			kmb::Point3D pt[20];
+			kmb::Point3D target(x,y,z);
+			for(int i=0;i<20;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return -DBL_MAX;
+				}
+			}
+			if( kmb::Hexahedron2::getNaturalCoordinates( target, pt, coords ) ){
+				kmb::Hexahedron2::shapeFunction(coords[0], coords[1], coords[2], weights);
+				return kmb::Hexahedron2::checkShapeFunctionDomain(coords[0], coords[1], coords[2]);
+			}
+			break;
+		}
+	default:
+		break;
+	}
+	return -DBL_MAX;
+}
+
+double
+kmb::ElementEvaluator::getWeightElementFace(const kmb::ElementBase &element,int index,const double x,const double y,const double z,double* weights) const
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	double coords[2] = {0.0,0.0};
+	switch( element.getBoundaryType(index) )
+	{
+	case kmb::TRIANGLE:
+	{
+		kmb::Point3D pt[3];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<3;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return -DBL_MAX;
+			}
+		}
+		coords[0] = 0.25;
+		coords[1] = 0.25;
+		if( kmb::Triangle::getNaturalCoordinates( target, pt, coords ) ){
+			kmb::Triangle::shapeFunction(coords[0], coords[1], weights);
+			return kmb::Triangle::checkShapeFunctionDomain(coords[0], coords[1]);
+		}
+		break;
+	}
+	case kmb::TRIANGLE2:
+	{
+		kmb::Point3D pt[6];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<6;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return -DBL_MAX;
+			}
+		}
+		coords[0] = 0.25;
+		coords[1] = 0.25;
+		if( kmb::Triangle2::getNaturalCoordinates( target, pt, coords ) ){
+			kmb::Triangle2::shapeFunction(coords[0], coords[1], weights);
+			return kmb::Triangle2::checkShapeFunctionDomain(coords[0], coords[1]);
+		}
+		break;
+	}
+	case kmb::QUAD:
+	{
+		kmb::Point3D pt[4];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<4;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return -DBL_MAX;
+			}
+		}
+		coords[0] = 0.0;
+		coords[1] = 0.0;
+		if( kmb::Quad::getNaturalCoordinates( target, pt, coords ) ){
+			kmb::Quad::shapeFunction(coords[0], coords[1], weights);
+			return kmb::Quad::checkShapeFunctionDomain(coords[0], coords[1]);
+		}
+		break;
+	}
+	case kmb::QUAD2:
+	{
+		kmb::Point3D pt[8];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<8;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return -DBL_MAX;
+			}
+		}
+		coords[0] = 0.0;
+		coords[1] = 0.0;
+		if( kmb::Quad2::getNaturalCoordinates( target, pt, coords ) ){
+			kmb::Quad2::shapeFunction(coords[0], coords[1], weights);
+			return kmb::Quad2::checkShapeFunctionDomain(coords[0], coords[1]);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	return -DBL_MAX;
+}
+
+bool
+kmb::ElementEvaluator::getNaturalCoordinatesOfFace(const kmb::ElementBase &element,int index,const double x,const double y,const double z,double* retvals) const
+{
+	if( points == NULL ){
+		return false;
+	}
+	switch( element.getBoundaryType(index) )
+	{
+	case kmb::TRIANGLE:
+	{
+		kmb::Point3D pt[3];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<3;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return false;
+			}
+		}
+		return kmb::Triangle::getNaturalCoordinates( target, pt, retvals );
+	}
+	case kmb::TRIANGLE2:
+	{
+		kmb::Point3D pt[6];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<6;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return false;
+			}
+		}
+		return kmb::Triangle2::getNaturalCoordinates( target, pt, retvals );
+	}
+	case kmb::QUAD:
+	{
+		kmb::Point3D pt[4];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<4;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return false;
+			}
+		}
+		return kmb::Quad::getNaturalCoordinates( target, pt, retvals );
+	}
+	case kmb::QUAD2:
+	{
+		kmb::Point3D pt[8];
+		kmb::Point3D target(x,y,z);
+		for(int i=0;i<8;++i){
+			if( !points->getPoint( element.getBoundaryCellId(index,i), pt[i] ) ){
+				return false;
+			}
+		}
+		return kmb::Quad2::getNaturalCoordinates( target, pt, retvals );
+	}
+	default:
+		break;
+	}
+	return false;
+}
+
+bool
+kmb::ElementEvaluator::getPhysicalCoordinates(const kmb::ElementBase &element,const double s,const double t,const double u,kmb::Point3D &target) const
+{
+	if( points == NULL ){
 		return false;
 	}
 	switch( element.getType() )
@@ -1521,70 +1823,302 @@ kmb::ElementEvaluator::getPhysicalCoordinates(const kmb::ElementBase &element,co
 		{
 			kmb::Point3D pt[4];
 			double natCoords[3] = { s, t, u };
-			if( points->getPoint( element.getCellId(0), pt[0] )
-				&& points->getPoint( element.getCellId(1), pt[1] )
-				&& points->getPoint( element.getCellId(2), pt[2] )
-				&& points->getPoint( element.getCellId(3), pt[3] ) )
-			{
-				kmb::Tetrahedron::getPhysicalCoordinates( natCoords, pt, retvals );
-				return true;
+			for(int i=0;i<4;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return false;
+				}
 			}
-			break;
+			return kmb::Tetrahedron::getPhysicalCoordinates( natCoords, pt, target );
 		}
 	case kmb::TETRAHEDRON2:
 		{
 			kmb::Point3D pt[10];
 			double natCoords[3] = { s, t, u };
 			for(int i=0;i<10;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			kmb::Tetrahedron2::getPhysicalCoordinates( natCoords, pt, retvals );
-			return true;
-			break;
+			return kmb::Tetrahedron2::getPhysicalCoordinates( natCoords, pt, target );
 		}
 	case kmb::PYRAMID:
 		{
 			kmb::Point3D pt[5];
 			double natCoords[3] = { s, t, u };
 			for(int i=0;i<5;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			kmb::Pyramid::getPhysicalCoordinates( natCoords, pt, retvals );
-			return true;
-			break;
+			return kmb::Pyramid::getPhysicalCoordinates( natCoords, pt, target );
 		}
 	case kmb::WEDGE:
 		{
 			kmb::Point3D pt[6];
 			double natCoords[3] = { s, t, u };
 			for(int i=0;i<6;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			kmb::Wedge::getPhysicalCoordinates( natCoords, pt, retvals );
-			return true;
-			break;
+			return kmb::Wedge::getPhysicalCoordinates( natCoords, pt, target );
 		}
 	case kmb::HEXAHEDRON:
 		{
 			kmb::Point3D pt[8];
 			double natCoords[3] = { s, t, u };
 			for(int i=0;i<8;++i){
-				if( !points->getPoint( element.getCellId(i), pt[i] ) ){
+				if( !points->getPoint( element[i], pt[i] ) ){
 					return false;
 				}
 			}
-			kmb::Hexahedron::getPhysicalCoordinates( natCoords, pt, retvals );
-			return true;
-			break;
+			return kmb::Hexahedron::getPhysicalCoordinates( natCoords, pt, target );
+		}
+	case kmb::HEXAHEDRON2:
+		{
+			kmb::Point3D pt[20];
+			double natCoords[3] = { s, t, u };
+			for(int i=0;i<20;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return false;
+				}
+			}
+			return kmb::Hexahedron2::getPhysicalCoordinates( natCoords, pt, target );
 		}
 	default:
 		break;
 	}
 	return false;
+}
+
+
+bool
+kmb::ElementEvaluator::getMinMaxJacobian(const kmb::ElementBase &element, double &min, double &max) const
+{
+	if( points == NULL ){
+		return false;
+	}
+	kmb::BoundingBox1D bbox;
+	switch( element.getType() )
+	{
+	case kmb::HEXAHEDRON:
+		{
+			kmb::Point3D pt[8];
+			for(int i=0;i<8;++i){
+				if( !points->getPoint( element[i], pt[i] ) ){
+					return false;
+				}
+			}
+			for(int i=0;i<3;++i){
+				for(int j=0;j<3;++j){
+					for(int k=0;k<3;++k){
+						bbox.update( kmb::Hexahedron::jacobian(
+							kmb::Integration::GAUSS_POINT3[i],
+							kmb::Integration::GAUSS_POINT3[j],
+							kmb::Integration::GAUSS_POINT3[k], pt) );
+					}
+				}
+			}
+			for(int i=0;i<1;++i){
+				double s = -1.0 + i*2.0;
+				for(int j=0;j<1;++j){
+					double t = -1.0 + j*2.0;
+					for(int k=0;k<1;++k){
+						double u = -1.0 + k*2.0;
+						bbox.update( kmb::Hexahedron::jacobian(s,t,u,pt) );
+					}
+				}
+			}
+			min = bbox.getMin();
+			max = bbox.getMax();
+			return true;
+		}
+		break;
+	default:
+		break;
+	}
+	return false;
+}
+
+double
+kmb::ElementEvaluator::getMinInnerVolume(const kmb::ElementBase &element,const double x,const double y,const double z) const
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	kmb::Minimizer minimizer;
+	kmb::Point3D p0,p1,p2,p3;
+	p0.setCoordinate(x,y,z);
+
+	int len = element.getBoundaryCount();
+	for(int i=0;i<len;++i){
+		switch( element.getBoundaryType(i) )
+		{
+		case kmb::TRIANGLE:
+		case kmb::TRIANGLE2:
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p1 ) &&
+				points->getPoint( element.getBoundaryCellId(i,1), p2 ) &&
+				points->getPoint( element.getBoundaryCellId(i,2), p3 ) )
+			{
+				minimizer.update( kmb::Point3D::volume( p0, p1, p2, p3 ) );
+			}
+			break;
+		case kmb::QUAD:
+		case kmb::QUAD2:
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p1 ) &&
+				points->getPoint( element.getBoundaryCellId(i,1), p2 ) &&
+				points->getPoint( element.getBoundaryCellId(i,2), p3 ) )
+			{
+				minimizer.update( kmb::Point3D::volume( p0, p1, p2, p3 ) );
+			}
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p1 ) &&
+				points->getPoint( element.getBoundaryCellId(i,2), p2 ) &&
+				points->getPoint( element.getBoundaryCellId(i,3), p3 ) )
+			{
+				minimizer.update( kmb::Point3D::volume( p0, p1, p2, p3 ) );
+			}
+			break;
+		default:
+			minimizer.update(-DBL_MAX);
+			break;
+		}
+	}
+	return minimizer.getMin();
+}
+
+double
+kmb::ElementEvaluator::getDistanceSqOnBoundary(const kmb::ElementBase &element,const double x,const double y,const double z) const
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	kmb::Minimizer minimizer;
+	kmb::Point3D q,p0,p1,p2;
+	q.setCoordinate(x,y,z);
+
+	int len = element.getBoundaryCount();
+	for(int i=0;i<len;++i){
+		switch( element.getBoundaryType(i) )
+		{
+		case kmb::TRIANGLE:
+		case kmb::TRIANGLE2:
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p0 ) &&
+				points->getPoint( element.getBoundaryCellId(i,1), p1 ) &&
+				points->getPoint( element.getBoundaryCellId(i,2), p2 ) )
+			{
+				minimizer.update( q.distanceSqToTriangle(p0,p1,p2) );
+			}
+			break;
+		case kmb::QUAD:
+		case kmb::QUAD2:
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p0 ) &&
+				points->getPoint( element.getBoundaryCellId(i,1), p1 ) &&
+				points->getPoint( element.getBoundaryCellId(i,2), p2 ) )
+			{
+				minimizer.update( q.distanceSqToTriangle(p0,p1,p2) );
+			}
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p0 ) &&
+				points->getPoint( element.getBoundaryCellId(i,2), p1 ) &&
+				points->getPoint( element.getBoundaryCellId(i,3), p2 ) )
+			{
+				minimizer.update( q.distanceSqToTriangle(p0,p1,p2) );
+			}
+			break;
+		case kmb::SEGMENT:
+		case kmb::SEGMENT2:
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p0 ) &&
+				points->getPoint( element.getBoundaryCellId(i,1), p1 ) )
+			{
+				minimizer.update( q.distanceSqToSegment(p0,p1) );
+			}
+			break;
+		case kmb::VERTEX:
+			if(
+				points->getPoint( element.getBoundaryCellId(i,0), p0 ) )
+			{
+				minimizer.update( q.distanceSq(p1) );
+			}
+			break;
+		default:
+			break;
+		}
+	}
+	return minimizer.getMin();
+}
+
+double
+kmb::ElementEvaluator::getDistanceSq(const kmb::ElementBase &element,const double x,const double y,const double z) const
+{
+	if( points == NULL ){
+		return -DBL_MAX;
+	}
+	kmb::Point3D pt(x,y,z);
+
+	switch( element.getType() )
+	{
+	case kmb::TRIANGLE:
+	case kmb::TRIANGLE2:
+	{
+		kmb::Point3D q[3];
+		if( points->getPoint( element[0], q[0] ) &&
+			points->getPoint( element[1], q[1] ) &&
+			points->getPoint( element[2], q[2] ) )
+		{
+			return pt.distanceSqToTriangle(q[0],q[1],q[2]);
+		}
+		break;
+	}
+	case kmb::QUAD:
+	case kmb::QUAD2:
+	{
+		kmb::Point3D q[4];
+		if( points->getPoint( element[0], q[0] ) &&
+			points->getPoint( element[1], q[1] ) &&
+			points->getPoint( element[2], q[2] ) &&
+			points->getPoint( element[3], q[3] ) )
+		{
+			return kmb::Minimizer::getMin(
+				pt.distanceSqToTriangle( q[0], q[1], q[2] ),
+				pt.distanceSqToTriangle( q[2], q[3], q[0] ) );
+		}
+		break;
+	}
+	case kmb::SEGMENT:
+	case kmb::SEGMENT2:
+	{
+		kmb::Point3D q[2];
+		if(
+			points->getPoint( element[0], q[0] ) &&
+			points->getPoint( element[1], q[1] ) )
+		{
+			return pt.distanceSqToSegment(q[0],q[1]);
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	return DBL_MAX;
+}
+
+int
+kmb::ElementEvaluator::getDuplicationNodeIdCount(const kmb::ElementBase &element)
+{
+	int count = 0;
+	int len = element.getNodeCount();
+	for(int i=0;i<len;++i){
+		for(int j=i+1;j<len;++j){
+			if( element[i] == element[j] ){
+				++count;
+			}
+		}
+	}
+	return count;
 }

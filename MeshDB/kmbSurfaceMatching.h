@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Matching                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,6 +27,7 @@
 
 #include <string>
 #include <map>
+#include <set>
 #include "MeshDB/kmbTypes.h"
 
 namespace kmb{
@@ -38,6 +39,7 @@ class NodeNeighborFaceInfo;
 class Face;
 class Collision;
 class Matrix;
+class Permutation;
 
 class SurfaceMatching
 {
@@ -47,6 +49,8 @@ private:
 	kmb::ElementContainer* masterSurf;
 	std::string slaveName;
 	kmb::DataBindings* slaveFaceGroup;
+	kmb::ElementContainer* slaveElements;
+
 	kmb::NodeNeighborFaceInfo* neighborInfo;
 	kmb::Matrix* distanceMatrix;
 	kmb::elementIdType* elementIds;
@@ -58,10 +62,13 @@ private:
 		int index;
 	};
 	std::map< kmb::Face, rotatedElement > mapping;
+
+	std::set< std::pair< int, int > > connectionTable;
 public:
 	SurfaceMatching(void);
 	virtual ~SurfaceMatching(void);
 	void setMesh(kmb::MeshData* mesh,const char* insNodes=NULL);
+
 	void setPair(kmb::bodyIdType bodyId,const char* faceGroup);
 	kmb::elementIdType getMatchingElementId(kmb::Face f,int &index);
 
@@ -70,8 +77,9 @@ public:
 	size_t constructDummyElements(void);
 private:
 	void clear(void);
+	void clearPairInfo(void);
 
-	void calcMapping(void);
+	bool calcMapping(void);
 
 
 
@@ -79,6 +87,11 @@ private:
 
 
 	kmb::nodeIdType duplicateNode(kmb::nodeIdType n0);
+
+
+
+
+	int checkTopologicalMapping( kmb::Permutation& perm ) const;
 };
 
 }

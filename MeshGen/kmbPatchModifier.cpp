@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : AFTetraMesher                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -201,7 +201,6 @@ kmb::PatchModifier::quadTrisect(kmb::elementIdType quad0, kmb::elementIdType qua
 					flag = flag << 1;
 				}
 			}
-			REVOCAP_Debug_3("quadTrisect flag = %#6x\n", rel);
 			kmb::nodeIdType nodes[7]
 				= {kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId};
 			kmb::nodeIdType quadNodes[4]

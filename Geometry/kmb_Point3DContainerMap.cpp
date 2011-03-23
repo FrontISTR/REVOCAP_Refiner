@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainerMap                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -31,6 +31,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 
@@ -418,6 +423,24 @@ kmb::Point3DContainerMap::_iteratorMap::getPoint(kmb::Point3D &point) const
 		return true;
 	}
 	return false;
+}
+
+double
+kmb::Point3DContainerMap::_iteratorMap::x() const
+{
+	return pointIter->second->x();
+}
+
+double
+kmb::Point3DContainerMap::_iteratorMap::y() const
+{
+	return pointIter->second->y();
+}
+
+double
+kmb::Point3DContainerMap::_iteratorMap::z() const
+{
+	return pointIter->second->z();
 }
 
 bool

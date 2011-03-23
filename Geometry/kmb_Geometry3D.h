@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Geometry3D                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -50,11 +50,13 @@ public:
 		this->v[1] = y;
 		this->v[2] = z;
 	}
+
 	void set(const Tuple3D& other){
 		this->v[0] = other.v[0];
 		this->v[1] = other.v[1];
 		this->v[2] = other.v[2];
 	}
+	void addCoordinate(const int i,const double v){ this->v[i] += v; }
 	void addCoordinate(const double x,const double y,const double z);
 	void scale(const double r);
 	void zero(void);
@@ -104,6 +106,11 @@ public:
 	bool getFootOfPerpendicular( const Point3D &origin, const Vector3D &u, const Vector3D &v, double &a, double &b) const;
 
 
+
+#ifndef SWIG_WRAPPER
+	static double distance(const Point3D& a,const Point3D& b);
+	static double distanceSq(const Point3D& a,const Point3D& b);
+#endif
 
 	static double volume(const Point3D& a,const Point3D& b,const Point3D &c,const Point3D &d);
 
@@ -194,6 +201,7 @@ public:
 	static double sin(const Vector3D &v0,const Vector3D &v1);
 	static double angle(const Vector3D &v0,const Vector3D &v1);
 	static double abs(const double v[3]);
+	static double inner(const double v0[3],const double v1[3]);
 };
 
 
@@ -220,9 +228,14 @@ public:
 		double m10,double m11,double m12,
 		double m20,double m21,double m22);
 	virtual ~Matrix3x3(void){};
+	virtual const char* getContainerType(void) const{
+		return "double_array_3x3";
+	}
+	int init(int rowSize, int colSize);
 	int getSize(void) const;
 	double get(int i,int j) const;
 	bool set(int i,int j,double val);
+	bool add(int i,int j,double val);
 
 	bool identity(void);
 	bool zero(void);
@@ -240,9 +253,11 @@ public:
 
 	Vector3D* solve(const Vector3D& b) const;
 	bool solve(const Vector3D& b,Vector3D& x) const;
+	bool solveSafely(const Vector3D& b,Vector3D& x,double thresh=1.0e-6) const;
 
 
 	void convert(Tuple2D& tuple) const;
+	void convert(Tuple3D& tuple) const;
 	Vector2D operator*(const Vector2D& vect);
 	Vector3D operator*(const Vector3D& vect);
 	Matrix3x3 operator*(const Matrix3x3& other);

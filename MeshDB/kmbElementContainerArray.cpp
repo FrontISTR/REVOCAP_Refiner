@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementContainerArray                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,7 +27,13 @@
 #include "Geometry/kmb_Calculator.h"
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 const char* kmb::ElementContainerArray::CONTAINER_TYPE = "element_array";
@@ -265,13 +271,16 @@ kmb::ElementContainerArray::clear(void)
 {
 	kmb::ElementContainer::clear();
 
-	for(size_t i=0;i<size;++i){
-		if( elementArray[i] != NULL ){
-			delete elementArray[i];
-			elementArray[i] = NULL;
+	if( elementArray ){
+		for(size_t i=0;i<size;++i){
+			if( elementArray[i] != NULL ){
+				delete elementArray[i];
+				elementArray[i] = NULL;
+			}
 		}
+		delete[] elementArray;
+		elementArray = NULL;
 	}
-	delete[] elementArray;
 	count = 0;
 	index = 0;
 	size = 0;

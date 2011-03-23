@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : RevocapNeutralIO                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,7 +16,7 @@
  * ここでは YAML 形式で書かれた REVOCAP Neutral Yaml Mesh Format を
  * YAML ライブラリを使わずに読み込むメソッドを実装する
  *
- * このバージョンでは、記述されているタグの出てくる順番が決め打ちになっているの注意
+ * このバージョンでは、記述されているタグの出てくる順番が決め打ちになっているので注意
  */
 /**
  * REVOCAP Neutral Yaml Mesh Format 仕様
@@ -47,6 +47,7 @@ public:
 	virtual ~RevocapNeutralIO(void);
 	int loadFromRNFFile(const char* filename,kmb::MeshData* mesh);
 	int saveToRNFFile(const char* filename,kmb::MeshData* mesh);
+	int appendDataToRNFFile(const char* filename,kmb::MeshData* mesh,const char* name,const char* stype=NULL);
 protected:
 	int readNode(std::ifstream &input,kmb::MeshData* mesh);
 	int readElement(std::ifstream &input,kmb::MeshData* mesh);

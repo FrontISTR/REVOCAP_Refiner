@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Wedge2                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -37,27 +37,14 @@ public:
 	Wedge2(void);
 	Wedge2(kmb::nodeIdType *ary);
 	virtual ~Wedge2(void);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public:
-	static const int	connectionTable[15][15];
-	static const int	faceTable[5][8];
-	static const int	edgeTable[9][3];
+	static const int connectionTable[15][15];
+	static const int faceTable[5][8];
+	static const int edgeTable[9][3];
 
 	static void shapeFunction(double s,double t,double u,double* coeff);
+
+	static double checkShapeFunctionDomain(double s,double t,double u);
 };
 
 }

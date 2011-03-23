@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BoxRegion2D                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -37,7 +37,7 @@ protected:
 	Point2D maxPoint;
 	Point2D minPoint;
 public:
-	BoxRegion2D(Point2D &l,Point2D &u);
+	BoxRegion2D(const Point2D &l,const Point2D &u);
 	BoxRegion2D(double x0,double y0,double x1,double y1);
 	BoxRegion2D(const BoxRegion2D &other);
 	virtual ~BoxRegion2D(void);
@@ -67,6 +67,9 @@ public:
 
 	void expand(double x,double y);
 	void expand(double ratio);
+
+
+	void crossOnLine(const kmb::Point2D& origin, const kmb::Vector2D& dir, double &min_t, double &max_t) const;
 };
 
 }

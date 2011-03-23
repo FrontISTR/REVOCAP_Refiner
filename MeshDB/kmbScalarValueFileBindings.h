@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ScalarValueFileBindings                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,7 +24,7 @@ namespace kmb{
 
 class ScalarValueBindings;
 
-class ScalarValueFileBindings : public kmb::DataBindings, kmb::ContainerOnDisk
+class ScalarValueFileBindings : public kmb::DataBindings, public kmb::ContainerOnDisk
 {
 public:
 	ScalarValueFileBindings(size_t count,const char* filename,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE);

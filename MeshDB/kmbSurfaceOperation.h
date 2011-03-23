@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : SurfaceOperation                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -55,10 +55,13 @@ protected:
 	std::set< std::pair<kmb::elementIdType, kmb::elementIdType> > edgesBetweenElements;
 	kmb::Classification< kmb::Face > dividedFacesInfo;
 	std::set< std::pair<kmb::Face,kmb::Face> > edgesBetweenFaces;
+
+	bool permitReverse;
 public:
 	SurfaceOperation(void);
 	virtual ~SurfaceOperation(void);
 	void setMesh(kmb::MeshDB* mesh);
+	void setPermitReverse(bool f);
 
 
 
@@ -99,7 +102,7 @@ public:
 		CONVEX,
 		CONCAVE,
 		FLAT,
-		HYPERBOLIC,
+		HYPERBOLIC
 	};
 
 
@@ -112,10 +115,16 @@ public:
 
 	kmb::bodyIdType faceGroup2Surface(const char* name);
 	bool surface2FaceGroup(kmb::bodyIdType bodyId,kmb::bodyIdType parentBodyId,const char* name);
+
+
+	bool surface2FaceGroup(kmb::bodyIdType bodyId,const char* parentFaceGroup,const char* name);
 protected:
 
 
 	size_t divideSurface(const kmb::ElementContainer* elements,const kmb::Point3DContainer* points,double angle);
+
+
+	bool getDividedSurfaceElementCount(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,size_t &triCount,size_t &quadCount);
 
 	size_t getDividedSurface(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,kmb::ElementContainer* dividedSurf) const;
 	size_t getTotalRidge(const kmb::ElementContainer* org,kmb::ElementContainer* ridges) const;

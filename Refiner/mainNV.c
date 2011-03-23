@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 0.4                          #
+# Software Name : REVOCAP_Refiner version 1.0                          #
 # Sample Program NodeVariable                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,7 +13,6 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * gcc -D_CONSOLE mainNV.c -L../lib/i486-linux/ -lstdc++ -lRcapRefiner
  *
  * サンプル実行例＆テスト用プログラム
  * BoundaryNodeGroup と BoundaryNodeVariable の挙動チェック用
@@ -23,8 +22,11 @@
 #ifdef _CONSOLE
 
 #include "rcapRefiner.h"
+#include "rcapRefinerMacros.h"
 #include <stdio.h>
 #include <stdlib.h>  /* for calloc, free */
+#include <assert.h>
+#include <string.h>
 
 int main(void)
 {
@@ -43,6 +45,8 @@ int main(void)
 		1.0, 1.0,  1.0,
 		0.0, 1.0,  1.0,
 	};
+	/* 細分後の座標：必要に応じて calloc する */
+	float64_t* resultCoords = NULL;
 	int32_t tetras[40] = {
 		1, 2, 4, 5,
 		2, 3, 4, 7,
@@ -67,6 +71,9 @@ int main(void)
 	size_t elementCount = 10;
 	/* 細分後の要素の個数 */
 	size_t refineElementCount = 0;
+	/* 細分後の節点の個数 */
+	size_t refineNodeCount = 0;
+
 	/* 元の線分の取得 */
 	int32_t seg[2] = {-1,-1};
 	int8_t orgtype = RCAP_UNKNOWNTYPE;
@@ -83,8 +90,8 @@ int main(void)
 	int32_t* result_bnv0 = NULL;
 	int32_t* result_bnv1 = NULL;
 	size_t bnv0Count = 3;
-	size_t i = 0;
-	size_t j = 0;
+	int32_t i = 0;
+	int32_t j = 0;
 	int32_t middle = -1;
 	int32_t flag = 0;
 	char mode[32];
@@ -93,85 +100,130 @@ int main(void)
 	/* 中点の Variable は小さい方を与える */
 	rcapSetInterpolateMode( "MIN" );
 	rcapGetInterpolateMode( mode );
-	printf("Interpolation Mode %s\n",mode);
-	printf("---------------------- ORIGINAL -----------------------------------------\n");
+	assert( strncmp( "MIN", mode, 3 )==0 );
+
+	printf("----- Original Model -----\n");
 	/* 座標値を Refiner に教える */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
+	/* 細分前の節点数 */
+	nodeCount = rcapGetNodeCount();
+	assert( nodeCount == 12 );
+	printf("Node : Count = %"PRIsz"\n", nodeCount );
+	for(i=0;(size_t)i<nodeCount;++i){
+		printf("%d : %f, %f, %f\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
+	}
 	/* 細分前の要素数 */
-	printf("Original Element Count = %u\n", elementCount );
+	assert( elementCount == 10 );
+	printf("Element : Count = %"PRIsz"\n", elementCount );
+	for(i=0;(size_t)i<elementCount;++i){
+		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
+	}
 	/* 節点グループの登録 */
 	rcapAppendNodeGroup("ng0",ng0Count,ng0);
 	ng0Count = rcapGetNodeGroupCount("ng0");
-	printf("Original Node Group Count %u\n", ng0Count );
+	assert( ng0Count == 4 );
+	printf("Node Group : Count = %"PRIsz"\n", ng0Count );
+	for(i=0;(size_t)i<ng0Count;++i){
+		printf("%d\n", ng0[i]);
+	}
 	/* 境界節点グループの登録 */
 	rcapAppendBNodeGroup("bng0",bng0Count,bng0);
 	bng0Count = rcapGetBNodeGroupCount("bng0");
-	printf("Original Boundary Node Group Count %u\n", bng0Count );
+	assert( bng0Count == 3 );
+	printf("Boundary Node Group : Count = %"PRIsz"\n", bng0Count );
+	for(i=0;(size_t)i<bng0Count;++i){
+		printf("%d\n", bng0[i]);
+	}
 	/* 境界節点変数の登録 */
 	rcapAppendBNodeVarInt("bnv0",bnv0Count,bnv0,bnv1);
-	bng0Count = rcapGetBNodeVarIntCount("bnv0");
-	printf("Original Boundary Node Variable Count %u\n", bnv0Count );
-	/* 細分前の節点数 */
-	nodeCount = rcapGetNodeCount();
-	printf("Original Node Count = %u\n", nodeCount );
+	bnv0Count = rcapGetBNodeVarIntCount("bnv0");
+	assert( bnv0Count == 3 );
+	printf("Boundary Node Variable : Count = %"PRIsz"\n", bnv0Count );
+	for(i=0;(size_t)i<bnv0Count;++i){
+		printf("%d, %d\n", bnv0[i], bnv1[i]);
+	}
 
-	printf("---------------------- REFINE -----------------------------------------\n");
+	/*---------------------- REFINE -----------------------------------------*/
+
 	/* 要素の細分 */
 	refineElementCount = rcapRefineElement( elementCount, etype, tetras, NULL );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
 	elementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras );
-	printf("Refined Element Count = %u\n", refineElementCount );
 	rcapCommit();
+
+	printf("----- Refined Model -----\n");
+
+	/* 細分後の節点 */
+	refineNodeCount = rcapGetNodeCount();
+	printf("Node : Count = %"PRIsz"\n", refineNodeCount );
+
+	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
+	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
+	for(j=0;(size_t)j<refineNodeCount;++j){
+		printf("%d : %f, %f, %f\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
+	}
+
+	/* 細分後の要素 */
+	printf("Element : Count = %"PRIsz"\n", refineElementCount );
+	for(i=0;(size_t)i<refineElementCount;++i){
+		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
+	}
+
 	/* 細分後の節点グループの更新 */
 	ng0Count = rcapGetNodeGroupCount("ng0");
+	printf("Node Group : Count = %"PRIsz"\n", ng0Count );
+	assert( ng0Count > 0 );
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
-	printf("Refined Node Group Count %u\n", ng0Count );
 	rcapGetNodeGroup("ng0",ng0Count,result_ng0);
+	for(i=0;(size_t)i<ng0Count;++i){
+		printf("%d\n", result_ng0[i]);
+	}
 	free( result_ng0 );
-	/* 細分後の境界節点グループの更新 */
+	result_ng0 = NULL;
+
+	/* 境界節点グループの登録 */
 	bng0Count = rcapGetBNodeGroupCount("bng0");
 	result_bng0 = (int32_t*)calloc( bng0Count, sizeof(int32_t) );
-	printf("Refined Boundary Node Group Count %u\n", bng0Count );
 	rcapGetBNodeGroup("bng0",bng0Count,result_bng0);
+	printf("Boundary Node Group : Count = %"PRIsz"\n", bng0Count );
+	for(i=0;(size_t)i<bng0Count;++i){
+		printf("%d\n", result_bng0[i]);
+	}
 	free( result_bng0 );
-	/* 細分後の境界節点変数の更新 */
+
+	/* 境界節点変数の登録 */
 	bnv0Count = rcapGetBNodeVarIntCount("bnv0");
 	result_bnv0 = (int32_t*)calloc( bnv0Count, sizeof(int32_t) );
 	result_bnv1 = (int32_t*)calloc( bnv0Count, sizeof(int32_t) );
-	printf("Refined Boundary Node Variable Count %u\n", bnv0Count );
 	rcapGetBNodeVarInt("bnv0",bnv0Count,result_bnv0,result_bnv1);
-	/* 細分後の節点の個数 */
-	nodeCount = rcapGetNodeCount();
-	printf("Refined Node Count = %u\n", nodeCount );
+	printf("Boundary Node Variable : Count = %"PRIsz"\n", bnv0Count );
+	for(i=0;(size_t)i<bnv0Count;++i){
+		printf("%d, %d\n", result_bnv0[i], result_bnv1[i]);
+	}
+
 	/* ここでチェック！ */
-	for(i=0;i<bnv0Count;++i){
+	for(i=0;(size_t)i<bnv0Count;++i){
 		orgtype = rcapGetOriginal( result_bnv0[i], seg );
 		if( orgtype == RCAP_SEGMENT ){
 			middle = rcapGetMiddle( orgtype, seg );
-			if( middle != result_bnv0[i] ){
-				printf( "Refine Node Error! Middle Node Different! %d => [%d,%d] => %d\n",  result_bnv0[i], seg[0], seg[1], middle);
-			}
+			assert( middle == result_bnv0[i] );
 			/* 小さい方になっていることを確かめる */
 			flag = 0;
-			for(j=0;j<bnv0Count;++j){
+			for(j=0;(size_t)j<bnv0Count;++j){
 				if( bnv0[j] == seg[0] ){
-					if( bnv1[j] < result_bnv1[i] ){
-						printf( "Refine Node Variable Error! %d : %d < %d\n",  result_bnv0[i], bnv1[j], result_bnv1[i] );
-					}else if( bnv1[j] == result_bnv1[i] ){
+					assert( bnv1[j] >= result_bnv1[i] );
+					if( bnv1[j] == result_bnv1[i] ){
 						flag = 1;
 					}
 				}
 				if( bnv0[j] == seg[1] ){
-					if( bnv1[j] < result_bnv1[i] ){
-						printf( "Refine Node Variable Error! %d : %d < %d\n",  result_bnv0[i], bnv1[j], result_bnv1[i] );
-					}else if( bnv1[j] == result_bnv1[i] ){
+					assert( bnv1[j] >= result_bnv1[i] );
+					if( bnv1[j] == result_bnv1[i] ){
 						flag = 1;
 					}
 				}
 			}
-			if( flag == 0 ){
-				printf( "Refine Node Variable Error! Not Min Value %d : %d\n",  result_bnv0[i], result_bnv1[i] );
-			}
+			assert( flag == 1 );
 		}
 	}
 	free( result_bnv0 );

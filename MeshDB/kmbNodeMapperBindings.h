@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : NodeMapperBindings                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -20,6 +20,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 namespace kmb{
@@ -109,6 +114,9 @@ public:
 	{
 		return mapper.size();
 	}
+	const std::map<kmb::nodeIdType,T>& getNodeMapper(void) const{
+		return mapper;
+	}
 public:
 	class _iterator : public DataBindings::_iterator
 	{
@@ -181,6 +189,6 @@ public:
 
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __INTEL_COMPILER
 #pragma warning(pop)
 #endif

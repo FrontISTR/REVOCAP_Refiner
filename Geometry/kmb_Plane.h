@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Plane                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -38,6 +38,12 @@ namespace kmb{
 
 class Plane
 {
+protected:
+	double a;
+	double b;
+	double c;
+	double d;
+	static double thres;
 public:
 	Plane(const double a,const double b,const double c,const double d);
 	virtual ~Plane(void);
@@ -75,12 +81,6 @@ public:
 		kmb::Point3D &p3, kmb::Point3D &p4) const;
 
 	Point3D projectOnPlane(const kmb::Point3D& p) const;
-protected:
-	double a;
-	double b;
-	double c;
-	double d;
-	static double thres;
 };
 
 class PlaneXY : public Plane

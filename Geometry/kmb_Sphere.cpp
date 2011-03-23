@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Sphere                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -81,6 +81,8 @@ intersect(const kmb::Point3D &point) const
 		return kmb::Region::OUTSIDE;
 }
 
+
+
 bool
 kmb::Sphere::intersect(const kmb::BoxRegion& box) const
 {
@@ -98,7 +100,7 @@ kmb::Sphere::intersect(const kmb::BoxRegion& box) const
 		boxMaxY < center.y() - r || center.y() + r < boxMinY ||
 		boxMaxZ < center.z() - r || center.z() + r < boxMinZ )
 	{
-			return false;
+		return false;
 	}
 
 	double rsq = r*r;
@@ -135,8 +137,8 @@ kmb::Sphere::eval(const kmb::Point3D &point) const
 
 
 
-kmb::Sphere* kmb::Sphere::
-createInscribedSphere(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D &d)
+kmb::Sphere*
+kmb::Sphere::createInscribedSphere(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c,const kmb::Point3D &d)
 {
 	kmb::Sphere* sphere = NULL;
 	sphere = new kmb::Sphere();
@@ -159,8 +161,8 @@ createInscribedSphere(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point
 	return sphere;
 }
 
-double kmb::Sphere::
-getInscribedRadius(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D &d)
+double
+kmb::Sphere::getInscribedRadius(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c,const kmb::Point3D &d)
 {
 
 	double volume = fabs(kmb::Point3D::volume(a,b,c,d));
@@ -173,8 +175,8 @@ getInscribedRadius(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D 
 	return (volume*3.0)/(abc+bcd+cda+dab);
 }
 
-kmb::Point3D kmb::Sphere::
-getInscribedCenter(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D &d)
+kmb::Point3D
+kmb::Sphere::getInscribedCenter(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c,const kmb::Point3D &d)
 {
 	double abc = kmb::Point3D::area(a,b,c);
 	double bcd = kmb::Point3D::area(b,c,d);
@@ -186,8 +188,9 @@ getInscribedCenter(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D 
 	return kmb::Point3D(x,y,z);
 }
 
+
 kmb::Sphere*
-kmb::Sphere::createCircumscribedSphere(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D &d)
+kmb::Sphere::createCircumscribedSphere(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c,const kmb::Point3D &d)
 {
 	kmb::Sphere* sphere = NULL;
 	sphere = new kmb::Sphere();
@@ -201,7 +204,7 @@ kmb::Sphere::createCircumscribedSphere(kmb::Point3D &a,kmb::Point3D &b,kmb::Poin
 }
 
 double
-kmb::Sphere::getCircumscribedRadius(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D &d)
+kmb::Sphere::getCircumscribedRadius(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c,const kmb::Point3D &d)
 {
 	kmb::Vector3D ab(b,a);
 	kmb::Vector3D ac(c,a);
@@ -219,7 +222,7 @@ kmb::Sphere::getCircumscribedRadius(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D
 }
 
 kmb::Point3D
-kmb::Sphere::getCircumscribedCenter(kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::Point3D &d)
+kmb::Sphere::getCircumscribedCenter(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c,const kmb::Point3D &d)
 {
 	kmb::Vector3D ab(b,a);
 	kmb::Vector3D ac(c,a);

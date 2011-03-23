@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BLMGenerator                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,7 +29,9 @@
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbQuad.h"
 #include "MeshDB/kmbNodeNeighborInfo.h"
+#include "MeshDB/kmbNodeNeighborFaceInfo.h"
 #include "MeshDB/kmbElementContainer.h"
+#include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbElementEvaluator.h"
 #include "MeshDB/kmbTypes.h"
 #include "MeshDB/kmbElement.h"
@@ -68,8 +70,8 @@ kmb::BLMGenerator::~BLMGenerator(void)
 	}
 }
 
-void kmb::BLMGenerator::
-setLayer(int layerNum,double* thicks)
+void
+kmb::BLMGenerator::setLayer(int layerNum,double* thicks)
 {
 	this->layerNum = layerNum;
 	if( this->layerThick ){
@@ -84,94 +86,8 @@ kmb::BLMGenerator::setMeshDB(kmb::MeshDB* meshDB)
 	this->meshDB = meshDB;
 }
 
-kmb::elementType kmb::BLMGenerator::
-appendElement2D( kmb::bodyIdType bodyID,std::vector< kmb::nodeIdType >* nodes )
-{
-	if( this->meshDB == NULL ){
-		return kmb::UNKNOWNTYPE;
-	}
-	const int len = static_cast<int>(nodes->size());
-	if( len == 3 ){
-		if( nodes->at(0) == nodes->at(1) ||
-			nodes->at(1) == nodes->at(2) ||
-			nodes->at(2) == nodes->at(0) )
-		{
-			return kmb::UNKNOWNTYPE;
-		}else{
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[3];
-			ary[0] = nodes->at(0);
-			ary[1] = nodes->at(1);
-			ary[2] = nodes->at(2);
-			this->meshDB->insertElement(bodyID,kmb::TRIANGLE,ary);
-			return kmb::TRIANGLE;
-		}
-	}else if( len == 4 ){
-		if(
-			( nodes->at(0) == nodes->at(1) && nodes->at(1) == nodes->at(2) ) ||
-			( nodes->at(1) == nodes->at(2) && nodes->at(2) == nodes->at(3) ) ||
-			( nodes->at(2) == nodes->at(3) && nodes->at(3) == nodes->at(0) ) ||
-			( nodes->at(3) == nodes->at(0) && nodes->at(0) == nodes->at(1) ) )
-		{
-
-			return kmb::UNKNOWNTYPE;
-		}else if( nodes->at(0) == nodes->at(1) ){
-
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[3];
-			ary[0] = nodes->at(1);
-			ary[1] = nodes->at(2);
-			ary[2] = nodes->at(3);
-			this->meshDB->insertElement(bodyID,kmb::TRIANGLE,ary);
-			return kmb::TRIANGLE;
-		}else if( nodes->at(1) == nodes->at(2) ){
-
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[3];
-			ary[0] = nodes->at(0);
-			ary[1] = nodes->at(2);
-			ary[2] = nodes->at(3);
-			this->meshDB->insertElement(bodyID,kmb::TRIANGLE,ary);
-			return kmb::TRIANGLE;
-		}else if( nodes->at(2) == nodes->at(3) ){
-
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[3];
-			ary[0] = nodes->at(0);
-			ary[1] = nodes->at(1);
-			ary[2] = nodes->at(3);
-			this->meshDB->insertElement(bodyID,kmb::TRIANGLE,ary);
-			return kmb::TRIANGLE;
-		}else if( nodes->at(3) == nodes->at(0) ){
-
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[3];
-			ary[0] = nodes->at(0);
-			ary[1] = nodes->at(1);
-			ary[2] = nodes->at(2);
-			this->meshDB->insertElement(bodyID,kmb::TRIANGLE,ary);
-			return kmb::TRIANGLE;
-		}else if( nodes->at(0) == nodes->at(2) || nodes->at(1) == nodes->at(3) ){
-
-			return kmb::UNKNOWNTYPE;
-		}else{
-
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[4];
-			ary[0] = nodes->at(0);
-			ary[1] = nodes->at(1);
-			ary[2] = nodes->at(2);
-			ary[3] = nodes->at(3);
-			this->meshDB->insertElement(bodyID,kmb::QUAD,ary);
-			return kmb::QUAD;
-		}
-	}else{
-		return kmb::UNKNOWNTYPE;
-	}
-}
-
 bool
-kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::ElementBase &lower)
+kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyId, kmb::ElementBase &upper, kmb::ElementBase &lower)
 {
 	if( this->meshDB == NULL || upper.getDimension() != 2 || lower.getDimension() != 2 ){
 		return false;
@@ -181,41 +97,37 @@ kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase
 	}
 	if( upper.getType() == kmb::TRIANGLE ){
 
+		kmb::nodeIdType ary[6];
 		for(int i=0;i<layerNum;++i){
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[6];
-			ary[0] = getLayerNodeId( upper.getCellId(0), lower.getCellId(0),i);
-			ary[1] = getLayerNodeId( upper.getCellId(1), lower.getCellId(1),i);
-			ary[2] = getLayerNodeId( upper.getCellId(2), lower.getCellId(2),i);
-			ary[3] = getLayerNodeId( upper.getCellId(0), lower.getCellId(0),i+1);
-			ary[4] = getLayerNodeId( upper.getCellId(1), lower.getCellId(1),i+1);
-			ary[5] = getLayerNodeId( upper.getCellId(2), lower.getCellId(2),i+1);
+			ary[0] = getLayerNodeId( upper[0], lower[0],i);
+			ary[1] = getLayerNodeId( upper[1], lower[1],i);
+			ary[2] = getLayerNodeId( upper[2], lower[2],i);
+			ary[3] = getLayerNodeId( upper[0], lower[0],i+1);
+			ary[4] = getLayerNodeId( upper[1], lower[1],i+1);
+			ary[5] = getLayerNodeId( upper[2], lower[2],i+1);
 			if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 && ary[4] >= 0 && ary[5] >= 0){
-				this->meshDB->insertElement(bodyID,kmb::WEDGE,ary);
+				this->meshDB->insertElement(bodyId,kmb::WEDGE,ary);
 			}else{
-				if( ary )	delete[] ary;
 				return false;
 			}
 		}
 		return true;
 	}else if( upper.getType() == kmb::QUAD ){
 
+		kmb::nodeIdType ary[8];
 		for(int i=0;i<layerNum;++i){
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[8];
-			ary[0] = getLayerNodeId( upper.getCellId(0), lower.getCellId(0),i);
-			ary[1] = getLayerNodeId( upper.getCellId(1), lower.getCellId(1),i);
-			ary[2] = getLayerNodeId( upper.getCellId(2), lower.getCellId(2),i);
-			ary[3] = getLayerNodeId( upper.getCellId(3), lower.getCellId(3),i);
-			ary[4] = getLayerNodeId( upper.getCellId(0), lower.getCellId(0),i+1);
-			ary[5] = getLayerNodeId( upper.getCellId(1), lower.getCellId(1),i+1);
-			ary[6] = getLayerNodeId( upper.getCellId(2), lower.getCellId(2),i+1);
-			ary[7] = getLayerNodeId( upper.getCellId(3), lower.getCellId(3),i+1);
+			ary[0] = getLayerNodeId( upper[0], lower[0],i);
+			ary[1] = getLayerNodeId( upper[1], lower[1],i);
+			ary[2] = getLayerNodeId( upper[2], lower[2],i);
+			ary[3] = getLayerNodeId( upper[3], lower[3],i);
+			ary[4] = getLayerNodeId( upper[0], lower[0],i+1);
+			ary[5] = getLayerNodeId( upper[1], lower[1],i+1);
+			ary[6] = getLayerNodeId( upper[2], lower[2],i+1);
+			ary[7] = getLayerNodeId( upper[3], lower[3],i+1);
 			if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 &&
 				ary[4] >= 0 && ary[5] >= 0 && ary[6] >= 0 && ary[7] >= 0){
-					this->meshDB->insertElement(bodyID,kmb::HEXAHEDRON,ary);
+					this->meshDB->insertElement(bodyId,kmb::HEXAHEDRON,ary);
 			}else{
-				if( ary )	delete[] ary;
 				return false;
 			}
 		}
@@ -225,8 +137,8 @@ kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase
 	}
 }
 
-bool kmb::BLMGenerator::
-appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::nodeIdType lowerID)
+bool
+kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyId, kmb::ElementBase &upper, kmb::nodeIdType lowerId)
 {
 	if( this->meshDB == NULL || upper.getDimension() != 2 ){
 		return false;
@@ -234,31 +146,26 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::nodeI
 	if( upper.getType() == kmb::TRIANGLE ){
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = lowerID;
-		ary[1] = getLayerNodeId( upper.getCellId(0), lowerID, 1);
-		ary[2] = getLayerNodeId( upper.getCellId(1), lowerID, 1);
-		ary[3] = getLayerNodeId( upper.getCellId(2), lowerID, 1);
+		kmb::nodeIdType ary[6];
+		ary[0] = lowerId;
+		ary[1] = getLayerNodeId( upper[0], lowerId, 1);
+		ary[2] = getLayerNodeId( upper[1], lowerId, 1);
+		ary[3] = getLayerNodeId( upper[2], lowerId, 1);
 		if( ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 ){
-			this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
+			this->meshDB->insertElement(bodyId,kmb::TETRAHEDRON,ary);
 		}else{
-			if( ary )	delete[] ary;
 			return false;
 		}
 		for(int i=1;i<layerNum;++i){
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[6];
-			ary[0] = getLayerNodeId( upper.getCellId(0), lowerID, i);
-			ary[1] = getLayerNodeId( upper.getCellId(1), lowerID, i);
-			ary[2] = getLayerNodeId( upper.getCellId(2), lowerID, i);
-			ary[3] = getLayerNodeId( upper.getCellId(0), lowerID, i+1);
-			ary[4] = getLayerNodeId( upper.getCellId(1), lowerID, i+1);
-			ary[5] = getLayerNodeId( upper.getCellId(2), lowerID, i+1);
+			ary[0] = getLayerNodeId( upper[0], lowerId, i);
+			ary[1] = getLayerNodeId( upper[1], lowerId, i);
+			ary[2] = getLayerNodeId( upper[2], lowerId, i);
+			ary[3] = getLayerNodeId( upper[0], lowerId, i+1);
+			ary[4] = getLayerNodeId( upper[1], lowerId, i+1);
+			ary[5] = getLayerNodeId( upper[2], lowerId, i+1);
 			if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 && ary[4] >= 0 && ary[5] >= 0){
-				this->meshDB->insertElement(bodyID,kmb::WEDGE,ary);
+				this->meshDB->insertElement(bodyId,kmb::WEDGE,ary);
 			}else{
-				if( ary )	delete[] ary;
 				return false;
 			}
 		}
@@ -266,35 +173,30 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::nodeI
 	}else if( upper.getType() == kmb::QUAD ){
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[5];
-		ary[0] = lowerID;
-		ary[1] = getLayerNodeId( upper.getCellId(0), lowerID, 1);
-		ary[2] = getLayerNodeId( upper.getCellId(1), lowerID, 1);
-		ary[3] = getLayerNodeId( upper.getCellId(2), lowerID, 1);
-		ary[4] = getLayerNodeId( upper.getCellId(3), lowerID, 1);
+		kmb::nodeIdType ary[8];
+		ary[0] = lowerId;
+		ary[1] = getLayerNodeId( upper[0], lowerId, 1);
+		ary[2] = getLayerNodeId( upper[1], lowerId, 1);
+		ary[3] = getLayerNodeId( upper[2], lowerId, 1);
+		ary[4] = getLayerNodeId( upper[3], lowerId, 1);
 		if( ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 && ary[4] >= 0 ){
-			this->meshDB->insertElement(bodyID,kmb::HEXAHEDRON,ary);
+			this->meshDB->insertElement(bodyId,kmb::HEXAHEDRON,ary);
 		}else{
-			if( ary )	delete[] ary;
 			return false;
 		}
 		for(int i=1;i<layerNum;++i){
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[8];
-			ary[0] = getLayerNodeId( upper.getCellId(0), lowerID, i);
-			ary[1] = getLayerNodeId( upper.getCellId(1), lowerID, i);
-			ary[2] = getLayerNodeId( upper.getCellId(2), lowerID, i);
-			ary[3] = getLayerNodeId( upper.getCellId(3), lowerID, i);
-			ary[4] = getLayerNodeId( upper.getCellId(0), lowerID, i+1);
-			ary[5] = getLayerNodeId( upper.getCellId(1), lowerID, i+1);
-			ary[6] = getLayerNodeId( upper.getCellId(2), lowerID, i+1);
-			ary[7] = getLayerNodeId( upper.getCellId(3), lowerID, i+1);
+			ary[0] = getLayerNodeId( upper[0], lowerId, i);
+			ary[1] = getLayerNodeId( upper[1], lowerId, i);
+			ary[2] = getLayerNodeId( upper[2], lowerId, i);
+			ary[3] = getLayerNodeId( upper[3], lowerId, i);
+			ary[4] = getLayerNodeId( upper[0], lowerId, i+1);
+			ary[5] = getLayerNodeId( upper[1], lowerId, i+1);
+			ary[6] = getLayerNodeId( upper[2], lowerId, i+1);
+			ary[7] = getLayerNodeId( upper[3], lowerId, i+1);
 			if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 &&
 				ary[4] >= 0 && ary[5] >= 0 && ary[6] >= 0 && ary[7] >= 0){
-				this->meshDB->insertElement(bodyID,kmb::HEXAHEDRON,ary);
+				this->meshDB->insertElement(bodyId,kmb::HEXAHEDRON,ary);
 			}else{
-				if( ary )	delete[] ary;
 				return false;
 			}
 		}
@@ -304,8 +206,8 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::nodeI
 	}
 }
 
-bool kmb::BLMGenerator::
-appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID, kmb::ElementBase &lower)
+bool
+kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyId, kmb::nodeIdType upperId, kmb::ElementBase &lower)
 {
 	if( this->meshDB == NULL || lower.getDimension() != 2 ){
 		return false;
@@ -313,68 +215,58 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID, kmb::Eleme
 	int len = lower.getNodeCount();
 	if( len == 3 ){
 
+		kmb::nodeIdType ary[6];
 		for(int i=0;i<layerNum-1;++i){
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[6];
-			ary[0] = getLayerNodeId( upperID, lower.getCellId(0),i);
-			ary[1] = getLayerNodeId( upperID, lower.getCellId(1),i);
-			ary[2] = getLayerNodeId( upperID, lower.getCellId(2),i);
-			ary[3] = getLayerNodeId( upperID, lower.getCellId(0),i+1);
-			ary[4] = getLayerNodeId( upperID, lower.getCellId(1),i+1);
-			ary[5] = getLayerNodeId( upperID, lower.getCellId(2),i+1);
+			ary[0] = getLayerNodeId( upperId, lower[0],i);
+			ary[1] = getLayerNodeId( upperId, lower[1],i);
+			ary[2] = getLayerNodeId( upperId, lower[2],i);
+			ary[3] = getLayerNodeId( upperId, lower[0],i+1);
+			ary[4] = getLayerNodeId( upperId, lower[1],i+1);
+			ary[5] = getLayerNodeId( upperId, lower[2],i+1);
 			if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 && ary[4] >= 0 && ary[5] >= 0){
-				this->meshDB->insertElement(bodyID,kmb::WEDGE,ary);
+				this->meshDB->insertElement(bodyId,kmb::WEDGE,ary);
 			}else{
-				if( ary )	delete[] ary;
 				return false;
 			}
 		}
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = getLayerNodeId( upperID, lower.getCellId(0),layerNum-1);
-		ary[1] = getLayerNodeId( upperID, lower.getCellId(1),layerNum-1);
-		ary[2] = getLayerNodeId( upperID, lower.getCellId(2),layerNum-1);
-		ary[3] = upperID;
+		ary[0] = getLayerNodeId( upperId, lower[0],layerNum-1);
+		ary[1] = getLayerNodeId( upperId, lower[1],layerNum-1);
+		ary[2] = getLayerNodeId( upperId, lower[2],layerNum-1);
+		ary[3] = upperId;
 		if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 ){
-			this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
+			this->meshDB->insertElement(bodyId,kmb::TETRAHEDRON,ary);
 		}else{
-			if( ary )	delete[] ary;
 			return false;
 		}
 		return true;
 	}else if( len == 4 ){
+		kmb::nodeIdType ary[8];
 		for(int i=0;i<layerNum-1;++i){
-			kmb::nodeIdType* ary = NULL;
-			ary = new kmb::nodeIdType[8];
-			ary[0] = getLayerNodeId( upperID, lower.getCellId(0),i);
-			ary[1] = getLayerNodeId( upperID, lower.getCellId(1),i);
-			ary[2] = getLayerNodeId( upperID, lower.getCellId(2),i);
-			ary[3] = getLayerNodeId( upperID, lower.getCellId(3),i);
-			ary[4] = getLayerNodeId( upperID, lower.getCellId(0),i+1);
-			ary[5] = getLayerNodeId( upperID, lower.getCellId(1),i+1);
-			ary[6] = getLayerNodeId( upperID, lower.getCellId(2),i+1);
-			ary[7] = getLayerNodeId( upperID, lower.getCellId(3),i+1);
+			ary[0] = getLayerNodeId( upperId, lower[0],i);
+			ary[1] = getLayerNodeId( upperId, lower[1],i);
+			ary[2] = getLayerNodeId( upperId, lower[2],i);
+			ary[3] = getLayerNodeId( upperId, lower[3],i);
+			ary[4] = getLayerNodeId( upperId, lower[0],i+1);
+			ary[5] = getLayerNodeId( upperId, lower[1],i+1);
+			ary[6] = getLayerNodeId( upperId, lower[2],i+1);
+			ary[7] = getLayerNodeId( upperId, lower[3],i+1);
 			if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 &&
 				ary[4] >= 0 && ary[5] >= 0 && ary[6] >= 0 && ary[7] >= 0){
-				this->meshDB->insertElement(bodyID,kmb::HEXAHEDRON,ary);
+				this->meshDB->insertElement(bodyId,kmb::HEXAHEDRON,ary);
 			}else{
-				if( ary )	delete[] ary;
 				return false;
 			}
 		}
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[5];
-		ary[4] = getLayerNodeId( upperID, lower.getCellId(0),layerNum-1);
-		ary[3] = getLayerNodeId( upperID, lower.getCellId(1),layerNum-1);
-		ary[2] = getLayerNodeId( upperID, lower.getCellId(2),layerNum-1);
-		ary[1] = getLayerNodeId( upperID, lower.getCellId(3),layerNum-1);
-		ary[0] = upperID;
+		ary[4] = getLayerNodeId( upperId, lower[0],layerNum-1);
+		ary[3] = getLayerNodeId( upperId, lower[1],layerNum-1);
+		ary[2] = getLayerNodeId( upperId, lower[2],layerNum-1);
+		ary[1] = getLayerNodeId( upperId, lower[3],layerNum-1);
+		ary[0] = upperId;
 		if( ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 && ary[4] >= 0 ){
-			this->meshDB->insertElement(bodyID,kmb::PYRAMID,ary);
+			this->meshDB->insertElement(bodyId,kmb::PYRAMID,ary);
 		}else{
-			if( ary )	delete[] ary;
 			return false;
 		}
 		return true;
@@ -383,96 +275,87 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID, kmb::Eleme
 	}
 }
 
-bool kmb::BLMGenerator::
-appendLayerElements( kmb::bodyIdType bodyID, kmb::ElementBase &upper, kmb::nodeIdType lowerID0, kmb::nodeIdType lowerID1)
+bool
+kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyId, kmb::ElementBase &upper, kmb::nodeIdType lowerId0, kmb::nodeIdType lowerId1)
 {
 	if( this->meshDB == NULL || upper.getType() != kmb::QUAD ){
 		return false;
 	}
 
 
-	kmb::nodeIdType* ary = NULL;
-	ary = new kmb::nodeIdType[6];
-	ary[0] = lowerID0;
-	ary[1] = getLayerNodeId( upper.getCellId(0), lowerID0, 1);
-	ary[2] = getLayerNodeId( upper.getCellId(1), lowerID0, 1);
-	ary[3] = lowerID1;
-	ary[4] = getLayerNodeId( upper.getCellId(2), lowerID1, 1);
-	ary[5] = getLayerNodeId( upper.getCellId(3), lowerID1, 1);
+	kmb::nodeIdType ary[8];
+	ary[0] = lowerId0;
+	ary[1] = getLayerNodeId( upper[0], lowerId0, 1);
+	ary[2] = getLayerNodeId( upper[1], lowerId0, 1);
+	ary[3] = lowerId1;
+	ary[4] = getLayerNodeId( upper[2], lowerId1, 1);
+	ary[5] = getLayerNodeId( upper[3], lowerId1, 1);
 	if( ary[1] >= 0 && ary[2] >= 0 && ary[4] >= 0 && ary[5] >= 0 ){
-		this->meshDB->insertElement(bodyID,kmb::WEDGE,ary);
+		this->meshDB->insertElement(bodyId,kmb::WEDGE,ary);
 	}else{
-		if( ary )	delete[] ary;
 		return false;
 	}
 	for(int i=1;i<layerNum;++i){
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[8];
-		ary[0] = getLayerNodeId( upper.getCellId(0), lowerID0, i);
-		ary[1] = getLayerNodeId( upper.getCellId(1), lowerID0, i);
-		ary[2] = getLayerNodeId( upper.getCellId(2), lowerID1, i);
-		ary[3] = getLayerNodeId( upper.getCellId(3), lowerID1, i);
-		ary[4] = getLayerNodeId( upper.getCellId(0), lowerID0, i+1);
-		ary[5] = getLayerNodeId( upper.getCellId(1), lowerID0, i+1);
-		ary[6] = getLayerNodeId( upper.getCellId(2), lowerID1, i+1);
-		ary[7] = getLayerNodeId( upper.getCellId(3), lowerID1, i+1);
+		ary[0] = getLayerNodeId( upper[0], lowerId0, i);
+		ary[1] = getLayerNodeId( upper[1], lowerId0, i);
+		ary[2] = getLayerNodeId( upper[2], lowerId1, i);
+		ary[3] = getLayerNodeId( upper[3], lowerId1, i);
+		ary[4] = getLayerNodeId( upper[0], lowerId0, i+1);
+		ary[5] = getLayerNodeId( upper[1], lowerId0, i+1);
+		ary[6] = getLayerNodeId( upper[2], lowerId1, i+1);
+		ary[7] = getLayerNodeId( upper[3], lowerId1, i+1);
 		if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 &&
 			ary[4] >= 0 && ary[5] >= 0 && ary[6] >= 0 && ary[7] >= 0){
-			this->meshDB->insertElement(bodyID,kmb::HEXAHEDRON,ary);
+			this->meshDB->insertElement(bodyId,kmb::HEXAHEDRON,ary);
 		}else{
-			if( ary )	delete[] ary;
 			return false;
 		}
 	}
 	return true;
 }
 
-bool kmb::BLMGenerator::
-appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::nodeIdType upperID1, kmb::ElementBase &lower)
+bool
+kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyId, kmb::nodeIdType upperId0, kmb::nodeIdType upperId1, kmb::ElementBase &lower)
 {
 	if( this->meshDB == NULL || lower.getType() != kmb::QUAD ){
 		return false;
 	}
 
+	kmb::nodeIdType ary[8];
 	for(int i=0;i<layerNum-1;++i){
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[8];
-		ary[0] = getLayerNodeId( upperID0, lower.getCellId(0),i);
-		ary[1] = getLayerNodeId( upperID0, lower.getCellId(1),i);
-		ary[2] = getLayerNodeId( upperID1, lower.getCellId(2),i);
-		ary[3] = getLayerNodeId( upperID1, lower.getCellId(3),i);
-		ary[4] = getLayerNodeId( upperID0, lower.getCellId(0),i+1);
-		ary[5] = getLayerNodeId( upperID0, lower.getCellId(1),i+1);
-		ary[6] = getLayerNodeId( upperID1, lower.getCellId(2),i+1);
-		ary[7] = getLayerNodeId( upperID1, lower.getCellId(3),i+1);
+		ary[0] = getLayerNodeId( upperId0, lower[0],i);
+		ary[1] = getLayerNodeId( upperId0, lower[1],i);
+		ary[2] = getLayerNodeId( upperId1, lower[2],i);
+		ary[3] = getLayerNodeId( upperId1, lower[3],i);
+		ary[4] = getLayerNodeId( upperId0, lower[0],i+1);
+		ary[5] = getLayerNodeId( upperId0, lower[1],i+1);
+		ary[6] = getLayerNodeId( upperId1, lower[2],i+1);
+		ary[7] = getLayerNodeId( upperId1, lower[3],i+1);
 		if( ary[0] >= 0 && ary[1] >= 0 && ary[2] >= 0 && ary[3] >= 0 &&
 			ary[4] >= 0 && ary[5] >= 0 && ary[6] >= 0 && ary[7] >= 0){
-			this->meshDB->insertElement(bodyID,kmb::HEXAHEDRON,ary);
+			this->meshDB->insertElement(bodyId,kmb::HEXAHEDRON,ary);
 		}else{
-			if( ary )	delete[] ary;
 			return false;
 		}
 	}
 
-	kmb::nodeIdType* ary = NULL;
-	ary = new kmb::nodeIdType[6];
-	ary[0] = getLayerNodeId( upperID0, lower.getCellId(0),layerNum-1);
-	ary[1] = getLayerNodeId( upperID0, lower.getCellId(1),layerNum-1);
-	ary[2] = upperID0;
-	ary[3] = getLayerNodeId( upperID1, lower.getCellId(2),layerNum-1);
-	ary[4] = getLayerNodeId( upperID1, lower.getCellId(3),layerNum-1);
-	ary[5] = upperID1;
+	ary[0] = getLayerNodeId( upperId0, lower[0],layerNum-1);
+	ary[1] = getLayerNodeId( upperId0, lower[1],layerNum-1);
+	ary[2] = upperId0;
+	ary[3] = getLayerNodeId( upperId1, lower[2],layerNum-1);
+	ary[4] = getLayerNodeId( upperId1, lower[3],layerNum-1);
+	ary[5] = upperId1;
 	if( ary[0] >= 0 && ary[1] >= 0 && ary[3] >= 0 && ary[4] >= 0 ){
-		this->meshDB->insertElement(bodyID,kmb::WEDGE,ary);
+		this->meshDB->insertElement(bodyId,kmb::WEDGE,ary);
 	}else{
-		if( ary )	delete[] ary;
 		return false;
 	}
 	return true;
 }
 
-bool kmb::BLMGenerator::
-appendLayerElements( kmb::bodyIdType bodyID, std::vector<kmb::nodeIdType>& upperID0, std::vector<kmb::nodeIdType>& upperID1, kmb::nodeIdType lowerID0, kmb::nodeIdType lowerID1)
+/*
+bool
+kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyID, std::vector<kmb::nodeIdType>& upperID0, std::vector<kmb::nodeIdType>& upperID1, kmb::nodeIdType lowerID0, kmb::nodeIdType lowerID1)
 {
 	if( this->meshDB == NULL ){
 		return false;
@@ -492,20 +375,20 @@ appendLayerElements( kmb::bodyIdType bodyID, std::vector<kmb::nodeIdType>& upper
 	if( upperID0.size() == 1 && upperID1.size() == 2 ){
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = lowerID0;
-		ary[1] = getLayerNodeId( upperID0[0], lowerID0, 1);
-		ary[2] = getLayerNodeId( upperID1[1], lowerID1, 1);
-		ary[3] = getLayerNodeId( upperID1[0], lowerID1, 1);
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
-		ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = lowerID1;
-		ary[1] = getLayerNodeId( upperID1[1], lowerID1, 1);
-		ary[2] = getLayerNodeId( upperID1[0], lowerID1, 1);
-		ary[3] = lowerID0;
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
+		kmb::nodeIdType* ary0 = NULL;
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = lowerID0;
+		ary0[1] = getLayerNodeId( upperID0[0], lowerID0, 1);
+		ary0[2] = getLayerNodeId( upperID1[1], lowerID1, 1);
+		ary0[3] = getLayerNodeId( upperID1[0], lowerID1, 1);
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
+		ary0 = NULL;
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = lowerID1;
+		ary0[1] = getLayerNodeId( upperID1[1], lowerID1, 1);
+		ary0[2] = getLayerNodeId( upperID1[0], lowerID1, 1);
+		ary0[3] = lowerID0;
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
 		for(int i=1;i<layerNum;++i){
 			kmb::nodeIdType* ary = NULL;
 			ary = new kmb::nodeIdType[6];
@@ -526,20 +409,20 @@ appendLayerElements( kmb::bodyIdType bodyID, std::vector<kmb::nodeIdType>& upper
 	}else if( upperID0.size() == 2 && upperID1.size() == 1 ){
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = lowerID1;
-		ary[1] = getLayerNodeId( upperID1[0], lowerID1, 1);
-		ary[2] = getLayerNodeId( upperID0[1], lowerID0, 1);
-		ary[3] = getLayerNodeId( upperID0[0], lowerID0, 1);
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
-		ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = lowerID0;
-		ary[1] = getLayerNodeId( upperID0[1], lowerID0, 1);
-		ary[2] = getLayerNodeId( upperID0[0], lowerID0, 1);
-		ary[3] = lowerID1;
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
+		kmb::nodeIdType* ary0 = NULL;
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = lowerID1;
+		ary0[1] = getLayerNodeId( upperID1[0], lowerID1, 1);
+		ary0[2] = getLayerNodeId( upperID0[1], lowerID0, 1);
+		ary0[3] = getLayerNodeId( upperID0[0], lowerID0, 1);
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
+		ary0 = NULL;
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = lowerID0;
+		ary0[1] = getLayerNodeId( upperID0[1], lowerID0, 1);
+		ary0[2] = getLayerNodeId( upperID0[0], lowerID0, 1);
+		ary0[3] = lowerID1;
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
 		for(int i=1;i<layerNum;++i){
 			kmb::nodeIdType* ary = NULL;
 			ary = new kmb::nodeIdType[6];
@@ -560,15 +443,15 @@ appendLayerElements( kmb::bodyIdType bodyID, std::vector<kmb::nodeIdType>& upper
 	}else if( upperID0.size() == 2 && upperID1.size() == 2 ){
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[6];
-		ary[0] = lowerID0;
-		ary[1] = getLayerNodeId( upperID0[1], lowerID0, 1);
-		ary[2] = getLayerNodeId( upperID0[0], lowerID0, 1);
-		ary[3] = lowerID1;
-		ary[4] = getLayerNodeId( upperID1[0], lowerID1, 1);
-		ary[5] = getLayerNodeId( upperID1[1], lowerID1, 1);
-		this->meshDB->insertElement(bodyID,kmb::WEDGE,ary);
+		kmb::nodeIdType* ary0 = NULL;
+		ary0 = new kmb::nodeIdType[6];
+		ary0[0] = lowerID0;
+		ary0[1] = getLayerNodeId( upperID0[1], lowerID0, 1);
+		ary0[2] = getLayerNodeId( upperID0[0], lowerID0, 1);
+		ary0[3] = lowerID1;
+		ary0[4] = getLayerNodeId( upperID1[0], lowerID1, 1);
+		ary0[5] = getLayerNodeId( upperID1[1], lowerID1, 1);
+		this->meshDB->insertElement(bodyID,kmb::WEDGE,ary0);
 		for(int i=1;i<layerNum;++i){
 			kmb::nodeIdType* ary = NULL;
 			ary = new kmb::nodeIdType[8];
@@ -592,8 +475,8 @@ appendLayerElements( kmb::bodyIdType bodyID, std::vector<kmb::nodeIdType>& upper
 	return true;
 }
 
-bool kmb::BLMGenerator::
-appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::nodeIdType upperID1, std::vector<kmb::nodeIdType>& lowerID0, std::vector<kmb::nodeIdType>& lowerID1)
+bool
+kmb::BLMGenerator::appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::nodeIdType upperID1, std::vector<kmb::nodeIdType>& lowerID0, std::vector<kmb::nodeIdType>& lowerID1)
 {
 	if( this->meshDB == NULL ){
 		return false;
@@ -630,19 +513,19 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::node
 		}
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = upperID0;
-		ary[1] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1);
-		ary[2] = getLayerNodeId( upperID1, lowerID1[1], layerNum-1);
-		ary[3] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1);
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
-		ary = new kmb::nodeIdType[4];
-		ary[0] = upperID1;
-		ary[1] = getLayerNodeId( upperID1, lowerID1[1], layerNum-1);
-		ary[2] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1);
-		ary[3] = upperID0;
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
+		kmb::nodeIdType* ary0 = NULL;
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = upperID0;
+		ary0[1] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1);
+		ary0[2] = getLayerNodeId( upperID1, lowerID1[1], layerNum-1);
+		ary0[3] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1);
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = upperID1;
+		ary0[1] = getLayerNodeId( upperID1, lowerID1[1], layerNum-1);
+		ary0[2] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1);
+		ary0[3] = upperID0;
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
 	}else if( lowerID0.size() == 2 && lowerID1.size() == 1 ){
 		for(int i=0;i<layerNum-1;++i){
 			kmb::nodeIdType* ary = NULL;
@@ -663,20 +546,20 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::node
 		}
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1);
-		ary[1] = getLayerNodeId( upperID0, lowerID0[1], layerNum-1);
-		ary[2] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1);
-		ary[3] = upperID1;
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
-		ary = NULL;
-		ary = new kmb::nodeIdType[4];
-		ary[0] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1);
-		ary[1] = getLayerNodeId( upperID0, lowerID0[1], layerNum-1);
-		ary[2] = upperID1;
-		ary[3] = upperID0;
-		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary);
+		kmb::nodeIdType* ary0 = NULL;
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1);
+		ary0[1] = getLayerNodeId( upperID0, lowerID0[1], layerNum-1);
+		ary0[2] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1);
+		ary0[3] = upperID1;
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
+		ary0 = NULL;
+		ary0 = new kmb::nodeIdType[4];
+		ary0[0] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1);
+		ary0[1] = getLayerNodeId( upperID0, lowerID0[1], layerNum-1);
+		ary0[2] = upperID1;
+		ary0[3] = upperID0;
+		this->meshDB->insertElement(bodyID,kmb::TETRAHEDRON,ary0);
 	}else if( lowerID0.size() == 2 && lowerID1.size() == 2 ){
 		for(int i=0;i<layerNum-1;++i){
 			kmb::nodeIdType* ary = NULL;
@@ -699,36 +582,33 @@ appendLayerElements( kmb::bodyIdType bodyID, kmb::nodeIdType upperID0, kmb::node
 		}
 
 
-		kmb::nodeIdType* ary = NULL;
-		ary = new kmb::nodeIdType[6];
-		ary[0] = upperID0;
-		ary[1] = getLayerNodeId( upperID0, lowerID0[1], layerNum-1 );
-		ary[2] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1 );
-		ary[3] = upperID1;
-		ary[4] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1 );
-		ary[5] = getLayerNodeId( upperID1, lowerID1[1], layerNum-1 );
-		this->meshDB->insertElement(bodyID,kmb::WEDGE,ary);
+		kmb::nodeIdType* ary0 = NULL;
+		ary0 = new kmb::nodeIdType[6];
+		ary0[0] = upperID0;
+		ary0[1] = getLayerNodeId( upperID0, lowerID0[1], layerNum-1 );
+		ary0[2] = getLayerNodeId( upperID0, lowerID0[0], layerNum-1 );
+		ary0[3] = upperID1;
+		ary0[4] = getLayerNodeId( upperID1, lowerID1[0], layerNum-1 );
+		ary0[5] = getLayerNodeId( upperID1, lowerID1[1], layerNum-1 );
+		this->meshDB->insertElement(bodyID,kmb::WEDGE,ary0);
 	}
 	return true;
 }
+*/
 
 bool
-kmb::BLMGenerator::generate
-(kmb::bodyIdType bodyID,kmb::bodyIdType &layerID,kmb::bodyIdType &boundaryID)
+kmb::BLMGenerator::generate(kmb::bodyIdType bodyID,kmb::bodyIdType &layerID,kmb::bodyIdType &boundaryID)
 {
 	kmb::ElementEvaluator evaluator( this->meshDB->getNodes() );
 
 
-
 	std::map<kmb::elementIdType,kmb::elementIdType> elementMap;
 	kmb::ElementContainer* body = this->meshDB->getBodyPtr(bodyID);
-
 	size_t size;
 
 
 	if( body ){
 		kmb::nodeIdType* cells = new kmb::nodeIdType[kmb::Element::MAX_NODE_COUNT];
-
 		size = body->getCount();
 		boundaryID = this->meshDB->beginElement(size);
 
@@ -745,7 +625,6 @@ kmb::BLMGenerator::generate
 		}
 		this->meshDB->endElement();
 		delete cells;
-
 	}else{
 		return false;
 	}
@@ -754,11 +633,9 @@ kmb::BLMGenerator::generate
 	kmb::NodeNeighborInfo neighborInfo;
 	neighborInfo.appendCoboundary( body );
 
-
 	std::set<kmb::nodeIdType> nodeSet;
 	if( body )
 	{
-
 		body->getNodesOfBody( nodeSet );
 	}
 
@@ -784,8 +661,6 @@ kmb::BLMGenerator::generate
 			++eIter;
 		}
 		normVect.normalize();
-
-
 		this->meshDB->getNode(nodeID,node);
 
 		kmb::Point3D point = node + normVect.scalar(layerThick[layerNum-1]);
@@ -804,7 +679,6 @@ kmb::BLMGenerator::generate
 
 	}
 
-
 	kmb::ElementContainer* boundary = this->meshDB->getBodyPtr(boundaryID);
 	if( boundary ){
 		layerID = this->meshDB->beginElement(size*layerNum);
@@ -822,17 +696,191 @@ kmb::BLMGenerator::generate
 		}
 	}
 
-
 	clearLayerNodes();
-
 	return true;
 }
 
-kmb::nodeIdType kmb::BLMGenerator::
-getLayerNodeId(kmb::nodeIdType outerNodeID, kmb::nodeIdType innerNodeID, int layerIndex )
+
+kmb::nodeIdType getDuplicatedNodeId(kmb::nodeIdType nodeId,std::map< kmb::nodeIdType, kmb::nodeIdType >& nodeMapper,kmb::MeshDB*mesh){
+	std::map< kmb::nodeIdType, kmb::nodeIdType >::iterator nIter = nodeMapper.find(nodeId);
+	if( nIter != nodeMapper.end() ){
+		return nIter->second;
+	}else{
+		kmb::Point3D pt;
+		mesh->getNode(nodeId,pt);
+		kmb::nodeIdType duplicatedId = mesh->addNode(pt);
+		nodeMapper.insert( std::pair<kmb::nodeIdType,kmb::nodeIdType>(nodeId,duplicatedId) );
+		return duplicatedId;
+	}
+}
+
+bool
+kmb::BLMGenerator::generateFromData(const char* faceGroup,kmb::bodyIdType &layerId)
+{
+
+
+
+
+
+
+
+
+
+
+
+	kmb::DataBindings* faceData = meshDB->getDataBindingsPtr(faceGroup);
+	if( faceData == NULL || faceData->getBindingMode() != kmb::DataBindings::FACEGROUP ){
+		return false;
+	}
+	kmb::ElementContainer* parentBody = meshDB->getBodyPtr( faceData->getTargetBodyId() );
+	if( parentBody == NULL ){
+		return false;
+	}
+	kmb::ElementContainer* tmpBody = new kmb::ElementContainerMap();
+	kmb::ElementEvaluator evaluator( this->meshDB->getNodes() );
+	std::map< kmb::nodeIdType, kmb::nodeIdType > nodeMapper;
+
+
+	kmb::DataBindings::iterator fIter = faceData->begin();
+	kmb::nodeIdType nodeTable[8];
+	while( !fIter.isFinished() ){
+		kmb::Face f;
+		if( fIter.getFace(f) ){
+			int localId = static_cast<int>( f.getLocalFaceId() );
+			kmb::ElementContainer::iterator eIter = parentBody->find( f.getElementId() );
+			if( !eIter.isFinished() ){
+				switch( eIter.getBoundaryType(localId) )
+				{
+				case kmb::TRIANGLE:
+					nodeTable[0] = eIter.getBoundaryCellId(localId,0);
+					nodeTable[1] = eIter.getBoundaryCellId(localId,1);
+					nodeTable[2] = eIter.getBoundaryCellId(localId,2);
+					nodeTable[3] = getDuplicatedNodeId( nodeTable[0], nodeMapper, meshDB );
+					nodeTable[4] = getDuplicatedNodeId( nodeTable[1], nodeMapper, meshDB );
+					nodeTable[5] = getDuplicatedNodeId( nodeTable[2], nodeMapper, meshDB );
+					tmpBody->addElement(kmb::WEDGE,nodeTable);
+					break;
+				case kmb::QUAD:
+					nodeTable[0] = eIter.getBoundaryCellId(localId,0);
+					nodeTable[1] = eIter.getBoundaryCellId(localId,1);
+					nodeTable[2] = eIter.getBoundaryCellId(localId,2);
+					nodeTable[3] = eIter.getBoundaryCellId(localId,3);
+					nodeTable[4] = getDuplicatedNodeId( nodeTable[0], nodeMapper, meshDB );
+					nodeTable[5] = getDuplicatedNodeId( nodeTable[1], nodeMapper, meshDB );
+					nodeTable[6] = getDuplicatedNodeId( nodeTable[2], nodeMapper, meshDB );
+					nodeTable[7] = getDuplicatedNodeId( nodeTable[3], nodeMapper, meshDB );
+					tmpBody->addElement(kmb::HEXAHEDRON,nodeTable);
+					break;
+				default:
+					break;
+				}
+			}
+		}
+		++fIter;
+	}
+
+
+	kmb::NodeNeighborFaceInfo neighborInfo;
+	neighborInfo.appendCoboundary( faceData, parentBody );
+
+
+	kmb::Node node;
+	std::map<kmb::nodeIdType,kmb::nodeIdType>::iterator nIter = nodeMapper.begin();
+	while( nIter != nodeMapper.end() )
+	{
+		kmb::nodeIdType nodeId = nIter->first;
+
+		kmb::Vector3D normVect;
+		kmb::Vector3D v;
+		kmb::NodeNeighborFace::iterator nfIter = neighborInfo.beginIteratorAt( nodeId );
+		kmb::NodeNeighborFace::iterator nfEnd = neighborInfo.endIteratorAt( nodeId );
+		while( nfIter != nfEnd )
+		{
+			kmb::Face f = nfIter->second;
+			kmb::ElementContainer::iterator element = parentBody->find( f.getElementId() );
+			if( !element.isFinished() &&
+				evaluator.getNormalVectorOfFace( element, f.getLocalFaceId(), v ) )
+			{
+				normVect += v;
+			}
+			++nfIter;
+		}
+		normVect.normalize();
+		this->meshDB->getNode(nodeId,node);
+
+		kmb::Point3D point = node + normVect.scalar(layerThick[layerNum-1]);
+		meshDB->updateNode( point.x(), point.y(), point.z(), nIter->second );
+		++nIter;
+	}
+
+
+	layerId = this->meshDB->beginElement( faceData->getIdCount()*layerNum );
+
+	kmb::ElementContainer::iterator bIter = tmpBody->begin();
+	while( !bIter.isFinished() ){
+		switch( bIter.getType() )
+		{
+		case kmb::WEDGE:
+			for(int i=0;i<layerNum;++i){
+				nodeTable[0] = getLayerNodeId( bIter[3], bIter[0],i);
+				nodeTable[1] = getLayerNodeId( bIter[4], bIter[1],i);
+				nodeTable[2] = getLayerNodeId( bIter[5], bIter[2],i);
+				nodeTable[3] = getLayerNodeId( bIter[3], bIter[0],i+1);
+				nodeTable[4] = getLayerNodeId( bIter[4], bIter[1],i+1);
+				nodeTable[5] = getLayerNodeId( bIter[5], bIter[2],i+1);
+				if( nodeTable[0] >= 0 &&
+					nodeTable[1] >= 0 &&
+					nodeTable[2] >= 0 &&
+					nodeTable[3] >= 0 &&
+					nodeTable[4] >= 0 &&
+					nodeTable[5] >= 0)
+				{
+					this->meshDB->addElement(kmb::WEDGE,nodeTable);
+				}
+			}
+			break;
+		case kmb::HEXAHEDRON:
+			for(int i=0;i<layerNum;++i){
+				nodeTable[0] = getLayerNodeId( bIter[4], bIter[0],i);
+				nodeTable[1] = getLayerNodeId( bIter[5], bIter[1],i);
+				nodeTable[2] = getLayerNodeId( bIter[6], bIter[2],i);
+				nodeTable[3] = getLayerNodeId( bIter[7], bIter[3],i);
+				nodeTable[4] = getLayerNodeId( bIter[4], bIter[0],i+1);
+				nodeTable[5] = getLayerNodeId( bIter[5], bIter[1],i+1);
+				nodeTable[6] = getLayerNodeId( bIter[6], bIter[2],i+1);
+				nodeTable[7] = getLayerNodeId( bIter[7], bIter[3],i+1);
+				if( nodeTable[0] >= 0 &&
+					nodeTable[1] >= 0 &&
+					nodeTable[2] >= 0 &&
+					nodeTable[3] >= 0 &&
+					nodeTable[4] >= 0 &&
+					nodeTable[5] >= 0 &&
+					nodeTable[6] >= 0 &&
+					nodeTable[7] >= 0)
+				{
+					this->meshDB->addElement(kmb::HEXAHEDRON,nodeTable);
+				}
+			}
+			break;
+		default:
+			break;
+		}
+		++bIter;
+	}
+	this->meshDB->endElement();
+
+
+	delete tmpBody;
+	clearLayerNodes();
+	return true;
+}
+
+kmb::nodeIdType
+kmb::BLMGenerator::getLayerNodeId(kmb::nodeIdType outerNodeID, kmb::nodeIdType innerNodeID, int layerIndex )
 {
 	if( this->meshDB == NULL || 0 > layerIndex || layerIndex > this->layerNum ){
 		return kmb::nullNodeId;
+
 	}
 	kmb::nodeIdType* nodes = NULL;
 
@@ -870,8 +918,8 @@ getLayerNodeId(kmb::nodeIdType outerNodeID, kmb::nodeIdType innerNodeID, int lay
 	}
 }
 
-void kmb::BLMGenerator::
-clearLayerNodes()
+void
+kmb::BLMGenerator::clearLayerNodes()
 {
 	for( std::map< std::pair<kmb::nodeIdType, kmb::nodeIdType>, kmb::nodeIdType*>::iterator p = this->layerNodes.begin();
 		p != this->layerNodes.end();

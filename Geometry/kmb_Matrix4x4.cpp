@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Matrix4x4                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -68,6 +68,26 @@ kmb::Matrix4x4::Matrix4x4(const Matrix3x3 &other)
 	*this = other;
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
+
+int
+kmb::Matrix4x4::init(int rowSize, int colSize)
+{
+	return -1;
+}
+
+#if defined _MSC_VER || defined __INTEL_COMPILER
+#pragma warning(pop)
+#endif
+
 int
 kmb::Matrix4x4::getSize(void) const
 {
@@ -87,6 +107,12 @@ kmb::Matrix4x4::set(int i,int j,double val)
 	return true;
 }
 
+bool
+kmb::Matrix4x4::add(int i,int j,double val)
+{
+	m[i+j*4] += val;
+	return true;
+}
 
 kmb::Matrix4x4
 kmb::Matrix4x4::operator*(const Matrix4x4& other)
@@ -315,29 +341,7 @@ kmb::Matrix4x4::trace(void) const
 {
 	return m[0] + m[5] + m[10] + m[15];
 }
-/*
-void row_exchange(double* coeff,int colsize,int i0,int i1){
-	for(int j=0;j<colsize;j++){
-		double t = coeff[colsize*i0+j];
-		coeff[colsize*i0+j] = coeff[colsize*i1+j];
-		coeff[colsize*i1+j] = t;
-	}
-}
 
-
-void row_transf(double* coeff,int colsize,int i0,int i1,double r){
-	for(int j=0;j<colsize;j++){
-		coeff[colsize*i1+j] += r * coeff[colsize*i0+j];
-	}
-}
-
-
-void row_multi(double* coeff,int colsize,int i0,double r){
-	for(int j=0;j<colsize;j++){
-		coeff[colsize*i0+j] *= r;
-	}
-}
-*/
 kmb::Vector4D*
 kmb::Matrix4x4::solve(const Vector4D& b) const
 {
@@ -363,17 +367,20 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 
 	kmb::Matrix_DoubleArray mat(4,5,coef);
 
+	int ind = -1;
+	double m = 0.0;
 
-	if( mat.get(0,0) == 0.0 ){
-		if( mat.get(1,0) != 0.0 ){
-			mat.row_exchange(0,1);
-		}else if( mat.get(2,0) != 0.0 ){
-			mat.row_exchange(0,2);
-		}else if( mat.get(3,0) != 0.0 ){
-			mat.row_exchange(0,3);
-		}else{
-			return false;
+	for(int i=0;i<4;++i){
+		double d = fabs(mat.get(i,0));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
+	}
+	if( m == 0.0 ){
+		return false;
+	}else if(ind != 0){
+		mat.row_exchange(0,ind);
 	}
 	mat.row_multi(0, 1.0/mat.get(0,0));
 	mat.row_transf(0, 1, -mat.get(1,0));
@@ -381,14 +388,19 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 	mat.row_transf(0, 3, -mat.get(3,0));
 
 
-	if( mat.get(1,1) == 0.0 ){
-		if( mat.get(2,1) != 0.0 ){
-			mat.row_exchange(1,2);
-		}else if( mat.get(3,1) != 0.0 ){
-			mat.row_exchange(1,3);
-		}else{
-			return false;
+	ind = -1;
+	m = 0.0;
+	for(int i=1;i<4;++i){
+		double d = fabs(mat.get(i,1));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
+	}
+	if( m == 0.0 ){
+		return false;
+	}else if(ind != 1){
+		mat.row_exchange(1,ind);
 	}
 	mat.row_multi(1, 1.0/mat.get(1,1));
 	mat.row_transf(1, 2, -mat.get(2,1));
@@ -396,12 +408,19 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 	mat.row_transf(1, 0, -mat.get(0,1));
 
 
-	if( mat.get(2,2) == 0.0 ){
-		if( mat.get(3,2) != 0.0 ){
-			mat.row_exchange(2,3);
-		}else{
-			return false;
+	ind = -1;
+	m = 0.0;
+	for(int i=2;i<4;++i){
+		double d = fabs(mat.get(i,2));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
+	}
+	if( m == 0.0 ){
+		return false;
+	}else if(ind != 1){
+		mat.row_exchange(2,ind);
 	}
 	mat.row_multi(2, 1.0/mat.get(2,2));
 	mat.row_transf(2, 3, -mat.get(3,2));
@@ -422,79 +441,95 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 	x.setCoordinate(2,mat.get(2,4));
 	x.setCoordinate(3,mat.get(3,4));
 	return true;
-/*
+}
 
+bool
+kmb::Matrix4x4::solveSafely(const Vector4D& b,Vector4D& x,double thresh) const
+{
 	double coef[20] = {
-		m[0],m[4],m[8], m[12],b.x(),
-		m[1],m[5],m[9], m[13],b.y(),
-		m[2],m[6],m[10],m[14],b.z(),
-		m[3],m[7],m[11],m[15],b.w()
+		m[0],m[1],m[2],m[3],
+		m[4],m[5],m[6],m[7],
+		m[8],m[9],m[10],m[11],
+		m[12],m[13],m[14],m[15],
+		b.x(),b.y(),b.z(),b.w()
 	};
 
+	kmb::Matrix_DoubleArray mat(4,5,coef);
 
-	if( coef[0] == 0.0 ){
-		if( coef[5] != 0.0 ){
-			::row_exchange(coef,5,0,1);
-		}else if( coef[10] != 0.0 ){
-			::row_exchange(coef,5,0,2);
-		}else if( coef[15] != 0.0 ){
-			::row_exchange(coef,5,0,3);
-		}else{
-			return false;
+	int ind = -1;
+	double m = 0.0;
+
+	for(int i=0;i<4;++i){
+		double d = fabs(mat.get(i,0));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
 	}
+	if( m < thresh ){
+		return false;
+	}else if(ind != 0){
+		mat.row_exchange(0,ind);
+	}
+	mat.row_multi(0, 1.0/mat.get(0,0));
+	mat.row_transf(0, 1, -mat.get(1,0));
+	mat.row_transf(0, 2, -mat.get(2,0));
+	mat.row_transf(0, 3, -mat.get(3,0));
 
-	::row_multi(coef, 5, 0, 1.0/coef[0]);
-	::row_transf(coef, 5, 0, 1, -coef[5]);
-	::row_transf(coef, 5, 0, 2, -coef[10]);
-	::row_transf(coef, 5, 0, 3, -coef[15]);
 
-
-	if( coef[6] == 0.0 ){
-		if( coef[11] != 0.0 ){
-			::row_exchange(coef,5,1,2);
-		}else if( coef[16] != 0.0 ){
-			::row_exchange(coef,5,1,3);
-		}else{
-			return false;
+	ind = -1;
+	m = 0.0;
+	for(int i=1;i<4;++i){
+		double d = fabs(mat.get(i,1));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
 	}
+	if( m < thresh ){
+		return false;
+	}else if(ind != 1){
+		mat.row_exchange(1,ind);
+	}
+	mat.row_multi(1, 1.0/mat.get(1,1));
+	mat.row_transf(1, 2, -mat.get(2,1));
+	mat.row_transf(1, 3, -mat.get(3,1));
+	mat.row_transf(1, 0, -mat.get(0,1));
 
-	::row_multi(coef, 5, 1, 1.0/coef[6]);
-	::row_transf(coef, 5, 1, 2, -coef[11]);
-	::row_transf(coef, 5, 1, 3, -coef[16]);
-	::row_transf(coef, 5, 1, 0, -coef[1]);
 
-
-	if( coef[12] == 0.0 ){
-		if( coef[17] != 0.0 ){
-			::row_exchange(coef,5,2,3);
-		}else{
-			return false;
+	ind = -1;
+	m = 0.0;
+	for(int i=2;i<4;++i){
+		double d = fabs(mat.get(i,2));
+		if( d > m ){
+			ind = i;
+			m = d;
 		}
 	}
+	if( m < thresh ){
+		return false;
+	}else if(ind != 1){
+		mat.row_exchange(2,ind);
+	}
+	mat.row_multi(2, 1.0/mat.get(2,2));
+	mat.row_transf(2, 3, -mat.get(3,2));
+	mat.row_transf(2, 0, -mat.get(0,2));
+	mat.row_transf(2, 1, -mat.get(1,2));
 
-	::row_multi(coef, 5, 2, 1.0/coef[12]);
-	::row_transf(coef, 5, 2, 3, -coef[17]);
-	::row_transf(coef, 5, 2, 0, -coef[2]);
-	::row_transf(coef, 5, 2, 1, -coef[7]);
 
-
-	if( coef[18] == 0.0 ){
+	if( fabs(mat.get(3,3)) < thresh ){
 		return false;
 	}
+	mat.row_multi(3, 1.0/mat.get(3,3));
+	mat.row_transf(3, 0, -mat.get(0,3));
+	mat.row_transf(3, 1, -mat.get(1,3));
+	mat.row_transf(3, 2, -mat.get(2,3));
 
-	::row_multi (coef, 5, 3, 1.0/coef[18]);
-	::row_transf(coef, 5, 3, 0, -coef[3]);
-	::row_transf(coef, 5, 3, 1, -coef[8]);
-	::row_transf(coef, 5, 3, 2, -coef[13]);
-
-	x.setCoordinate(0,coef[4]);
-	x.setCoordinate(1,coef[9]);
-	x.setCoordinate(2,coef[14]);
-	x.setCoordinate(3,coef[19]);
+	x.setCoordinate(0,mat.get(0,4));
+	x.setCoordinate(1,mat.get(1,4));
+	x.setCoordinate(2,mat.get(2,4));
+	x.setCoordinate(3,mat.get(3,4));
 	return true;
-*/
 }
 
 bool
@@ -560,6 +595,18 @@ kmb::Matrix4x4::createLookAt(const Vector3D& eye, const Vector3D& center, const 
 		s.z(), u.z(), -l.z(), 0.0,
 		-(eye*s), -(eye*u), (eye*l), 1.0 );
 	return lookat;
+}
+
+kmb::Matrix4x4*
+kmb::Matrix4x4::createAffine(const kmb::Matrix3x3& transform, const kmb::Vector3D& displace)
+{
+	kmb::Matrix4x4* mat = NULL;
+	mat = new kmb::Matrix4x4(
+		transform.get(0,0), transform.get(0,1), transform.get(0,2), displace[0],
+		transform.get(1,0), transform.get(1,1), transform.get(1,2), displace[1],
+		transform.get(2,0), transform.get(2,1), transform.get(2,2), displace[2],
+		0.0, 0.0, 0.0, 1.0 );
+	return mat;
 }
 
 bool

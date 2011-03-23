@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -130,8 +130,8 @@ public:
 		kmb::Element* getElement(void) const;
 		bool getElement(kmb::elementType &etype,kmb::nodeIdType *nodes) const;
 		bool getElement(kmb::Element &element) const;
-		const kmb::elementType getType(void) const;
-		const kmb::nodeIdType getCellId(int cellIndex) const;
+		kmb::elementType getType(void) const;
+		kmb::nodeIdType getCellId(int cellIndex) const;
 		bool setCellId(int cellIndex, kmb::nodeIdType nodeId);
 		virtual kmb::nodeIdType operator[](const int i) const;
 
@@ -156,12 +156,12 @@ public:
 		const_iterator( const const_iterator &other );
 		const_iterator( const iterator &other );
 		virtual ~const_iterator(void);
-		const kmb::elementIdType getId(void) const;
+		kmb::elementIdType getId(void) const;
 		const kmb::Element* getElement(void) const;
 		bool getElement(kmb::elementType &etype,kmb::nodeIdType *nodes) const;
 		bool getElement(kmb::Element &element) const;
-		const kmb::elementType getType(void) const;
-		const kmb::nodeIdType getCellId(int cellIndex) const;
+		kmb::elementType getType(void) const;
+		kmb::nodeIdType getCellId(int cellIndex) const;
 		bool setCellId(int cellIndex, kmb::nodeIdType nodeId);
 		virtual kmb::nodeIdType operator[](const int i) const;
 

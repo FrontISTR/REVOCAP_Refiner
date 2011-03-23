@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Matching                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -31,6 +31,7 @@
 #include "MeshDB/kmbElementRelation.h"
 #include "MeshDB/kmbNodeNeighborInfo.h"
 #include "MeshDB/kmbNodeNeighborFaceInfo.h"
+#include "MeshDB/kmbDataBindings.h"
 #include "MeshDB/kmbTriangle.h"
 #include "MeshDB/kmbPolygon.h"
 #include "Geometry/kmb_Point3DContainer.h"
@@ -143,8 +144,8 @@ kmb::Matching::getDistanceDataToData(kmb::MeshDB* mesh,const char* key0,const ch
 		if( data0 && data1 ){
 			kmb::BoundingBox bbox0;
 			kmb::BoundingBox bbox1;
-			mesh->getBoundingBox( bbox0, data0 );
-			mesh->getBoundingBox( bbox1, data1 );
+			mesh->getBoundingBoxOfData( bbox0, data0 );
+			mesh->getBoundingBoxOfData( bbox1, data1 );
 			dist = sqrt( bbox0.distanceSq( bbox1 ) );
 		}
 	}
@@ -203,9 +204,9 @@ kmb::Matching::getSurfaceRelation
 			kmb::ElementContainer::iterator nei = surf0->find(nei_id);
 			if( !nei.isFinished() ){
 				int i0,i1;
-				kmb::ElementRelation::relationType rel =
+				kmb::ElementRelation::relationType rel01 =
 					kmb::ElementRelation::getRelation( eIter, i0, nei, i1 );
-				switch( rel ){
+				switch( rel01 ){
 					case kmb::ElementRelation::EQUAL:
 						++eqCount;
 						findFlag = true;
@@ -439,11 +440,11 @@ kmb::Matching::matchNodeToNodeOnEdges
 		{
 
 			kmb::bodyIdType bodyCount = mesh0->getBodyCount();
-			for(kmb::bodyIdType bodyID = 0; bodyID < bodyCount; ++bodyID){
-				kmb::ElementContainer* body = mesh0->getBodyPtr( bodyID );
-				if( body && body->isUniqueDim(1) ){
+			for(kmb::bodyIdType bodyId = 0; bodyId < bodyCount; ++bodyId){
+				kmb::ElementContainer* body1 = mesh0->getBodyPtr( bodyId );
+				if( body1 && body1->isUniqueDim(1) ){
 					kmb::nodeIdType matchId = kmb::nullNodeId;
-					double dist = mesh0->getNearestNodeInBody( node, bodyID, matchId );
+					double dist = mesh0->getNearestNodeInBody( node, bodyId, matchId );
 					if( dist < tolerance )
 					{
 						nodeMapper.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >( nodeId, matchId ) );
@@ -517,34 +518,34 @@ kmb::Matching::searchMatchingEdge
 			}
 		}
 	}
-	return kmb::Body::nullBodyId;
+	return matchingId;
 }
 
 int
 kmb::Matching::nodeMatchingBetweenBodies(kmb::MeshDB* mesh0, kmb::bodyIdType bodyId0, kmb::MeshDB* mesh1, kmb::bodyIdType bodyId1, double tolerance, const char* coupleName)
 {
 	int counter = 0;
-	kmb::Body *body0 = NULL, *body1 = NULL;
+	kmb::Body* body0(NULL);
 	if( mesh0 == NULL ||
-		mesh1 == NULL ||
 		(body0=mesh0->getBodyPtr(bodyId0)) == NULL ||
-		(body1=mesh1->getBodyPtr(bodyId1)) == NULL ||
+		mesh1 == NULL ||
+		mesh1->getBodyPtr(bodyId1) == NULL ||
 		coupleName == NULL )
 	{
 		return counter;
 	}
 
-	kmb::DataBindingsEach<kmb::nodeIdType>* coupleData = NULL;
+	kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* coupleData = NULL;
 	kmb::DataBindings* data = mesh0->getDataBindingsPtr(coupleName);
 	if( data ){
-		if(	data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
+		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
 				data->getValueType() == kmb::PhysicalValue::INTEGER ){
 			coupleData =
-				reinterpret_cast< kmb::DataBindingsEach<kmb::nodeIdType>* >(data);
+				reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >(data);
 		}
 	}else{
 		coupleData =
-			reinterpret_cast< kmb::DataBindingsEach<kmb::nodeIdType>* >
+			reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >
 			( mesh0->createDataBindings
 				(coupleName,
 				 kmb::DataBindings::NODEVARIABLE,
@@ -590,17 +591,17 @@ kmb::Matching::nodeMatchingOnBody(kmb::MeshDB* mesh0, kmb::bodyIdType bodyId0, k
 		return counter;
 	}
 
-	kmb::DataBindingsEach<kmb::nodeIdType>* coupleData = NULL;
+	kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* coupleData = NULL;
 	kmb::DataBindings* data = mesh0->getDataBindingsPtr(coupleName);
 	if( data ){
-		if(	data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
+		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
 				data->getValueType() == kmb::PhysicalValue::INTEGER ){
 			coupleData =
-				reinterpret_cast< kmb::DataBindingsEach<kmb::nodeIdType>* >(data);
+				reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >(data);
 		}
 	}else{
 		coupleData =
-			reinterpret_cast< kmb::DataBindingsEach<kmb::nodeIdType>* >
+			reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >
 			( mesh0->createDataBindings
 				(coupleName,
 				 kmb::DataBindings::NODEVARIABLE,

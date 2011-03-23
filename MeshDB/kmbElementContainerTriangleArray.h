@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementContainerTriangleArray                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -72,7 +72,7 @@ public:
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
 
-	const unsigned int* getNodeTable(void) const {	return nodeTable;	}
+	const unsigned int* getNodeTable(void) const { return nodeTable; }
 protected:
 	size_t index;
 	size_t size;

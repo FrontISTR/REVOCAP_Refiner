@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementContainerMap                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,7 +30,13 @@
 #include <limits.h>
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 const char* kmb::ElementContainerMap::CONTAINER_TYPE = "stl::map";
@@ -188,7 +194,8 @@ kmb::ElementContainerMap::eraseElement(kmb::elementIdType id)
 	}
 }
 
-bool kmb::ElementContainerMap::deleteElement(const kmb::elementIdType id)
+bool
+kmb::ElementContainerMap::deleteElement(const kmb::elementIdType id)
 {
 	std::map< kmb::elementIdType, kmb::Element* >::iterator it = this->elements.find(id-offsetId);
 	if( it != this->elements.end() ){
@@ -204,17 +211,20 @@ bool kmb::ElementContainerMap::deleteElement(const kmb::elementIdType id)
 	}
 }
 
-bool kmb::ElementContainerMap::includeElement(const kmb::elementIdType id) const
+bool
+kmb::ElementContainerMap::includeElement(const kmb::elementIdType id) const
 {
 	return ( this->elements.find(id-offsetId) != this->elements.end() );
 }
 
-kmb::elementIdType kmb::ElementContainerMap::getMaxId(void) const
+kmb::elementIdType
+kmb::ElementContainerMap::getMaxId(void) const
 {
 	return this->maxId + this->offsetId;
 }
 
-kmb::elementIdType kmb::ElementContainerMap::getMinId(void) const
+kmb::elementIdType
+kmb::ElementContainerMap::getMinId(void) const
 {
 	return this->minId + this->offsetId;
 }
@@ -225,7 +235,8 @@ kmb::ElementContainerMap::getCount(void) const
 	return static_cast<int>( this->elements.size() );
 }
 
-void kmb::ElementContainerMap::clear(void)
+void
+kmb::ElementContainerMap::clear(void)
 {
 	kmb::ElementContainer::clear();
 	std::map< kmb::elementIdType, kmb::Element* >::iterator eIter = this->elements.begin();

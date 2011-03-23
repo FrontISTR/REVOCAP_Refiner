@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : DataBindings                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -37,6 +37,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 namespace kmb{
@@ -99,6 +104,7 @@ protected:
 	PhysicalValue::valueType type;
 public:
 	PhysicalValue::valueType getValueType(void) const { return type; }
+	virtual int getDimension(void) const { return kmb::PhysicalValue::getDimension(type); };
 
 protected:
 	bindingMode bMode;
@@ -134,6 +140,7 @@ public:
 
 	virtual bool replaceId(kmb::idType old_id,kmb::idType new_id);
 	virtual bool replaceId(kmb::Face old_id,kmb::Face new_id);
+	virtual int replaceNodeId( std::map< kmb::nodeIdType, kmb::nodeIdType> &idmap );
 
 	virtual bool setPhysicalValue(kmb::PhysicalValue* val);
 	virtual bool setPhysicalValue(kmb::idType id, kmb::PhysicalValue* value);
@@ -213,7 +220,7 @@ public:
 		const_iterator(const const_iterator& other);
 		const_iterator(const iterator& other);
 		~const_iterator(void);
-		const kmb::idType getId(void) const;
+		kmb::idType getId(void) const;
 		bool getFace(kmb::Face &f) const;
 		const kmb::PhysicalValue* getValue(void) const;
 		bool getValue(double *value)  const;
@@ -274,6 +281,12 @@ public:
 	virtual kmb::PhysicalValue* getPhysicalValue(void) const {
 		return this->value;
 	};
+	virtual int getDimension(void) const {
+		if( value ){
+			return value->getDimension();
+		};
+		return 0;
+	}
 	virtual size_t getIdCount() const {
 		if( this->value ){
 			return 1;
@@ -309,7 +322,7 @@ public:
 		return "DataBindingsGroup";
 	};
 protected:
-	std::set<T>		group;
+	std::set<T> group;
 
 	kmb::PhysicalValue* value;
 public:
@@ -324,6 +337,12 @@ public:
 	virtual kmb::PhysicalValue* getPhysicalValue(void) const {
 		return this->value;
 	};
+	virtual int getDimension(void) const {
+		if( value ){
+			return value->getDimension();
+		};
+		return 0;
+	}
 	virtual bool addId(kmb::idType id){
 		group.insert(static_cast<T>(id));
 		return true;
@@ -374,7 +393,7 @@ public:
 			++jIter;
 		}
 	};
-	virtual size_t	getIdCount(void) const{
+	virtual size_t getIdCount(void) const{
 		return group.size();
 	};
 
@@ -479,6 +498,12 @@ public:
 	virtual kmb::PhysicalValue* getPhysicalValue(void) const{
 		return this->value;
 	};
+	virtual int getDimension(void) const {
+		if( value ){
+			return value->getDimension();
+		};
+		return 0;
+	}
 	virtual size_t getIdCount(void) const{
 		return group.size();
 	};
@@ -598,21 +623,23 @@ public:
 	}
 };
 
-template<typename T>
-class DataBindingsEach : public DataBindings
+
+
+template<typename T,typename V>
+class DataVariable : public DataBindings
 {
 	friend class DataBindings;
 protected:
-	DataBindingsEach(DataBindings::bindingMode mode,kmb::PhysicalValue::valueType vType){
-		this->type = vType;
+	DataVariable(DataBindings::bindingMode mode){
+		this->type = V::vType;
 		this->bMode = mode;
 	}
 public:
-	virtual ~DataBindingsEach(void){
+	virtual ~DataVariable(void){
 		clear();
 	}
 	virtual const char* getContainerType(void) const{
-		return "DataBindingsEach";
+		return "DataVariable";
 	};
 	virtual void clear(void){
 		typename std::map<T,kmb::PhysicalValue*>::iterator pIter = mapper.begin();
@@ -628,9 +655,8 @@ public:
 private:
 	std::map<T,kmb::PhysicalValue*> mapper;
 public:
-	virtual bool setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val){
+	virtual bool setPhysicalValue(T t,kmb::PhysicalValue* val){
 		if(val != NULL && val->getType() == type){
-			T t = static_cast<T>(id);
 			typename std::map<T,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 			if( dIter != mapper.end() ){
 				delete dIter->second;
@@ -642,214 +668,65 @@ public:
 			return false;
 		}
 	};
-	virtual bool setPhysicalValue(kmb::idType id,double* value){
+	virtual bool setPhysicalValue(T t,double* value){
 		if( value != NULL ){
-			T t = static_cast<T>(id);
 			typename std::map<T,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 			if( dIter != mapper.end() ){
-				delete dIter->second;
-				mapper.erase( dIter );
+				dIter->second->setValue(value);
+			}else{
+
+				kmb::PhysicalValue* v = new V();
+				v->setValue(value);
+				mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
 			}
-			switch( getValueType() )
-			{
-			case kmb::PhysicalValue::SCALAR:
-				{
-					kmb::ScalarValue* v = new kmb::ScalarValue( value[0] );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-			case kmb::PhysicalValue::VECTOR2:
-				{
-					kmb::Vector2Value* v = new kmb::Vector2Value( value[0], value[1] );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-			case kmb::PhysicalValue::VECTOR3:
-				{
-					kmb::Vector3Value* v = new kmb::Vector3Value( value[0], value[1], value[2] );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-			case kmb::PhysicalValue::TENSOR6:
-				{
-					kmb::Tensor6Value* v = new kmb::Tensor6Value( value[0], value[1], value[2], value[3], value[4], value[5] );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-			case kmb::PhysicalValue::POINT3VECTOR3:
-				{
-					kmb::Point3Vector3Value* v = new kmb::Point3Vector3Value( value[0], value[1], value[2], value[3], value[4], value[5] );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-			default:
-				return false;
-			}
-		}else{
-			return false;
+			return true;
 		}
+		return false;
 	};
-	virtual bool setPhysicalValue(kmb::idType id,long* value){
+	virtual bool setPhysicalValue(T t,long* value){
 		if( value != NULL ){
-			T t = static_cast<T>(id);
 			typename std::map<T,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 			if( dIter != mapper.end() ){
-				delete dIter->second;
-				mapper.erase( dIter );
+				dIter->second->setValue(value);
+			}else{
+
+				kmb::PhysicalValue* v = new V();
+				v->setValue(value);
+				mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
 			}
-			switch( getValueType() )
-			{
-			case kmb::PhysicalValue::INTEGER:
-				{
-					kmb::IntegerValue* v = new kmb::IntegerValue( value[0] );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-			default:
-				return false;
-			}
-		}else{
-			return false;
+			return true;
 		}
+		return false;
 	};
-	virtual bool setValue(kmb::idType id, double value,int index=0){
-		T t = static_cast<T>(id);
+	virtual bool setValue(T t, double value,int index=0){
 		typename std::map<T,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 		if( dIter != mapper.end() ){
-			switch( dIter->second->getType() )
-			{
-			case kmb::PhysicalValue::SCALAR:
-				if( index == 0 ){
-					reinterpret_cast< kmb::ScalarValue* >(dIter->second)->setValue( value );
-					return true;
-				}
-				break;
-			case kmb::PhysicalValue::VECTOR2:
-				if( 0 <= index && index < 2 ){
-					reinterpret_cast< kmb::Vector2Value* >(dIter->second)->setValue( value, index );
-					return true;
-				}
-				break;
-			case kmb::PhysicalValue::VECTOR3:
-				if( 0 <= index && index < 3 ){
-					reinterpret_cast< kmb::Vector3Value* >(dIter->second)->setValue( value, index );
-					return true;
-				}
-				break;
-			case kmb::PhysicalValue::TENSOR6:
-				if( 0 <= index && index < 6 ){
-					reinterpret_cast< kmb::Tensor6Value* >(dIter->second)->setValue( value, index );
-					return true;
-				}
-				break;
-			case kmb::PhysicalValue::POINT3VECTOR3:
-				if( 0 <= index && index < 3 ){
-					reinterpret_cast< kmb::Point3Vector3Value* >(dIter->second)->setPoint( value, index );
-					return true;
-				}else if( 3 <= index && index < 6 ){
-					reinterpret_cast< kmb::Point3Vector3Value* >(dIter->second)->setValue( value, index-3 );
-					return true;
-				}
-				break;
-			default:
-				break;
-			}
+
+			dIter->second->setValue( value, index );
+			return true;
 		}else{
-			switch( getValueType() )
-			{
-			case kmb::PhysicalValue::SCALAR:{
-				if( index == 0 ){
-					kmb::ScalarValue* v = new kmb::ScalarValue( value );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-				break;
-			}
-			case kmb::PhysicalValue::VECTOR2:{
-				if( 0 <= index && index < 2 ){
-					double u[2] = {0.0,0.0};
-					u[index] = value;
-					kmb::Vector2Value* v = new kmb::Vector2Value(u);
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-				break;
-			}
-			case kmb::PhysicalValue::VECTOR3:{
-				if( 0 <= index && index < 3 ){
-					double u[3] = {0.0,0.0,0.0};
-					u[index] = value;
-					kmb::Vector3Value* v = new kmb::Vector3Value( u );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-				break;
-			}
-			case kmb::PhysicalValue::TENSOR6:{
-				if( 0 <= index && index < 6 ){
-					double u[6] = {0.0,0.0,0.0,0.0,0.0,0.0};
-					u[index] = value;
-					kmb::Tensor6Value* v = new kmb::Tensor6Value( u );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-				break;
-			}
-			case kmb::PhysicalValue::POINT3VECTOR3:{
-				if( 0 <= index && index < 6 ){
-					double p[3] = {0.0,0.0,0.0};
-					double u[3] = {0.0,0.0,0.0};
-					if( 0 <= index && index < 3 ){
-						p[index] = value;
-					}else{
-						u[index-3] = value;
-					}
-					kmb::Point3Vector3Value* v = new kmb::Point3Vector3Value( p, u );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-				break;
-			}
-			default:
-				return false;
-			}
+
+			kmb::PhysicalValue* v = new V();
+			v->setValue( value, index );
+			mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
+			return true;
 		}
-		return false;
 	}
-	virtual bool setValue(kmb::idType id, long value,int index=0){
-		T t = static_cast<T>(id);
+	virtual bool setValue(T t, long value,int index=0){
 		typename std::map<T,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 		if( dIter != mapper.end() ){
-			switch( dIter->second->getType() )
-			{
-			case kmb::PhysicalValue::INTEGER:
-				if( index == 0 ){
-					reinterpret_cast< kmb::IntegerValue* >(dIter->second)->setValue( value );
-					return true;
-				}
-				break;
-			default:
-				break;
-			}
+
+			dIter->second->setValue( value, index );
+			return true;
 		}else{
-			switch( getValueType() )
-			{
-			case kmb::PhysicalValue::INTEGER:{
-				if( index == 0 ){
-					kmb::IntegerValue* v = new kmb::IntegerValue( value );
-					mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
-					return true;
-				}
-				break;
-			}
-			default:
-				return false;
-			}
+
+			kmb::PhysicalValue* v = new V();
+			v->setValue( value, index );
+			mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
+			return true;
 		}
-		return false;
 	}
-	virtual kmb::PhysicalValue* getPhysicalValue(kmb::idType id) const{
-		T t = static_cast<T>(id);
+	virtual kmb::PhysicalValue* getPhysicalValue(T t) const{
 		typename std::map<T,kmb::PhysicalValue*>::const_iterator pIter = mapper.find(t);
 		if( pIter != this->mapper.end()){
 			return pIter->second;
@@ -857,66 +734,29 @@ public:
 			return NULL;
 		}
 	};
-	virtual bool getPhysicalValue(kmb::idType id, double *value) const{
-		T t = static_cast<T>(id);
+	virtual bool getPhysicalValue(T t, double *value) const{
 		typename std::map<T,kmb::PhysicalValue*>::const_iterator pIter = mapper.find(t);
 		if( pIter == this->mapper.end()){
 			return false;
-		}
-		switch( getValueType() )
-		{
-		case kmb::PhysicalValue::SCALAR:
-			value[0] = reinterpret_cast< kmb::ScalarValue* >( pIter->second )->getValue();
-			return true;
-		case kmb::PhysicalValue::VECTOR2:
-			value[0] = reinterpret_cast< kmb::Vector2Value* >( pIter->second )->getValue(0);
-			value[1] = reinterpret_cast< kmb::Vector2Value* >( pIter->second )->getValue(1);
-			return true;
-		case kmb::PhysicalValue::VECTOR3:
-			value[0] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(0);
-			value[1] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(1);
-			value[2] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(2);
-			return true;
-		case kmb::PhysicalValue::TENSOR6:
-			value[0] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(0);
-			value[1] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(1);
-			value[2] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(2);
-			value[3] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(3);
-			value[4] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(4);
-			value[5] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(5);
-			return true;
-		case kmb::PhysicalValue::POINT3VECTOR3:
-			value[0] = reinterpret_cast< kmb::Point3Vector3Value* >( pIter->second )->getPoint(0);
-			value[1] = reinterpret_cast< kmb::Point3Vector3Value* >( pIter->second )->getPoint(1);
-			value[2] = reinterpret_cast< kmb::Point3Vector3Value* >( pIter->second )->getPoint(2);
-			value[3] = reinterpret_cast< kmb::Point3Vector3Value* >( pIter->second )->getValue(0);
-			value[4] = reinterpret_cast< kmb::Point3Vector3Value* >( pIter->second )->getValue(1);
-			value[5] = reinterpret_cast< kmb::Point3Vector3Value* >( pIter->second )->getValue(2);
-			return true;
-		default:
-			return false;
+		}else{
+			return pIter->second->getValue(value);
 		}
 	}
-	virtual bool getPhysicalValue(kmb::idType id, long *value) const{
-		T t = static_cast<T>(id);
+	virtual bool getPhysicalValue(T t, long *value) const{
 		typename std::map<T,kmb::PhysicalValue*>::const_iterator pIter = mapper.find(t);
 		if( pIter == this->mapper.end()){
 			return false;
-		}
-		switch( getValueType() )
-		{
-		case kmb::PhysicalValue::INTEGER:
-			value[0] = reinterpret_cast< kmb::IntegerValue* >( pIter->second )->getValue();
-			return true;
-		default:
-			return false;
+		}else{
+			return pIter->second->getValue(value);
 		}
 	}
-	virtual bool hasId(kmb::idType id) const{
-		return (mapper.find(static_cast<T>(id)) != mapper.end());
+	virtual int getDimension(void) const {
+		return kmb::PhysicalValue::getDimension( V::vType );
+	}
+	virtual bool hasId(T t) const{
+		return (mapper.find(t) != mapper.end());
 	};
-	virtual bool deleteId(kmb::idType id){
-		T t = static_cast<T>(id);
+	virtual bool deleteId(T t){
 		typename std::map<T,kmb::PhysicalValue*>::iterator pIter = mapper.find(t);
 		if( pIter != mapper.end() )
 		{
@@ -930,9 +770,7 @@ public:
 			return false;
 		}
 	};
-	virtual bool replaceId(kmb::idType old_id,kmb::idType new_id){
-		T old_t = static_cast<T>(old_id);
-		T new_t = static_cast<T>(new_id);
+	virtual bool replaceId(T old_t,T new_t){
 		typename std::map<T,kmb::PhysicalValue*>::iterator pIter = mapper.find(old_t);
 		if( pIter != mapper.end() &&
 			mapper.find(new_t) == mapper.end() )
@@ -976,18 +814,55 @@ public:
 			++qIter;
 		}
 	};
-	virtual size_t	getIdCount() const{
+	virtual int replaceNodeId( std::map< kmb::nodeIdType, kmb::nodeIdType> &idmap )
+	{
+		int count = 0;
+		if( this->bMode == kmb::DataBindings::NODEVARIABLE ){
+			typename std::map<T,kmb::PhysicalValue*> tempMap;
+			typename std::map<T,kmb::PhysicalValue*>::iterator pIter = mapper.begin();
+			while( pIter != mapper.end() )
+			{
+				T t = pIter->first;
+				if( pIter->second != NULL ){
+					typename std::map<T,T>::iterator tIter = idmap.find(t);
+					if( tIter != idmap.end() ){
+						++count;
+						tempMap.insert( std::pair<T,kmb::PhysicalValue*>( tIter->second, pIter->second ) );
+					}else{
+						tempMap.insert( std::pair<T,kmb::PhysicalValue*>( t, pIter->second ) );
+					}
+				}
+				++pIter;
+			}
+
+			mapper.clear();
+			typename std::map<T,kmb::PhysicalValue*>::iterator qIter = tempMap.begin();
+			while( qIter != tempMap.end() )
+			{
+				T t = qIter->first;
+				if( qIter->second != NULL ){
+					mapper.insert( std::pair<T,kmb::PhysicalValue*>( t, qIter->second ) );
+				}
+				++qIter;
+			}
+		}
+		return count;
+	};
+	virtual size_t getIdCount() const{
 		return mapper.size();
 	};
 
 public:
 	class _iterator : public DataBindings::_iterator
 	{
-		friend class DataBindingsEach<T>;
+		friend class DataVariable<T,V>;
 	private:
 		typename std::map<T,kmb::PhysicalValue*>::const_iterator dataIterator;
 		typename std::map<T,kmb::PhysicalValue*>::const_iterator endIterator;
 	public:
+		_iterator(void)
+		: DataBindings::_iterator()
+		{}
 		virtual ~_iterator(void){};
 		virtual kmb::idType getId(void) const{
 			return static_cast< kmb::idType >( dataIterator->first );
@@ -999,49 +874,10 @@ public:
 			return dataIterator->second;
 		};
 		virtual bool getValue(double *value) const{
-			switch( dataIterator->second->getType() )
-			{
-			case kmb::PhysicalValue::SCALAR:
-				value[0] = reinterpret_cast< kmb::ScalarValue* >( dataIterator->second )->getValue();
-				return true;
-			case kmb::PhysicalValue::VECTOR2:
-				value[0] = reinterpret_cast< kmb::Vector2Value* >( dataIterator->second )->getValue(0);
-				value[1] = reinterpret_cast< kmb::Vector2Value* >( dataIterator->second )->getValue(1);
-				return true;
-			case kmb::PhysicalValue::VECTOR3:
-				value[0] = reinterpret_cast< kmb::Vector3Value* >( dataIterator->second )->getValue(0);
-				value[1] = reinterpret_cast< kmb::Vector3Value* >( dataIterator->second )->getValue(1);
-				value[2] = reinterpret_cast< kmb::Vector3Value* >( dataIterator->second )->getValue(2);
-				return true;
-			case kmb::PhysicalValue::POINT3VECTOR3:
-				value[0] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getPoint(0);
-				value[1] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getPoint(1);
-				value[2] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getPoint(2);
-				value[3] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getValue(0);
-				value[4] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getValue(1);
-				value[5] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getValue(2);
-				return true;
-			case kmb::PhysicalValue::TENSOR6:
-				value[0] = reinterpret_cast< kmb::Tensor6Value* >( dataIterator->second )->getValue(0);
-				value[1] = reinterpret_cast< kmb::Tensor6Value* >( dataIterator->second )->getValue(1);
-				value[2] = reinterpret_cast< kmb::Tensor6Value* >( dataIterator->second )->getValue(2);
-				value[3] = reinterpret_cast< kmb::Tensor6Value* >( dataIterator->second )->getValue(3);
-				value[4] = reinterpret_cast< kmb::Tensor6Value* >( dataIterator->second )->getValue(4);
-				value[5] = reinterpret_cast< kmb::Tensor6Value* >( dataIterator->second )->getValue(5);
-				return true;
-			default:
-				return false;
-			}
+			return dataIterator->second->getValue(value);
 		};
 		virtual bool getValue(long *value) const{
-			switch( dataIterator->second->getType() )
-			{
-			case kmb::PhysicalValue::INTEGER:
-				value[0] = reinterpret_cast< kmb::IntegerValue* >( dataIterator->second )->getValue();
-				return true;
-			default:
-				return false;
-			}
+			return dataIterator->second->getValue(value);
 		};
 		virtual _iterator* operator++(void){
 			++dataIterator;
@@ -1089,7 +925,274 @@ public:
 	}
 };
 
+template<typename V>
+class DataVariable<kmb::Face,V> : public DataBindings
+{
+	friend class DataBindings;
+protected:
+	DataVariable(DataBindings::bindingMode mode){
+		this->type = V::vType;
+		this->bMode = mode;
+	}
+public:
+	virtual ~DataVariable(void){
+		clear();
+	}
+	virtual const char* getContainerType(void) const{
+		return "DataVariableFace";
+	};
+	virtual void clear(void){
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator pIter = mapper.begin();
+		while( pIter != mapper.end() ){
+			kmb::PhysicalValue* v = pIter->second;
+			if( v != NULL ){
+				delete v;
+			}
+			++pIter;
+		}
+		mapper.clear();
+	};
+private:
+	std::map<kmb::Face,kmb::PhysicalValue*> mapper;
+public:
+	virtual bool setPhysicalValue(kmb::Face t,kmb::PhysicalValue* val){
+		if(val != NULL && val->getType() == type){
+			typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
+			if( dIter != mapper.end() ){
+				delete dIter->second;
+				mapper.erase( dIter );
+			}
+			mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,val) );
+			return true;
+		}else{
+			return false;
+		}
+	};
+	virtual bool setPhysicalValue(kmb::Face t,double* value){
+		if( value != NULL ){
+			typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
+			if( dIter != mapper.end() ){
+				dIter->second->setValue(value);
+			}else{
 
+				kmb::PhysicalValue* v = new V();
+				v->setValue(value);
+				mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
+			}
+			return true;
+		}
+		return false;
+	};
+	virtual bool setPhysicalValue(kmb::Face t,long* value){
+		if( value != NULL ){
+			typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
+			if( dIter != mapper.end() ){
+				dIter->second->setValue(value);
+			}else{
+
+				kmb::PhysicalValue* v = new V();
+				v->setValue(value);
+				mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
+			}
+			return true;
+		}
+		return false;
+	};
+	virtual bool setValue(kmb::Face t, double value,int index=0){
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
+		if( dIter != mapper.end() ){
+
+			dIter->second->setValue( value, index );
+			return true;
+		}else{
+
+			kmb::PhysicalValue* v = new V();
+			v->setValue( value, index );
+			mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
+			return true;
+		}
+	}
+	virtual bool setValue(kmb::Face t, long value,int index=0){
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
+		if( dIter != mapper.end() ){
+
+			dIter->second->setValue( value, index );
+			return true;
+		}else{
+
+			kmb::PhysicalValue* v = new V();
+			v->setValue( value, index );
+			mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
+			return true;
+		}
+	}
+	virtual kmb::PhysicalValue* getPhysicalValue(kmb::Face t) const{
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::const_iterator pIter = mapper.find(t);
+		if( pIter != this->mapper.end()){
+			return pIter->second;
+		}else{
+			return NULL;
+		}
+	};
+	virtual bool getPhysicalValue(kmb::Face t, double *value) const{
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::const_iterator pIter = mapper.find(t);
+		if( pIter == this->mapper.end()){
+			return false;
+		}else{
+			return pIter->second->getValue(value);
+		}
+	}
+	virtual bool getPhysicalValue(kmb::Face t, long *value) const{
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::const_iterator pIter = mapper.find(t);
+		if( pIter == this->mapper.end()){
+			return false;
+		}else{
+			return pIter->second->getValue(value);
+		}
+	}
+	virtual int getDimension(void) const {
+		return kmb::PhysicalValue::getDimension( V::vType );
+	}
+	virtual bool hasId(kmb::Face t) const{
+		return (mapper.find(t) != mapper.end());
+	};
+	virtual bool deleteId(kmb::Face t){
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator pIter = mapper.find(t);
+		if( pIter != mapper.end() )
+		{
+			kmb::PhysicalValue* val = pIter->second;
+			if( val ){
+				delete val;
+			}
+			mapper.erase(pIter);
+			return true;
+		}else{
+			return false;
+		}
+	};
+	virtual bool replaceId(kmb::Face old_t,kmb::Face new_t){
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator pIter = mapper.find(old_t);
+		if( pIter != mapper.end() &&
+			mapper.find(new_t) == mapper.end() )
+		{
+			kmb::PhysicalValue* val = pIter->second;
+			mapper.erase(pIter);
+			if( val ){
+				mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(new_t,val) );
+			}
+			return true;
+		}else{
+			return false;
+		}
+	};
+	void replaceId(std::map<kmb::Face,kmb::Face> &idmap)
+	{
+		typename std::map<kmb::Face,kmb::PhysicalValue*> tempMap;
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator pIter = mapper.begin();
+		while( pIter != mapper.end() )
+		{
+			kmb::Face t = pIter->first;
+			if( pIter->second != NULL ){
+				typename std::map<kmb::Face,kmb::Face>::iterator tIter = idmap.find(t);
+				if( tIter != idmap.end() ){
+					tempMap.insert( std::pair<kmb::Face,kmb::PhysicalValue*>( tIter->second, pIter->second ) );
+				}else{
+					tempMap.insert( std::pair<kmb::Face,kmb::PhysicalValue*>( t, pIter->second ) );
+				}
+			}
+			++pIter;
+		}
+
+		mapper.clear();
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator qIter = tempMap.begin();
+		while( qIter != tempMap.end() )
+		{
+			kmb::Face t = qIter->first;
+			if( qIter->second != NULL ){
+				mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>( t, qIter->second ) );
+			}
+			++qIter;
+		}
+	};
+	virtual size_t getIdCount() const{
+		return mapper.size();
+	};
+
+public:
+	class _iterator : public DataBindings::_iterator
+	{
+		friend class DataVariable<kmb::Face,V>;
+	private:
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::const_iterator dataIterator;
+		typename std::map<kmb::Face,kmb::PhysicalValue*>::const_iterator endIterator;
+	public:
+		_iterator(void)
+		: DataBindings::_iterator()
+		{}
+		virtual ~_iterator(void){};
+		virtual kmb::idType getId(void) const{
+			return kmb::nullId;
+		};
+		virtual bool getFace(kmb::Face &f) const{
+			f.setId( dataIterator->first.getElementId(), dataIterator->first.getLocalFaceId() );
+			return true;
+		};
+		virtual kmb::PhysicalValue* getValue(void) const{
+			return dataIterator->second;
+		};
+		virtual bool getValue(double *value) const{
+			return dataIterator->second->getValue(value);
+		};
+		virtual bool getValue(long *value) const{
+			return dataIterator->second->getValue(value);
+		};
+		virtual _iterator* operator++(void){
+			++dataIterator;
+			if( dataIterator != endIterator ){
+				return this;
+			}else{
+				return NULL;
+			}
+		};
+		virtual _iterator* operator++(int n){
+			dataIterator++;
+			if( dataIterator != endIterator ){
+				return this;
+			}else{
+				return NULL;
+			}
+		};
+		virtual _iterator* clone(void){
+			_iterator* _it = NULL;
+			_it = new _iterator();
+			_it->dataIterator = this->dataIterator;
+			_it->endIterator = this->endIterator;
+			return _it;
+		};
+	};
+	virtual iterator begin(void){
+		if( mapper.size() == 0 ){
+			return kmb::DataBindings::iterator(NULL);
+		}
+		_iterator* _it = NULL;
+		_it = new _iterator();
+		_it->dataIterator = this->mapper.begin();
+		_it->endIterator = this->mapper.end();
+		return kmb::DataBindings::iterator(_it);
+	}
+	virtual const_iterator begin(void) const{
+		if( mapper.size() == 0 ){
+			return kmb::DataBindings::const_iterator(NULL);
+		}
+		_iterator* _it = NULL;
+		_it = new _iterator();
+		_it->dataIterator = this->mapper.begin();
+		_it->endIterator = this->mapper.end();
+		return kmb::DataBindings::const_iterator(_it);
+	}
+};
+
+/*
 template<>
 class DataBindingsEach<kmb::Face> : public DataBindings
 {
@@ -1119,7 +1222,7 @@ public:
 		mapper.clear();
 	}
 private:
-	std::map<kmb::Face,kmb::PhysicalValue*>		mapper;
+	std::map<kmb::Face,kmb::PhysicalValue*> mapper;
 public:
 	virtual bool setPhysicalValue(kmb::Face t,kmb::PhysicalValue* val){
 		if(val != NULL && val->getType() == type){
@@ -1158,6 +1261,12 @@ public:
 			case kmb::PhysicalValue::VECTOR3:
 				{
 					kmb::Vector3Value* v = new kmb::Vector3Value( value[0], value[1], value[2] );
+					mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
+					return true;
+				}
+			case kmb::PhysicalValue::VECTOR4:
+				{
+					kmb::Vector4Value* v = new kmb::Vector4Value( value[0], value[1], value[2], value[3] );
 					mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
 					return true;
 				}
@@ -1229,6 +1338,12 @@ public:
 			value[1] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(1);
 			value[2] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(2);
 			return true;
+		case kmb::PhysicalValue::VECTOR4:
+			value[0] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(0);
+			value[1] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(1);
+			value[2] = reinterpret_cast< kmb::Vector3Value* >( pIter->second )->getValue(2);
+			value[3] = reinterpret_cast< kmb::Vector4Value* >( pIter->second )->getValue(3);
+			return true;
 		case kmb::PhysicalValue::TENSOR6:
 			value[0] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(0);
 			value[1] = reinterpret_cast< kmb::Tensor6Value* >( pIter->second )->getValue(1);
@@ -1262,6 +1377,9 @@ public:
 		default:
 			return false;
 		}
+	}
+	virtual int getDimension(void) const {
+		return kmb::PhysicalValue::getDimension( getValueType() );
 	}
 	virtual bool hasId(kmb::Face id) const{
 		return (mapper.find(id) != mapper.end());
@@ -1360,6 +1478,12 @@ public:
 				value[1] = reinterpret_cast< kmb::Vector3Value* >( dataIterator->second )->getValue(1);
 				value[2] = reinterpret_cast< kmb::Vector3Value* >( dataIterator->second )->getValue(2);
 				return true;
+			case kmb::PhysicalValue::VECTOR4:
+				value[0] = reinterpret_cast< kmb::Vector4Value* >( dataIterator->second )->getValue(0);
+				value[1] = reinterpret_cast< kmb::Vector4Value* >( dataIterator->second )->getValue(1);
+				value[2] = reinterpret_cast< kmb::Vector4Value* >( dataIterator->second )->getValue(2);
+				value[3] = reinterpret_cast< kmb::Vector4Value* >( dataIterator->second )->getValue(3);
+				return true;
 			case kmb::PhysicalValue::POINT3VECTOR3:
 				value[0] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getPoint(0);
 				value[1] = reinterpret_cast< kmb::Point3Vector3Value* >( dataIterator->second )->getPoint(1);
@@ -1435,10 +1559,10 @@ public:
 		return kmb::DataBindings::const_iterator(_it);
 	}
 };
-
+*/
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __INTEL_COMPILER
 #pragma warning(pop)
 #endif
 

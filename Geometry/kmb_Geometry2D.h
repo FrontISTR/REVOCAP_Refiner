@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Geometry2D                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -90,6 +90,13 @@ public:
 	Point2D dividingPoint(const Point2D& other,double m,double n) const;
 
 
+
+#ifndef SWIG_WRAPPER
+	static double distance(const Point2D& a,const Point2D& b);
+	static double distanceSq(const Point2D& a,const Point2D& b);
+#endif
+
+
 	static double area(const Point2D& a,const Point2D& b,const Point2D &c);
 	static Point2D getCenter(const Point2D& a,const Point2D& b);
 	static Point2D getCenter(const Point2D& a,const Point2D& b,const Point2D &c);
@@ -103,6 +110,8 @@ public:
 
 	static void calcMinorCoordinate( const kmb::Point2D& a, const kmb::Point2D& b, const kmb::Point2D& c, const kmb::Point2D& x, double coordinate[3]);
 	static Point2D infinity;
+
+	static bool intesectSegments(const kmb::Point2D& a0, const kmb::Point2D& a1, const kmb::Point2D& b0, const kmb::Point2D& b1);
 };
 
 class Vector2D : public Tuple2D
@@ -139,10 +148,11 @@ public:
 	double operator%(const Vector2D& other) const{
 		return v[0]*other.v[1] - v[1]*other.v[0];
 	}
-	double	lengthSq() const;
-	double	length() const;
+	double lengthSq() const;
+	double length() const;
+	double abs(void) const;
 	double normalize();
-	void	rotate(double angle);
+	void rotate(double angle);
 
 	static double cos(const Vector2D &v0,const Vector2D &v1);
 	static double sin(const Vector2D &v0,const Vector2D &v1);
@@ -174,9 +184,14 @@ public:
 		double m00,double m01,
 		double m10,double m11);
 	virtual ~Matrix2x2(void){};
+	virtual const char* getContainerType(void) const{
+		return "double_array_2x2";
+	}
+	int init(int rowSize, int colSize);
 	int getSize(void) const;
 	double get(int i,int j) const;
 	bool set(int i,int j,double val);
+	bool add(int i,int j,double val);
 
 	bool identity(void);
 	bool zero(void);
@@ -192,6 +207,7 @@ public:
 
 	Vector2D* solve(const Vector2D& b) const;
 	bool solve(const Vector2D& b,Vector2D& x) const;
+	bool solveSafely(const Vector2D& b,Vector2D& x,double thresh=1.0e-6) const;
 
 
 	Vector2D operator*(const Vector2D& vect);

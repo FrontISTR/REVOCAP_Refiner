@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : RevocapCouplerIO                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -52,7 +52,6 @@ kmb::RevocapCouplerIO::loadFromPartitionFile(const char* filename,kmb::MeshData*
 			tokenizer >> dummy;
 			int partId = 0;
 			tokenizer >> partId;
-			REVOCAP_Debug("Solid_PartID %d\n",partId);
 			kmb::DataBindings* data = mesh->createDataBindings("Solid_Part",kmb::DataBindings::GLOBAL,kmb::PhysicalValue::INTEGER);
 			if(data){
 				data->setPhysicalValue( new kmb::IntegerValue(partId) );
@@ -63,7 +62,6 @@ kmb::RevocapCouplerIO::loadFromPartitionFile(const char* filename,kmb::MeshData*
 			tokenizer >> dummy;
 			int partId = 0;
 			tokenizer >> partId;
-			REVOCAP_Debug("Fluid_PartID %d\n",partId);
 			kmb::DataBindings* data = mesh->createDataBindings("Fluid_Part",kmb::DataBindings::GLOBAL,kmb::PhysicalValue::INTEGER);
 			if(data){
 				data->setPhysicalValue( new kmb::IntegerValue(partId) );
@@ -89,7 +87,6 @@ kmb::RevocapCouplerIO::loadFromPartitionFile(const char* filename,kmb::MeshData*
 			tokenizer >> dummy;
 			size_t elementCount = 0;
 			tokenizer >> elementCount;
-			REVOCAP_Debug("ElementCount %ld\n",elementCount);
 			loadElement( input, eType, elementCount, mesh );
 		}
 		else if( line.find("Number_of_Node_Ids") == 0 ){
@@ -97,7 +94,6 @@ kmb::RevocapCouplerIO::loadFromPartitionFile(const char* filename,kmb::MeshData*
 			tokenizer >> dummy;
 			size_t nodeCount = 0;
 			tokenizer >> nodeCount;
-			REVOCAP_Debug("NodeCount %ld\n",nodeCount);
 			loadNode( input, nodeCount, mesh );
 		}
 	}
@@ -129,7 +125,6 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 			tokenizer >> partId;
 			std::cout << "Solid_PartID" << partId << std::endl;
 			kmb::DataBindings* data = mesh->createDataBindings("Solid_Part",kmb::DataBindings::GLOBAL,kmb::PhysicalValue::INTEGER);
-			REVOCAP_Debug("Solid_Pard = %d\n",partId);
 			if(data){
 				std::cout << "Solid_Pard Setting" << std::endl;
 				data->setPhysicalValue( new kmb::IntegerValue(partId) );
@@ -147,27 +142,27 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 			}
 		}
 		else if( line.find("Element_Type") == 0 ){
-			std::istringstream tokenizer(line);
-			tokenizer >> dummy;
-			std::string eTypeStr;
-			tokenizer >> eTypeStr;
-			kmb::elementType eType;
-			if( eTypeStr == "Tet4" ){
-				eType = kmb::TETRAHEDRON;
-			}else if( eTypeStr == "Tet10" ){
-				eType = kmb::TETRAHEDRON2;
-			}else if( eTypeStr == "Hex8" ){
-				eType = kmb::HEXAHEDRON;
-			}else if( eTypeStr == "Hex20" ){
-				eType = kmb::HEXAHEDRON2;
-			}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 		}
 		else if( line.find("Number_of_Elemen_Ids") == 0 ){
 			std::istringstream tokenizer(line);
 			tokenizer >> dummy;
 			size_t elementCount = 0;
 			tokenizer >> elementCount;
-			REVOCAP_Debug("ElementCount %ld\n",elementCount);
 			if( elementCount > 0 ){
 				for(size_t i=0;i<elementCount;++i){
 					std::getline( input, line );
@@ -179,7 +174,7 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 			tokenizer >> dummy;
 			size_t nodeCount = 0;
 			tokenizer >> nodeCount;
-			REVOCAP_Debug("NodeCount %ld\n",nodeCount);
+
 			loadLocalNode( input, nodeCount, mesh );
 		}
 	}
@@ -194,7 +189,7 @@ kmb::bodyIdType
 kmb::RevocapCouplerIO::loadElement( std::ifstream &input, kmb::elementType etype, size_t elementCount, kmb::MeshData* mesh )
 {
 	kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
-	if( mesh == NULL || elementCount < 0 || input.fail() || input.eof() || etype == kmb::UNKNOWNTYPE ){
+	if( mesh == NULL || input.fail() || input.eof() || etype == kmb::UNKNOWNTYPE ){
 		return bodyId;
 	}
 	std::string line;
@@ -218,7 +213,7 @@ kmb::RevocapCouplerIO::loadElement( std::ifstream &input, kmb::elementType etype
 size_t
 kmb::RevocapCouplerIO::loadNode( std::ifstream &input, size_t nodeCount, kmb::MeshData* mesh )
 {
-	if( mesh == NULL || nodeCount < 0 || input.fail() || input.eof() ){
+	if( mesh == NULL || input.fail() || input.eof() ){
 		return 0;
 	}
 	double x=0.0, y=0.0, z=0.0;
@@ -235,11 +230,13 @@ kmb::RevocapCouplerIO::loadNode( std::ifstream &input, size_t nodeCount, kmb::Me
 	return mesh->getNodeCount();
 }
 
+
+
 size_t
 kmb::RevocapCouplerIO::loadLocalNode( std::ifstream &input, size_t nodeCount, kmb::MeshData* mesh )
 {
 	std::string line;
-	if( nodeCount < 0 || input.fail() || input.eof() ){
+	if( input.fail() || input.eof() ){
 		return 0;
 	}
 	if( mesh == NULL ){

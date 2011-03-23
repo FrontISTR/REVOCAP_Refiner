@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point4D                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -19,15 +19,13 @@
 kmb::Point4D kmb::Point4D::infinity(DBL_MAX,DBL_MAX,DBL_MAX,DBL_MAX);
 
 kmb::Point4D
-kmb::Point4D::operator+(const Vector4D& other)
-const
+kmb::Point4D::operator+(const Vector4D& other) const
 {
 	return Point4D(v[0]+other.x(),v[1]+other.y(),v[2]+other.z(),v[3]+other.w());
 }
 
 kmb::Point4D
-kmb::Point4D::operator-(const Vector4D& other)
-const
+kmb::Point4D::operator-(const Vector4D& other) const
 {
 	return Point4D(v[0]-other.x(),v[1]-other.y(),v[2]-other.z(),v[3]-other.w());
 }
@@ -84,4 +82,16 @@ kmb::Point4D::distanceSq(double x,double y,double z,double w) const
 		(this->y()-y)*(this->y()-y) +
 		(this->z()-z)*(this->z()-z) +
 		(this->w()-w)*(this->w()-w);
+}
+
+double
+kmb::Point4D::distance(const kmb::Point4D& a,const kmb::Point4D& b)
+{
+	return a.distance(b);
+}
+
+double
+kmb::Point4D::distanceSq(const kmb::Point4D& a,const kmb::Point4D& b)
+{
+	return a.distanceSq(b);
 }

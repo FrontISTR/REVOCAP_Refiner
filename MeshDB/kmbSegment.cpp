@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Segment                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -25,6 +25,7 @@
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbSegment.h"
 #include "MeshDB/kmbMeshDB.h"
+#include "Geometry/kmb_Calculator.h"
 
 /********************************************************************************
 =begin
@@ -83,87 +84,8 @@ kmb::Segment::shapeFunction(double s,double* coeff)
 	coeff[1] = s;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+double
+kmb::Segment::checkShapeFunctionDomain(double s)
+{
+	return kmb::Minimizer::getMin( 1.0-s, s );
+}

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Surface3D                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,9 +14,8 @@
 ----------------------------------------------------------------------*/
 #include "Shape/kmbSurface3D.h"
 #include "Geometry/kmb_Calculator.h"
-
-int kmb::Surface3D::iterMax = 1000;
-double kmb::Surface3D::thres = 1.0e-8;
+#include "Geometry/kmb_Optimization.h"
+#include "Matrix/kmbVector.h"
 
 kmb::Surface3D::Surface3D(void)
 : surfaceId(-1)
@@ -39,9 +38,56 @@ kmb::Surface3D::setSurfaceId(long surf_id)
 	this->surfaceId = surf_id;
 }
 
+bool
+kmb::Surface3D::getMiddlePoint( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const
+{
+	u = 0.5*(u0+u1);
+	v = 0.5*(v0+v1);
+	return getPoint(u,v,point);
+}
+
+bool
+kmb::Surface3D::getMiddlePointByNearest( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const
+{
+	kmb::Point3D p0,p1,pm,pt;
+	if( !getPoint(u0,v0,p0) ){
+		return false;
+	}
+	if( !getPoint(u1,v1,p1) ){
+		return false;
+	}
+
+	pm = kmb::Point3D::getCenter(p0,p1);
+
+	kmb::Minimizer minimizer;
+
+	bool res = false;
+	double um = 0.5*(u0+u1);
+	double vm = 0.5*(v0+v1);
+	if( getPoint(um,vm,pt) && minimizer.update( pm.distanceSq(pt) ) ){
+		u = um;
+		v = vm;
+		point.set(pt);
+		res = true;
+	}
+
+	if( getNearest(pm,um,vm) && getPoint(um,vm,pt) && minimizer.update( pm.distanceSq(pt) ) ){
+		u = um;
+		v = vm;
+		point.set(pt);
+		res = true;
+	}
+	return res;
+}
+
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 bool
@@ -57,139 +103,113 @@ kmb::Surface3D::getBoundingBox( kmb::BoundingBox &bbox ) const
 	return true;
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __INTEL_COMPILER
 #pragma warning(pop)
 #endif
-
-double
-kmb::Surface3D::getNearestOnGrid( const kmb::Point3D& point, unsigned int ugrid, unsigned int vgrid, double &u, double &v ) const
-{
-	REVOCAP_Debug_3("getNearestOnGrid init => %f %f\n",u,v);
-	double min_u, max_u, min_v, max_v;
-	kmb::Point3D pt;
-	getDomain(min_u,max_u,min_v,max_v);
-	kmb::Minimizer minimizer;
-	for(unsigned int i = 0; i<=ugrid; ++i ){
-		double u0 = min_u + i * (max_u - min_u) / ugrid;
-		for(unsigned int j = 0; j<=vgrid; ++j ){
-			double v0 = min_v + j * (max_v - min_v) / vgrid;
-			getPoint(u0,v0,pt);
-			if( minimizer.update( pt.distanceSq( point ) ) ){
-				u = u0;
-				v = v0;
-			}
-		}
-	}
-	REVOCAP_Debug_3("getNearestOnGrid update => %f %f\n",u,v);
-	return minimizer.getMin();
-}
-
-
-
-
-
-
-
-
-
-
 
 bool
 kmb::Surface3D::getNearest( const kmb::Point3D& point, double &u, double &v ) const
 {
-	REVOCAP_Debug_3("getNearest init point = ( %f, %f, %f), (u,v) = ( %f %f )\n",point.x(), point.y(), point.z(), u,v);
-	double u0 = u;
-	double v0 = v;
-	double thresSq = kmb::Surface3D::thres * kmb::Surface3D::thres;
-	double distSqOnGrid = getNearestOnGrid(point,10,10,u0,v0);
-	if( distSqOnGrid <= thresSq ){
-		u = u0;
-		v = v0;
+	class dist_local : public kmb::OptTargetSV_0 {
+	private:
+		const kmb::Surface3D* surface;
+		const kmb::Point3D target;
+	public:
+		int getDomainDim(void) const{
+			return 2;
+		};
+		double f(const double* t){
+			kmb::Point3D pt;
+			if( !surface->getPoint(t[0],t[1],pt) ){
+				return DBL_MAX;
+			}
+			return target.distanceSq( pt );
+		}
+		dist_local(const kmb::Surface3D* s,const kmb::Point3D p)
+		: surface(s), target(p){}
+	};
+	dist_local dist_obj(this,point);
+
+	class opt_local : public kmb::OptTargetVV {
+	private:
+		const kmb::Surface3D* surface;
+		const kmb::Point3D target;
+		double t0,t1;
+		bool calculated;
+		kmb::Point3D pt;
+		kmb::Vector3D uVec, vVec, uuVec, uvVec, vvVec;
+
+		bool calc(double u,double v){
+			if( u == t0 && v == t1 && calculated ){
+				return true;
+			}
+			if( surface->getPoint(u,v,pt) &&
+					surface->getDerivative( kmb::Surface3D::DER_U, u, v, uVec) &&
+					surface->getDerivative( kmb::Surface3D::DER_V, u, v, vVec) &&
+					surface->getDerivative( kmb::Surface3D::DER_UU, u, v, uuVec) &&
+					surface->getDerivative( kmb::Surface3D::DER_UV, u, v, uvVec) &&
+					surface->getDerivative( kmb::Surface3D::DER_VV, u, v, vvVec) )
+			{
+				t0 = u;
+				t1 = v;
+				calculated = true;
+				return true;
+			}else{
+				calculated = false;
+				return false;
+			}
+		}
+	public:
+		int getDomainDim(void) const{
+			return 2;
+		}
+		int getRangeDim(void) const{
+			return 2;
+		}
+		bool f(const ColumnVector &t,ColumnVector &val){
+			if( !calc(t[0],t[1]) ){
+				return false;
+			}
+			kmb::Vector3D d(pt,target);
+			val[0] = d*uVec;
+			val[1] = d*vVec;
+			return true;
+		}
+		bool df(const ColumnVector &t,Matrix &jac){
+			if( !calc(t[0],t[1]) ){
+				return false;
+			}
+			kmb::Vector3D d(pt,target);
+			jac.set(0,0,uVec*uVec+d*uuVec);
+			jac.set(0,1,uVec*vVec+d*uvVec);
+			jac.set(1,0,vVec*uVec+d*uvVec);
+			jac.set(1,1,vVec*vVec+d*vvVec);
+			return true;
+		}
+		opt_local(const kmb::Surface3D* s,const kmb::Point3D p)
+		: surface(s), target(p), t0(0.0), t1(0.0), calculated(false){}
+	};
+	opt_local opt_obj(this,point);
+	kmb::Optimization opt;
+	double min_t[2]={0.0,0.0}, max_t[2]={0.0,0.0};
+	getDomain(min_t[0],max_t[0],min_t[1],max_t[1]);
+	double t0[2] = {0.0,0.0};
+	double opt_t[2] = {0.0,0.0};
+	int div[2] = {10,10};
+	opt.calcMinOnGrid( dist_obj, t0, min_t, max_t, div );
+	if( opt.calcZero_DN( opt_obj, opt_t, t0 ) &&
+		min_t[0] <= opt_t[0] && opt_t[0] <= max_t[0] &&
+		min_t[1] <= opt_t[1] && opt_t[1] <= max_t[1] ){
+		u = opt_t[0];
+		v = opt_t[1];
 		return true;
 	}
-	REVOCAP_Debug_3("getNearest init point on grid (u0,v0) = ( %f, %f ) (u,v) = ( %f, %f )\n", u0, v0, u, v);
 
-
-	if( !isDomain(u,v) ){
-		u = u0;
-		v = v0;
-	}
-	int count = kmb::Surface3D::iterMax;
-	kmb::Point3D pt;
-	bool res = true;
-	while( count > 0 ){
-		res = newtonMethod( u0, v0, point );
-		REVOCAP_Debug_3("getNearest Newton res = %d, domain = %d\n", res, isDomain(u0,v0), u0, v0);
-		REVOCAP_Debug_3("%d : (%f,%f) => (%f,%f)\n", count, u, v, u0, v0);
-		if( res== false || !isDomain(u0,v0) ){
-
-			u0 = 0.75 * u + 0.25 * u0;
-			v0 = 0.75 * v + 0.25 * v0;
-
-
-
-
-
-
-
-		}else{
-			double diffSq = (u-u0)*(u-u0) + (v-v0)*(v-v0);
-			if( diffSq < thresSq ){
-
-				getPoint( u0, v0, pt );
-				double distSq = point.distanceSq( pt );
-
-				if( distSq <= distSqOnGrid + thresSq ){
-
-					u = u0;
-					v = v0;
-					REVOCAP_Debug_3("getNearest %d output = ( %f, %f )\n",count,u,v);
-					REVOCAP_Debug_3("point = ( %f, %f, %f )\n", point.x(), point.y(), point.z());
-					REVOCAP_Debug_3("pt = ( %f, %f, %f ), distSq = %f\n", pt.x(), pt.y(), pt.z(), distSq);
-					break;
-
-
-
-
-
-
-
-				}
-			}
-			u = u0;
-			v = v0;
-		}
-		--count;
-	}
-	return ( count > 0 );
-}
-
-
-bool
-kmb::Surface3D::newtonMethod( double &u, double &v, const kmb::Point3D& point, double relax ) const
-{
-	kmb::Point3D pt;
-	kmb::Vector3D uVec, vVec, uuVec, uvVec, vvVec;
-	if( !getPoint(u,v,pt) ||
-		!getDerivative( kmb::Surface3D::DER_U, u, v, uVec) ||
-		!getDerivative( kmb::Surface3D::DER_V, u, v, vVec) ||
-		!getDerivative( kmb::Surface3D::DER_UU, u, v, uuVec) ||
-		!getDerivative( kmb::Surface3D::DER_UV, u, v, uvVec) ||
-		!getDerivative( kmb::Surface3D::DER_VV, u, v, vvVec) )
-	{
-		return false;
-	}
-	kmb::Vector3D d(pt,point);
-	kmb::Vector2D r0( d*uVec, d*vVec );
-	kmb::Vector2D r1;
-	kmb::Matrix2x2 mat(
-		uVec*uVec+d*uuVec, uVec*vVec+d*uvVec,
-		vVec*uVec+d*uvVec, vVec*vVec+d*vvVec
-	);
-	if( mat.solve( r0, r1 ) ){
-		u -= relax * r1.x();
-		v -= relax * r1.y();
+	if( opt.calcMin_GS( dist_obj, opt_t, min_t, max_t ) ){
+		u = opt_t[0];
+		v = opt_t[1];
 		return true;
 	}
 	return false;
 }
+

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BoxRegion                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -42,7 +42,7 @@ protected:
 	Point3D minPoint;
 public:
 	BoxRegion(void);
-	BoxRegion(Point3D &l,Point3D &u);
+	BoxRegion(const Point3D &l,const Point3D &u);
 	BoxRegion(double x0,double y0,double z0,double x1,double y1,double z1);
 	BoxRegion(const BoxRegion &other);
 	virtual ~BoxRegion(void);
@@ -61,7 +61,9 @@ public:
 	double rangeX(void) const;
 	double rangeY(void) const;
 	double rangeZ(void) const;
+	double maxRange(void) const;
 	double diameter(void) const;
+	double diameterSq(void) const;
 	const Point3D& getMin(void) const;
 	const Point3D& getMax(void) const;
 	void getCenter(kmb::Point3D& center) const;
@@ -79,13 +81,19 @@ public:
 	void expand(double x,double y,double z);
 	void expand(double ratio);
 
+	void setRange(double rangeX,double rangeY,double rangeZ);
+
+	void expandDiameter(double ratio);
+
+
+	void crossOnLine(const kmb::Point3D& origin, const kmb::Vector3D& dir, double &min_t, double &max_t) const;
 
 
 	bool intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c) const;
-	double intersectArea(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c) const;
 
-	double getThreshold(void) const;
-	void setThreshold(double thres);
+
+
+	double intersectArea(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c) const;
 private:
 
 

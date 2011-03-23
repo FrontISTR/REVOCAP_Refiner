@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Triangle                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -111,6 +111,52 @@ kmb::Triangle::shapeFunction(double s,double t,double* coeff)
 	coeff[0] = 1.0-s-t;
 	coeff[1] = s;
 	coeff[2] = t;
+}
+
+double
+kmb::Triangle::checkShapeFunctionDomain(double s,double t)
+{
+	return kmb::Minimizer::getMin( 1.0-s-t, s, t );
+}
+
+bool
+kmb::Triangle::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[2])
+{
+	if( points == NULL ){
+		return false;
+	}
+	double coords[3] = {0.0,0.0,0.0};
+	kmb::Vector3D normal = kmb::Point3D::areaVector( points[0], points[1], points[2] );
+	coords[0] = normal * kmb::Point3D::areaVector( target, points[1], points[2] );
+	coords[1] = normal * kmb::Point3D::areaVector( target, points[2], points[0] );
+	coords[2] = normal * kmb::Point3D::areaVector( target, points[0], points[1] );
+	double sum = coords[0] + coords[1] + coords[2];
+	if( sum != 0.0 ){
+		naturalCoords[0] = coords[1] / sum;
+		naturalCoords[1] = coords[2] / sum;
+		return true;
+	}
+	return false;
+}
+
+bool
+kmb::Triangle::getPhysicalCoordinates(const double naturalCoords[2],const kmb::Point3D* points,kmb::Point3D &target)
+{
+	if( points == NULL ){
+		return false;
+	}
+	double coeff[3] = { 0.0, 0.0, 0.0 };
+ 	shapeFunction( naturalCoords[0], naturalCoords[1], coeff );
+	target.zero();
+	double c = 0.0;
+	for(int i=0;i<3;++i){
+		c = 0.0;
+		for(int j=0;j<3;++j){
+			c += points[j].getCoordinate(i) * coeff[j];
+		}
+		target.setCoordinate(i,c);
+	}
+	return true;
 }
 
 bool

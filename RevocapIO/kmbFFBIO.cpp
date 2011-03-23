@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : FFBIO                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -85,7 +85,6 @@ kmb::FFBIO::loadHeader(const char* filename)
 	input.close();
 
 	std::string line;
-	int res = 0;
 
 	if( unformatFlag ){
 		input.open( filename, std::ios_base::in|std::ios_base::binary );
@@ -112,7 +111,7 @@ kmb::FFBIO::loadHeader(const char* filename)
 	}
 
 	line.clear();
-	res = readHeader(input,header);
+	readHeader(input,header);
 	std::cout << header;
 	input.close();
 	return header.c_str();
@@ -495,6 +494,11 @@ kmb::FFBIO::saveToBoundaryFile(const char* filename,const kmb::MeshData* mesh)
 #pragma warning(disable:4100)
 #endif
 
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
+
 
 
 
@@ -529,7 +533,7 @@ kmb::FFBIO::readHeader(std::ifstream &input,kmb::MeshData* mesh)
 	return 0;
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __INTEL_COMPILER
 #pragma warning(pop)
 #endif
 
@@ -566,6 +570,11 @@ kmb::FFBIO::readHeader(std::ifstream &input,std::string &str)
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 int
@@ -624,7 +633,7 @@ kmb::FFBIO::writeNewSet(std::ofstream &output,const kmb::MeshData* mesh)
 	return 0;
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __INTEL_COMPILER
 #pragma warning(pop)
 #endif
 
@@ -1179,6 +1188,7 @@ kmb::FFBIO::writeNode3D(std::ofstream &output,const kmb::MeshData* mesh,kmb::bod
 					nodes[index+1] = eIter.getCellId(1) + offsetNodeId;
 					nodes[index+2] = eIter.getCellId(2) + offsetNodeId;
 					nodes[index+3] = eIter.getCellId(3) + offsetNodeId;
+
 					nodes[index+4] = eIter.getCellId(4) + offsetNodeId;
 					nodes[index+5] = eIter.getCellId(5) + offsetNodeId;
 					nodes[index+6] = eIter.getCellId(6) + offsetNodeId;
@@ -1454,6 +1464,7 @@ kmb::FFBIO::readHeaderInt(std::ifstream &input,kmb::MeshData* mesh)
 int
 kmb::FFBIO::readPres2E(std::ifstream &input,kmb::MeshData* mesh)
 {
+	kmb::DataBindings* data = NULL;
 	if( unformatFlag ){
 		std::string line;
 		std::vector<unsigned int> uintArray;
@@ -1466,14 +1477,22 @@ kmb::FFBIO::readPres2E(std::ifstream &input,kmb::MeshData* mesh)
 		if( dim == 1 ){
 			readArray<float>( input, floatArray );
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+			}
 			double val;
-			mesh->appendTargetData( line.c_str() );
 			for(int i=0;i<size;++i){
 				val = floatArray[i];
-				mesh->setMultiPhysicalValues( i, &val );
+				data->setPhysicalValue( i, &val );
 			}
-			mesh->clearTargetData();
 		}
 	}else{
 		std::string line,dummy;
@@ -1489,16 +1508,24 @@ kmb::FFBIO::readPres2E(std::ifstream &input,kmb::MeshData* mesh)
 		std::getline( input, dummy );
 		if( dim == 1 ){
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+			}
 			double val;
-			mesh->appendTargetData( line.c_str() );
 			for(long i=0;i<size;++i){
 				input >> val;
 				if( i < eCount ){
-					mesh->setMultiPhysicalValues( i, &val );
+					data->setPhysicalValue( i, &val );
 				}
 			}
-			mesh->clearTargetData();
 		}
 	}
 	return 0;
@@ -1507,6 +1534,7 @@ kmb::FFBIO::readPres2E(std::ifstream &input,kmb::MeshData* mesh)
 int
 kmb::FFBIO::readPres3E(std::ifstream &input,kmb::MeshData* mesh)
 {
+	kmb::DataBindings* data = NULL;
 	if( unformatFlag ){
 		std::string line;
 		std::vector<unsigned int> uintArray;
@@ -1519,14 +1547,22 @@ kmb::FFBIO::readPres3E(std::ifstream &input,kmb::MeshData* mesh)
 		if( dim == 1 ){
 			readArray<float>( input, floatArray );
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+			}
 			double val;
-			mesh->appendTargetData( line.c_str() );
 			for(int i=0;i<size;++i){
 				val = floatArray[i];
-				mesh->setMultiPhysicalValues( i, &val );
+				data->setPhysicalValue( i, &val );
 			}
-			mesh->clearTargetData();
 		}
 	}else{
 		std::string line,dummy;
@@ -1542,16 +1578,24 @@ kmb::FFBIO::readPres3E(std::ifstream &input,kmb::MeshData* mesh)
 		std::getline( input, dummy );
 		if( dim == 1 ){
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+			}
 			double val;
-			mesh->appendTargetData( line.c_str() );
 			for(long i=0;i<size;++i){
 				input >> val;
 				if( i < eCount ){
-					mesh->setMultiPhysicalValues( i, &val );
+					data->setPhysicalValue( i, &val );
 				}
 			}
-			mesh->clearTargetData();
 		}
 	}
 	return 0;
@@ -1560,6 +1604,7 @@ kmb::FFBIO::readPres3E(std::ifstream &input,kmb::MeshData* mesh)
 int
 kmb::FFBIO::readPres3D(std::ifstream &input,kmb::MeshData* mesh)
 {
+	kmb::DataBindings* data = NULL;
 	if( unformatFlag ){
 		std::string line;
 		std::vector<unsigned int> uintArray;
@@ -1572,14 +1617,22 @@ kmb::FFBIO::readPres3D(std::ifstream &input,kmb::MeshData* mesh)
 		if( dim == 1 ){
 			readArray<float>( input, floatArray );
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+			}
 			double val;
-			mesh->appendTargetData( line.c_str() );
 			for(int i=0;i<size;++i){
 				val = floatArray[i];
-				mesh->setMultiPhysicalValues( i, &val );
+				data->setPhysicalValue( i, &val );
 			}
-			mesh->clearTargetData();
 		}
 	}else{
 		std::string line,dummy;
@@ -1595,16 +1648,24 @@ kmb::FFBIO::readPres3D(std::ifstream &input,kmb::MeshData* mesh)
 		std::getline( input, dummy );
 		if( dim == 1 ){
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+			}
 			double val;
-			mesh->appendTargetData( line.c_str() );
 			for(long i=0;i<size;++i){
 				input >> val;
 				if( i < nCount ){
-					mesh->setMultiPhysicalValues( i, &val );
+					data->setPhysicalValue( i, &val );
 				}
 			}
-			mesh->clearTargetData();
 		}
 	}
 	return 0;
@@ -1613,6 +1674,7 @@ kmb::FFBIO::readPres3D(std::ifstream &input,kmb::MeshData* mesh)
 int
 kmb::FFBIO::readVelo3D(std::ifstream &input,kmb::MeshData* mesh)
 {
+	kmb::DataBindings* data = NULL;
 	if( unformatFlag ){
 		std::string line;
 		std::vector<unsigned int> uintArray;
@@ -1626,16 +1688,24 @@ kmb::FFBIO::readVelo3D(std::ifstream &input,kmb::MeshData* mesh)
 		if( dim == 3 ){
 			readArray<float>( input, floatArray );
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3 );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::VECTOR3 ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+			}
 			double val[3];
-			mesh->appendTargetData( line.c_str() );
 			for(int i=0;i<size;++i){
 				val[0] = floatArray[3*i];
 				val[1] = floatArray[3*i+1];
 				val[2] = floatArray[3*i+2];
-				mesh->setMultiPhysicalValues( i, val );
+				data->setPhysicalValue( i, val );
 			}
-			mesh->clearTargetData();
 		}
 	}else{
 		std::string line,dummy;
@@ -1652,18 +1722,26 @@ kmb::FFBIO::readVelo3D(std::ifstream &input,kmb::MeshData* mesh)
 		std::getline( input, dummy );
 		if( dim == 3 ){
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3 );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::VECTOR3 ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+			}
 			double val[3];
-			mesh->appendTargetData( line.c_str() );
 			for(long i=0;i<size;++i){
 				input >> val[0];
 				input >> val[1];
 				input >> val[2];
 				if( i < nCount ){
-					mesh->setMultiPhysicalValues( i, val );
+					data->setPhysicalValue( i, val );
 				}
 			}
-			mesh->clearTargetData();
 		}
 	}
 	return 0;
@@ -1672,6 +1750,7 @@ kmb::FFBIO::readVelo3D(std::ifstream &input,kmb::MeshData* mesh)
 int
 kmb::FFBIO::readVelo2D(std::ifstream &input,kmb::MeshData* mesh)
 {
+	kmb::DataBindings* data = NULL;
 	if( unformatFlag ){
 		std::string line;
 		std::vector<unsigned int> uintArray;
@@ -1685,15 +1764,23 @@ kmb::FFBIO::readVelo2D(std::ifstream &input,kmb::MeshData* mesh)
 		if( dim == 2 ){
 			readArray<float>( input, floatArray );
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR2 );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::VECTOR2 ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+			}
 			double val[2];
-			mesh->appendTargetData( line.c_str() );
 			for(int i=0;i<size;++i){
 				val[0] = floatArray[2*i];
 				val[1] = floatArray[2*i+1];
-				mesh->setMultiPhysicalValues( i, val );
+				data->setPhysicalValue( i, val );
 			}
-			mesh->clearTargetData();
 		}
 	}else{
 		std::string line,dummy;
@@ -1710,17 +1797,25 @@ kmb::FFBIO::readVelo2D(std::ifstream &input,kmb::MeshData* mesh)
 		std::getline( input, dummy );
 		if( dim == 2 ){
 			strip(line);
-			mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR2 );
+			data = mesh->getDataBindingsPtr( line.c_str(), "post" );
+			if( data && (
+				data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+				data->getValueType() != kmb::PhysicalValue::VECTOR2 ) )
+			{
+				mesh->deleteData( line.c_str(), "post" );
+				data = NULL;
+			}
+			if( data == NULL ){
+				data = mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+			}
 			double val[2];
-			mesh->appendTargetData( line.c_str() );
 			for(long i=0;i<size;++i){
 				input >> val[0];
 				input >> val[1];
 				if( i < nCount ){
-					mesh->setMultiPhysicalValues( i, val );
+					data->setPhysicalValue( i, val );
 				}
 			}
-			mesh->clearTargetData();
 		}
 	}
 	return 0;
@@ -2213,6 +2308,7 @@ kmb::FFBIO::readBC3D(std::ifstream &input,kmb::MeshData* mesh,boundaryType btype
 				mesh->appendTargetData( name );
 				for(unsigned int i=0;i<size;++i){
 					input >> val[0];
+
 					input >> val[1];
 					input >> val[2];
 					mesh->setMultiPhysicalValues( inlet[i], val );

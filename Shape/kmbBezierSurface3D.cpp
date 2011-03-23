@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BezierSurfae3D                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -44,6 +44,18 @@ bool
 kmb::BezierSurface3D::isDomain( double u, double v) const
 {
 	return 0.0 <= u && u <= 1.0 && 0.0 <= v && v <= 1.0;
+}
+
+bool
+kmb::BezierSurface3D::isUDomain( double u ) const
+{
+	return 0.0 <= u && u <= 1.0;
+}
+
+bool
+kmb::BezierSurface3D::isVDomain( double v ) const
+{
+	return 0.0 <= v && v <= 1.0;
 }
 
 void
@@ -185,7 +197,6 @@ kmb::BezierSurface3D::getDerivative( kmb::Surface3D::derivativeType d, double u,
 	default:
 		return false;
 	}
-	return false;
 }
 
 int

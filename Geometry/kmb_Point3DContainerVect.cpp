@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,6 +30,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 const char* kmb::Point3DContainerVect::CONTAINER_TYPE = "stl::vector<Point3D*>";
@@ -299,6 +304,25 @@ kmb::Point3DContainerVect::_iteratorVect::getPoint(kmb::Point3D &point) const
 	}
 	return false;
 }
+
+double
+kmb::Point3DContainerVect::_iteratorVect::x() const
+{
+	return this->vect->points[ index ]->x();
+}
+
+double
+kmb::Point3DContainerVect::_iteratorVect::y() const
+{
+	return this->vect->points[ index ]->y();
+}
+
+double
+kmb::Point3DContainerVect::_iteratorVect::z() const
+{
+	return this->vect->points[ index ]->z();
+}
+
 
 bool
 kmb::Point3DContainerVect::_iteratorVect::setXYZ(double x,double y,double z) const

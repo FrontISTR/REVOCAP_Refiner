@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Calculator                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -34,13 +34,12 @@ class AverageCalculator
 public:
 	AverageCalculator(void);
 	virtual ~AverageCalculator(void);
-
-	void	initialize(void);
-	void	add(double value);
-	double	getAverage(void);
+	void initialize(void);
+	void add(double value);
+	double getAverage(void) const;
 protected:
-	double	sum;
-	int		counter;
+	double sum;
+	int counter;
 
 };
 
@@ -49,10 +48,10 @@ class Minimizer
 public:
 	Minimizer(void);
 	virtual ~Minimizer(void);
-	double	getMin(void){	return minValue;	}
-	void	initialize(void);
+	double getMin(void) const{ return minValue; }
+	void initialize(void);
 
-	bool	update(double value);
+	bool update(double value);
 	static double getMin(double x,double y);
 	static double getMin(double x,double y,double z);
 protected:
@@ -64,10 +63,10 @@ class Maximizer
 public:
 	Maximizer(void);
 	virtual ~Maximizer(void);
-	double	getMax(void){	return maxValue;	}
-	void	initialize(void);
+	double getMax(void) const{ return maxValue; }
+	void initialize(void);
 
-	bool	update(double value);
+	bool update(double value);
 	static double getMax(double x,double y);
 	static double getMax(double x,double y,double z);
 protected:
@@ -84,10 +83,10 @@ protected:
 public:
 	MinMaxWithId(void);
 	virtual ~MinMaxWithId(void);
-	double getMin(void){	return minValue;	}
-	double getMax(void){	return maxValue;	}
-	kmb::idType getMinId(void){	return minId;	}
-	kmb::idType getMaxId(void){	return maxId;	}
+	double getMin(void) const{ return minValue; }
+	double getMax(void) const{ return maxValue; }
+	kmb::idType getMinId(void) const{ return minId; }
+	kmb::idType getMaxId(void) const{ return maxId; }
 	void initialize(void);
 
 	bool update(double value,kmb::idType id);
@@ -98,10 +97,10 @@ class IntegerCalculator
 public:
 	IntegerCalculator(void);
 	virtual ~IntegerCalculator(void);
-	long	getMax(void){	return maxValue;	}
-	long	getMin(void){	return minValue;	}
-	long	getAverage(void);
-	void	initialize(void);
+	long getMax(void) const{ return maxValue; }
+	long getMin(void) const{ return minValue; }
+	long getAverage(void) const;
+	void initialize(void);
 
 	bool	update(long value);
 	static long getMax(long x,long y);

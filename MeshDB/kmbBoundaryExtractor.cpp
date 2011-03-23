@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BoundaryExtractor                                       #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,8 +29,6 @@
 #include "MeshDB/kmbElementRelation.h"
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbDataBindings.h"
-
-#include <iostream>
 
 kmb::BoundaryExtractor::BoundaryExtractor(void)
 : mesh(NULL)
@@ -78,11 +76,11 @@ kmb::BoundaryExtractor::appendBody(kmb::bodyIdType bodyId)
 	if( body == NULL ){
 		return;
 	}
-	appendBody( body );
+	appendElementContainer( body );
 }
 
 void
-kmb::BoundaryExtractor::appendBody(kmb::ElementContainer* body)
+kmb::BoundaryExtractor::appendElementContainer(kmb::ElementContainer* body)
 {
 	if( body==NULL ){
 		return;
@@ -125,20 +123,45 @@ kmb::BoundaryExtractor::appendData(const char* name)
 void
 kmb::BoundaryExtractor::appendData(const kmb::DataBindings* data)
 {
-	if( mesh == NULL || data==NULL || data->getBindingMode() != kmb::DataBindings::ELEMENTGROUP ){
+	if( mesh == NULL || data==NULL ){
 		return;
 	}
 	kmb::ElementContainer* body = mesh->getBodyPtr( data->getTargetBodyId() );
 	if( body == NULL ){
 		return;
 	}
-	kmb::DataBindings::const_iterator eIter = data->begin();
-	while( !eIter.isFinished() ){
-		kmb::ElementContainer::iterator element = body->find( eIter.getId() );
-		if( !element.isFinished() ){
-			appendElement( eIter.getId(), element );
+	switch( data->getBindingMode() ){
+	case kmb::DataBindings::ELEMENTGROUP:
+	case kmb::DataBindings::ELEMENTVARIABLE:
+	{
+		kmb::DataBindings::const_iterator eIter = data->begin();
+		while( !eIter.isFinished() ){
+			kmb::ElementContainer::iterator element = body->find( eIter.getId() );
+			if( !element.isFinished() ){
+				appendElement( eIter.getId(), element );
+			}
+			++eIter;
 		}
-		++eIter;
+		break;
+	}
+	case kmb::DataBindings::FACEGROUP:
+	case kmb::DataBindings::FACEVARIABLE:
+	{
+		kmb::DataBindings::const_iterator fIter = data->begin();
+		while( !fIter.isFinished() ){
+			kmb::Face f;
+			if( fIter.getFace(f) ){
+				kmb::ElementContainer::iterator element = body->find( f.getElementId() );
+				if( !element.isFinished() ){
+					this->appendFaceMap( f.getElementId(), element, f.getLocalFaceId() );
+				}
+			}
+			++fIter;
+		}
+		break;
+	}
+	default:
+		break;
 	}
 }
 
@@ -165,7 +188,9 @@ kmb::BoundaryExtractor::eraseData(const kmb::DataBindings* data,bool reverse)
 	if( body == NULL ){
 		return;
 	}
-	if(	data->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+	switch( data->getBindingMode() ){
+	case kmb::DataBindings::ELEMENTGROUP:
+	{
 		kmb::DataBindings::const_iterator eIter = data->begin();
 		while( !eIter.isFinished() ){
 			kmb::ElementContainer::iterator element = body->find( eIter.getId() );
@@ -177,8 +202,10 @@ kmb::BoundaryExtractor::eraseData(const kmb::DataBindings* data,bool reverse)
 			}
 			++eIter;
 		}
+		break;
 	}
-	if(	data->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+	case kmb::DataBindings::FACEGROUP:
+	{
 		kmb::DataBindings::const_iterator fIter = data->begin();
 		kmb::Face f;
 		while( !fIter.isFinished() ){
@@ -189,6 +216,10 @@ kmb::BoundaryExtractor::eraseData(const kmb::DataBindings* data,bool reverse)
 			}
 			++fIter;
 		}
+		break;
+	}
+	default:
+		break;
 	}
 }
 
@@ -632,7 +663,6 @@ kmb::BoundaryExtractor::isClosed(kmb::bodyIdType bodyId)
 	return true;
 }
 
-
 kmb::bodyIdType
 kmb::BoundaryExtractor::getBoundary(kmb::bodyIdType bodyId)
 {
@@ -673,6 +703,7 @@ kmb::BoundaryExtractor::getBoundary(kmb::bodyIdType bodyId)
 		}
 	}
 	mesh->endElement();
+
 	delete[] cell;
 	return boundaryId;
 }

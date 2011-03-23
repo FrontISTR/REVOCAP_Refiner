@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : TripatchPcmIO                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -70,7 +70,8 @@ kmb::TripatchPcmIO::loadFromFile(const char* filename,MeshData* mesh)
 			mesh->beginElement( elementCount );
 			for(i = 0;i<elementCount;++i){
 				std::getline( input, line );
-				std::istringstream tokenizer(line);
+				tokenizer.str(line);
+				tokenizer.clear();
 				tokenizer >> nodes[0] >> nodes[1] >> nodes[2];
 				mesh->addElement( kmb::TRIANGLE, nodes );
 			}

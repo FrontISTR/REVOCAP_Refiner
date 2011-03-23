@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainerMArray                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -18,6 +18,11 @@
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 const char* kmb::Point3DContainerMArray::CONTAINER_TYPE = "double_marray";
@@ -120,7 +125,6 @@ kmb::Point3DContainerMArray::getXYZ(nodeIdType id,double &x,double &y,double &z)
 bool
 kmb::Point3DContainerMArray::getPoint(nodeIdType id,kmb::Point3D &point) const
 {
-	REVOCAP_Debug_3( "aIndex.getIndex = %lu\n", aIndex.getIndex() );
 	if( 0 <= id && id < static_cast<kmb::nodeIdType>(aIndex.getIndex()) ){
 		size_t i = static_cast<size_t>(id);
 		double q[3] = {0.0,0.0,0.0};
@@ -273,6 +277,30 @@ kmb::Point3DContainerMArray::_iteratorMArray::getPoint(kmb::Point3D &point) cons
 		return true;
 	}
 	return false;
+}
+
+double
+kmb::Point3DContainerMArray::_iteratorMArray::x() const
+{
+	double q[3] = {0.0,0.0,0.0};
+	points->pointArray.get( aIndex, q );
+	return q[0];
+}
+
+double
+kmb::Point3DContainerMArray::_iteratorMArray::y() const
+{
+	double q[3] = {0.0,0.0,0.0};
+	points->pointArray.get( aIndex, q );
+	return q[1];
+}
+
+double
+kmb::Point3DContainerMArray::_iteratorMArray::z() const
+{
+	double q[3] = {0.0,0.0,0.0};
+	points->pointArray.get( aIndex, q );
+	return q[2];
 }
 
 bool

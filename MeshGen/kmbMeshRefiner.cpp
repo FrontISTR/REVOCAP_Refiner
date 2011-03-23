@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshRefiner                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,6 +30,7 @@ kmb::MeshRefiner::MeshRefiner(void)
 , middleMan(NULL)
 , middleManDeletable(false)
 , interpRule(kmb::MeshRefiner::MIN)
+, secondFitting(false)
 {
 	middleMan = new kmb::MiddleNodeManager();
 	middleManDeletable = true;
@@ -78,6 +79,18 @@ kmb::MeshRefiner::getInterpolationMode(void) const
 		break;
 	}
 	return "";
+}
+
+void
+kmb::MeshRefiner::setSecondFitting(bool flag)
+{
+	this->secondFitting = flag;
+}
+
+bool
+kmb::MeshRefiner::setSecondFitting(void) const
+{
+	return this->secondFitting;
 }
 
 void
@@ -162,43 +175,83 @@ kmb::MeshRefiner::setSecondNodesByBody(kmb::bodyIdType bodyId)
 	}
 }
 
+
+
 kmb::bodyIdType
 kmb::MeshRefiner::convertToSecondBody(kmb::bodyIdType bodyId)
 {
 	kmb::ElementContainer* body = NULL;
-	if( mesh && middleMan && (body = mesh->getBodyPtr( bodyId )) != NULL ){
-		kmb::nodeIdType* nodes = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
-		kmb::ElementContainer::iterator eIter = body->begin();
-		kmb::elementType etype = kmb::UNKNOWNTYPE;
-		while( !eIter.isFinished() ){
-			kmb::elementIdType id = eIter.getId();
-			const int degree = eIter.getDegree();
-			eIter.getElement( etype, nodes );
-			kmb::elementType secondType = kmb::Element::getSecondType( etype );
-			if( degree == 1 ){
-				const int ecount = eIter.getEdgeCount();
-				const int vcount = eIter.getVertexCount();
-				for(int i=0;i<ecount;++i){
+	if( mesh == NULL || middleMan == NULL || (body = mesh->getBodyPtr( bodyId )) == NULL ){
+		return kmb::Body::nullBodyId;
+	}
 
+	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
+	while( dIter != dataPairs.end() ){
+		const kmb::DataBindings* data = dIter->originalData;
+		if( data == NULL ){
+			return kmb::Body::nullBodyId;
+		}
 
-					kmb::nodeIdType n0 = eIter.getEdgeCellId(i,0);
-					kmb::nodeIdType n1 = eIter.getEdgeCellId(i,1);
-					nodes[vcount+i] = middleMan->getDividedNode( n0, n1 );
-				}
-			}
-			++eIter;
-			if( degree == 1 ){
-				if( !body->deleteElement(id) || body->addElement( secondType, nodes, id ) == kmb::Element::nullElementId ){
-
-					delete[] nodes;
+		if( data != NULL && dIter->refinedData == NULL ){
+			if( data->getBindingMode() == kmb::DataBindings::NODEGROUP || data->getBindingMode() == kmb::DataBindings::NODEVARIABLE ){
+				dIter->refinedData = kmb::DataBindings::createDataBindings(
+					data->getBindingMode(),
+					data->getValueType(),
+					data->getSpecType(),
+					data->getTargetBodyId());
+				if( dIter->refinedData == NULL ){
 					return kmb::Body::nullBodyId;
 				}
 			}
 		}
-		delete[] nodes;
-		return bodyId;
+		++dIter;
 	}
-	return kmb::Body::nullBodyId;
+
+	kmb::nodeIdType* nodes = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
+	kmb::ElementContainer::iterator eIter = body->begin();
+	kmb::elementType etype = kmb::UNKNOWNTYPE;
+	while( !eIter.isFinished() ){
+		kmb::elementIdType id = eIter.getId();
+		const int degree = eIter.getDegree();
+		eIter.getElement( etype, nodes );
+		kmb::elementType secondType = kmb::Element::getSecondType( etype );
+		if( degree == 1 ){
+			const int ecount = eIter.getEdgeCount();
+			const int vcount = eIter.getVertexCount();
+			for(int i=0;i<ecount;++i){
+
+
+				kmb::nodeIdType n0 = eIter.getEdgeCellId(i,0);
+				kmb::nodeIdType n1 = eIter.getEdgeCellId(i,1);
+				kmb::nodeIdType n01 = nodes[vcount+i] = middleMan->getDividedNode( n0, n1 );
+				std::vector< kmb::MeshRefiner::DataPair >::iterator pIter = dataPairs.begin();
+				while( pIter != dataPairs.end() ){
+					if( pIter->originalData && pIter->refinedData ){
+						if( pIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+							nodeGroupUpdate( n0, n1, n01, pIter->originalData, pIter->refinedData );
+						}
+						else if( pIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
+							pIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+						{
+							nodeVariableUpdate( n0, n1, n01, pIter->originalData, pIter->refinedData );
+						}
+					}
+					++pIter;
+				}
+			}
+			++eIter;
+			if( !body->deleteElement(id) || body->addElement( secondType, nodes, id ) == kmb::Element::nullElementId ){
+
+				delete[] nodes;
+				return kmb::Body::nullBodyId;
+			}
+		}else{
+			++eIter;
+		}
+	}
+	delete[] nodes;
+	commitData();
+	return bodyId;
 }
 
 size_t
@@ -235,7 +288,7 @@ kmb::MeshRefiner::appendData(const char* dataname,const char* stype)
 				kmb::MeshRefiner::DataPair pair = {dataname,stype,d,NULL};
 				dataPairs.push_back( pair );
 			}else{
-				kmb::MeshRefiner::DataPair pair = {dataname,"",d,NULL};
+				kmb::MeshRefiner::DataPair pair = {dataname,d->getSpecType().c_str(),d,NULL};
 				dataPairs.push_back( pair );
 			}
 		}
@@ -257,16 +310,13 @@ kmb::MeshRefiner::clearData(void)
 void
 kmb::MeshRefiner::commitData(void)
 {
-	REVOCAP_Debug("commit data\n");
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		if( dIter->refinedData ){
-			REVOCAP_Debug("commit data : [%s] [%s]\n", dIter->name.c_str(), dIter->stype.c_str());
 			if( dIter->originalData ){
 				bool res = mesh->replaceData( dIter->originalData, dIter->refinedData, dIter->name.c_str(), dIter->stype.c_str() );
 				if( !res ){
-					REVOCAP_Debug("commit data error [%s]\n", dIter->name.c_str());
 
 
 					delete dIter->refinedData;
@@ -306,6 +356,8 @@ kmb::MeshRefiner::refineBody(kmb::bodyIdType orgBodyId)
 			refinedBody->setBoundingBox( bbox.getMax(), bbox.getMin() );
 		}
 		mesh->updateBody( bodyId );
+		mesh->setBodyName( bodyId, mesh->getBodyName(orgBodyId) );
+
 
 		std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 		while( dIter != dataPairs.end() ){
@@ -327,20 +379,13 @@ kmb::MeshRefiner::refineBody(const kmb::ElementContainer* orgBody, kmb::ElementC
 	if( mesh == NULL || middleMan == NULL || orgBody == NULL ){
 		return 0;
 	}
-	REVOCAP_Debug("refine body start\n");
-	REVOCAP_Debug("original element container type = %s\n", orgBody->getContainerType());
-	REVOCAP_Debug("condition count = %d\n", dataPairs.size());
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		const kmb::DataBindings* data = dIter->originalData;
 		if( data == NULL ){
-			REVOCAP_Debug("refine condition NULL : name = [%s], type = [%s], count = %d\n",
-				dIter->name.c_str(), kmb::DataBindings::bindingMode2string(data->getBindingMode()).c_str(), data->getIdCount() );
 			return 0;
 		}
-		REVOCAP_Debug("refine condition name = [%s], type = [%s], count = %d\n",
-			dIter->name.c_str(), kmb::DataBindings::bindingMode2string(data->getBindingMode()).c_str(), data->getIdCount() );
 
 		if( data != NULL && dIter->refinedData == NULL ){
 			dIter->refinedData = kmb::DataBindings::createDataBindings(
@@ -356,10 +401,8 @@ kmb::MeshRefiner::refineBody(const kmb::ElementContainer* orgBody, kmb::ElementC
 	}
 
 	size_t oldCount = (refinedBody) ? refinedBody->getCount() : 0;
-	REVOCAP_Debug("original element count = %d\n", oldCount);
 	kmb::ElementContainer::const_iterator eIter = orgBody->begin();
 	while( !eIter.isFinished() ){
-		REVOCAP_Debug_3("refine type=%s id=%ld\n", eIter.getTypeString().c_str(), eIter.getId() );
 		switch( eIter.getType() )
 		{
 		case kmb::SEGMENT:		refineSegment( eIter.getId(), eIter, refinedBody );		break;
@@ -395,7 +438,6 @@ kmb::MeshRefiner::refineBody(const kmb::ElementContainer* orgBody, kmb::ElementC
 void
 kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, kmb::ElementBase &segment, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineSegment elementId = %ld\n",elementId);
 	kmb::nodeIdType nodeTable[2];
 	kmb::elementIdType e[2] = {
 		kmb::Element::nullElementId,
@@ -448,13 +490,19 @@ kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, kmb::ElementBase 
 void
 kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, kmb::ElementBase &segment2, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineSegment2 elementId = %ld\n",elementId);
 	kmb::nodeIdType nodeTable[3];
 	kmb::elementIdType e[2] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId};
-	kmb::nodeIdType n02 = middleMan->getDividedNode( segment2.getCellId(0), segment2.getCellId(2) );
-	kmb::nodeIdType n12 = middleMan->getDividedNode( segment2.getCellId(1), segment2.getCellId(2) );
+	kmb::nodeIdType n02 = kmb::nullNodeId;
+	kmb::nodeIdType n12 = kmb::nullNodeId;
+	if( secondFitting ){
+		n02 = middleMan->getDividedNode3( segment2[0], segment2[2], segment2[1] );
+		n12 = middleMan->getDividedNode3( segment2[1], segment2[2], segment2[0] );
+	}else{
+		n02 = middleMan->getDividedNode( segment2[0], segment2[2] );
+		n12 = middleMan->getDividedNode( segment2[1], segment2[2] );
+	}
 	if( refinedBody ){
 		nodeTable[0] = segment2.getCellId(0);
 		nodeTable[1] = segment2.getCellId(2);
@@ -509,7 +557,6 @@ kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, kmb::ElementBase
 void
 kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase &triangle, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineTriangle elementId = %ld\n",elementId);
 	kmb::nodeIdType nodeTable[3];
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
@@ -551,8 +598,6 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
 
-			REVOCAP_Debug_3("triangle group condition update %d %d %d %d %d %d\n",
-				triangle.getCellId(0),triangle.getCellId(1),triangle.getCellId(2),n01,n02,n12);
 			nodeGroupUpdate( triangle.getCellId(0), triangle.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle.getCellId(0), triangle.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle.getCellId(1), triangle.getCellId(2), n12, dIter->originalData, dIter->refinedData );
@@ -561,8 +606,6 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
 		{
 
-			REVOCAP_Debug_3("triangle variable condition update %d %d %d %d %d %d\n",
-				triangle.getCellId(0),triangle.getCellId(1),triangle.getCellId(2),n01,n02,n12);
 			nodeVariableUpdate( triangle.getCellId(0), triangle.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle.getCellId(0), triangle.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle.getCellId(1), triangle.getCellId(2), n12, dIter->originalData, dIter->refinedData );
@@ -575,17 +618,14 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 					switch(i)
 					{
 					case 0:
-						REVOCAP_Debug_3("refined triangle facegroup 0\n");
 						dIter->refinedData->addId( kmb::Face(e[1],0) );
 						dIter->refinedData->addId( kmb::Face(e[2],0) );
 						break;
 					case 1:
-						REVOCAP_Debug_3("refined triangle facegroup 1\n");
 						dIter->refinedData->addId( kmb::Face(e[2],1) );
 						dIter->refinedData->addId( kmb::Face(e[0],1) );
 						break;
 					case 2:
-						REVOCAP_Debug_3("refined triangle facegroup 2\n");
 						dIter->refinedData->addId( kmb::Face(e[0],2) );
 						dIter->refinedData->addId( kmb::Face(e[1],2) );
 						break;
@@ -616,7 +656,6 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 void
 kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBase &triangle2, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineTriangle2 elementId = %ld\n",elementId);
 	kmb::nodeIdType nodeTable[6];
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
@@ -624,15 +663,36 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId
 	};
-	kmb::nodeIdType n04 = middleMan->getDividedNode( triangle2.getCellId(0), triangle2.getCellId(4) );
-	kmb::nodeIdType n05 = middleMan->getDividedNode( triangle2.getCellId(0), triangle2.getCellId(5) );
-	kmb::nodeIdType n13 = middleMan->getDividedNode( triangle2.getCellId(1), triangle2.getCellId(3) );
-	kmb::nodeIdType n15 = middleMan->getDividedNode( triangle2.getCellId(1), triangle2.getCellId(5) );
-	kmb::nodeIdType n23 = middleMan->getDividedNode( triangle2.getCellId(2), triangle2.getCellId(3) );
-	kmb::nodeIdType n24 = middleMan->getDividedNode( triangle2.getCellId(2), triangle2.getCellId(4) );
-	kmb::nodeIdType n34 = middleMan->getDividedNode( triangle2.getCellId(3), triangle2.getCellId(4) );
-	kmb::nodeIdType n35 = middleMan->getDividedNode( triangle2.getCellId(3), triangle2.getCellId(5) );
-	kmb::nodeIdType n45 = middleMan->getDividedNode( triangle2.getCellId(4), triangle2.getCellId(5) );
+	kmb::nodeIdType n04 = kmb::nullNodeId;
+	kmb::nodeIdType n05 = kmb::nullNodeId;
+	kmb::nodeIdType n13 = kmb::nullNodeId;
+	kmb::nodeIdType n15 = kmb::nullNodeId;
+	kmb::nodeIdType n23 = kmb::nullNodeId;
+	kmb::nodeIdType n24 = kmb::nullNodeId;
+	kmb::nodeIdType n34 = kmb::nullNodeId;
+	kmb::nodeIdType n35 = kmb::nullNodeId;
+	kmb::nodeIdType n45 = kmb::nullNodeId;
+	if( secondFitting ){
+		n04 = middleMan->getDividedNode3( triangle2[0], triangle2[4], triangle2[2] );
+		n05 = middleMan->getDividedNode3( triangle2[0], triangle2[5], triangle2[1] );
+		n13 = middleMan->getDividedNode3( triangle2[1], triangle2[3], triangle2[2] );
+		n15 = middleMan->getDividedNode3( triangle2[1], triangle2[5], triangle2[0] );
+		n23 = middleMan->getDividedNode3( triangle2[2], triangle2[3], triangle2[1] );
+		n24 = middleMan->getDividedNode3( triangle2[2], triangle2[4], triangle2[0] );
+		n34 = middleMan->getDividedNode5( triangle2[3], triangle2[4], triangle2[1], triangle2[0], triangle2[5] );
+		n35 = middleMan->getDividedNode5( triangle2[3], triangle2[5], triangle2[2], triangle2[0], triangle2[4] );
+		n45 = middleMan->getDividedNode5( triangle2[4], triangle2[5], triangle2[2], triangle2[1], triangle2[3] );
+	}else{
+		n04 = middleMan->getDividedNode( triangle2[0], triangle2[4] );
+		n05 = middleMan->getDividedNode( triangle2[0], triangle2[5] );
+		n13 = middleMan->getDividedNode( triangle2[1], triangle2[3] );
+		n15 = middleMan->getDividedNode( triangle2[1], triangle2[5] );
+		n23 = middleMan->getDividedNode( triangle2[2], triangle2[3] );
+		n24 = middleMan->getDividedNode( triangle2[2], triangle2[4] );
+		n34 = middleMan->getDividedNode( triangle2[3], triangle2[4] );
+		n35 = middleMan->getDividedNode( triangle2[3], triangle2[5] );
+		n45 = middleMan->getDividedNode( triangle2[4], triangle2[5] );
+	}
 	if( refinedBody ){
 		nodeTable[0] = triangle2.getCellId(0);
 		nodeTable[1] = triangle2.getCellId(5);
@@ -673,10 +733,6 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
 
-			REVOCAP_Debug_3("triangle2 group condition update %d %d %d %d %d %d : %d %d %d %d %d %d %d %d %d\n",
-				triangle2.getCellId(0),triangle2.getCellId(1),triangle2.getCellId(2),
-				triangle2.getCellId(3),triangle2.getCellId(4),triangle2.getCellId(5),
-				n04,n05,n13,n15,n23,n24,n34,n35,n45);
 			nodeGroupUpdate( triangle2.getCellId(0), triangle2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle2.getCellId(0), triangle2.getCellId(5), n05, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle2.getCellId(1), triangle2.getCellId(3), n13, dIter->originalData, dIter->refinedData );
@@ -691,10 +747,6 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
 		{
 
-			REVOCAP_Debug_3("triangle2 variable condition update %d %d %d %d %d %d : %d %d %d %d %d %d %d %d %d\n",
-				triangle2.getCellId(0),triangle2.getCellId(1),triangle2.getCellId(2),
-				triangle2.getCellId(3),triangle2.getCellId(4),triangle2.getCellId(5),
-				n04,n05,n13,n15,n23,n24,n34,n35,n45);
 			nodeVariableUpdate( triangle2.getCellId(0), triangle2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle2.getCellId(0), triangle2.getCellId(5), n05, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle2.getCellId(1), triangle2.getCellId(3), n13, dIter->originalData, dIter->refinedData );
@@ -713,17 +765,14 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 					switch(i)
 					{
 					case 0:
-						REVOCAP_Debug_3("refined triangle2 facegroup 0\n");
 						dIter->refinedData->addId( kmb::Face(e[1],0) );
 						dIter->refinedData->addId( kmb::Face(e[2],0) );
 						break;
 					case 1:
-						REVOCAP_Debug_3("refined triangle2 facegroup 1\n");
 						dIter->refinedData->addId( kmb::Face(e[2],1) );
 						dIter->refinedData->addId( kmb::Face(e[0],1) );
 						break;
 					case 2:
-						REVOCAP_Debug_3("refined triangle2 facegroup 2\n");
 						dIter->refinedData->addId( kmb::Face(e[0],2) );
 						dIter->refinedData->addId( kmb::Face(e[1],2) );
 						break;
@@ -753,7 +802,6 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 void
 kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &quad, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineQuad elementId = %ld\n",elementId);
 	kmb::nodeIdType nodeTable[4];
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
@@ -797,8 +845,6 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
 
-			REVOCAP_Debug_3("quad group condition update %d %d %d %d\n",
-				quad.getCellId(0), quad.getCellId(1), quad.getCellId(2), quad.getCellId(3));
 			nodeGroupUpdate( quad, 0, n01, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad, 1, n12, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad, 2, n23, dIter->originalData, dIter->refinedData );
@@ -809,8 +855,6 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
 		{
 
-			REVOCAP_Debug_3("quad variable condition update %d %d %d %d\n",
-				quad.getCellId(0),quad.getCellId(1),quad.getCellId(2),quad.getCellId(3));
 			nodeVariableUpdate( quad, 0, n01, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad, 1, n12, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad, 2, n23, dIter->originalData, dIter->refinedData );
@@ -825,22 +869,18 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 					switch(i)
 					{
 					case 0:
-						REVOCAP_Debug_3("refined quad facegroup 0\n");
 						dIter->refinedData->addId( kmb::Face(e[0],0) );
 						dIter->refinedData->addId( kmb::Face(e[1],0) );
 						break;
 					case 1:
-						REVOCAP_Debug_3("refined quad facegroup 1\n");
 						dIter->refinedData->addId( kmb::Face(e[1],1) );
 						dIter->refinedData->addId( kmb::Face(e[2],1) );
 						break;
 					case 2:
-						REVOCAP_Debug_3("refined quad facegroup 2\n");
 						dIter->refinedData->addId( kmb::Face(e[2],2) );
 						dIter->refinedData->addId( kmb::Face(e[3],2) );
 						break;
 					case 3:
-						REVOCAP_Debug_3("refined quad facegroup 3\n");
 						dIter->refinedData->addId( kmb::Face(e[3],3) );
 						dIter->refinedData->addId( kmb::Face(e[0],3) );
 						break;
@@ -870,7 +910,6 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 void
 kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &quad2, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineQuad2 elementId = %ld\n",elementId);
 	kmb::nodeIdType nodeTable[8];
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
@@ -878,19 +917,48 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId
 	};
-	kmb::nodeIdType c   = middleMan->getCenterNode( quad2, elementId );
-	kmb::nodeIdType n04 = middleMan->getDividedNode( quad2.getCellId(0), quad2.getCellId(4) );
-	kmb::nodeIdType n14 = middleMan->getDividedNode( quad2.getCellId(1), quad2.getCellId(4) );
-	kmb::nodeIdType n15 = middleMan->getDividedNode( quad2.getCellId(1), quad2.getCellId(5) );
-	kmb::nodeIdType n25 = middleMan->getDividedNode( quad2.getCellId(2), quad2.getCellId(5) );
-	kmb::nodeIdType n26 = middleMan->getDividedNode( quad2.getCellId(2), quad2.getCellId(6) );
-	kmb::nodeIdType n36 = middleMan->getDividedNode( quad2.getCellId(3), quad2.getCellId(6) );
-	kmb::nodeIdType n37 = middleMan->getDividedNode( quad2.getCellId(3), quad2.getCellId(7) );
-	kmb::nodeIdType n07 = middleMan->getDividedNode( quad2.getCellId(0), quad2.getCellId(7) );
-	kmb::nodeIdType n4c = middleMan->getDividedNode( quad2.getCellId(4), c );
-	kmb::nodeIdType n5c = middleMan->getDividedNode( quad2.getCellId(5), c );
-	kmb::nodeIdType n6c = middleMan->getDividedNode( quad2.getCellId(6), c );
-	kmb::nodeIdType n7c = middleMan->getDividedNode( quad2.getCellId(7), c );
+	kmb::nodeIdType c   = kmb::nullNodeId;
+	kmb::nodeIdType n04 = kmb::nullNodeId;
+	kmb::nodeIdType n14 = kmb::nullNodeId;
+	kmb::nodeIdType n15 = kmb::nullNodeId;
+	kmb::nodeIdType n25 = kmb::nullNodeId;
+	kmb::nodeIdType n26 = kmb::nullNodeId;
+	kmb::nodeIdType n36 = kmb::nullNodeId;
+	kmb::nodeIdType n37 = kmb::nullNodeId;
+	kmb::nodeIdType n07 = kmb::nullNodeId;
+	kmb::nodeIdType n4c = kmb::nullNodeId;
+	kmb::nodeIdType n5c = kmb::nullNodeId;
+	kmb::nodeIdType n6c = kmb::nullNodeId;
+	kmb::nodeIdType n7c = kmb::nullNodeId;
+	if( secondFitting ){
+		c   = middleMan->getCenterNode2( quad2, elementId );
+		n04 = middleMan->getDividedNode3( quad2[0], quad2[4], quad2[1] );
+		n14 = middleMan->getDividedNode3( quad2[1], quad2[4], quad2[0] );
+		n15 = middleMan->getDividedNode3( quad2[1], quad2[5], quad2[2] );
+		n25 = middleMan->getDividedNode3( quad2[2], quad2[5], quad2[1] );
+		n26 = middleMan->getDividedNode3( quad2[2], quad2[6], quad2[3] );
+		n36 = middleMan->getDividedNode3( quad2[3], quad2[6], quad2[2] );
+		n37 = middleMan->getDividedNode3( quad2[3], quad2[7], quad2[0] );
+		n07 = middleMan->getDividedNode3( quad2[0], quad2[7], quad2[3] );
+		n4c = middleMan->getDividedNode3( quad2[4], c, quad2[6] );
+		n5c = middleMan->getDividedNode3( quad2[5], c, quad2[7] );
+		n6c = middleMan->getDividedNode3( quad2[6], c, quad2[4] );
+		n7c = middleMan->getDividedNode3( quad2[7], c, quad2[5] );
+	}else{
+		c   = middleMan->getCenterNode( quad2, elementId );
+		n04 = middleMan->getDividedNode( quad2[0], quad2[4] );
+		n14 = middleMan->getDividedNode( quad2[1], quad2[4] );
+		n15 = middleMan->getDividedNode( quad2[1], quad2[5] );
+		n25 = middleMan->getDividedNode( quad2[2], quad2[5] );
+		n26 = middleMan->getDividedNode( quad2[2], quad2[6] );
+		n36 = middleMan->getDividedNode( quad2[3], quad2[6] );
+		n37 = middleMan->getDividedNode( quad2[3], quad2[7] );
+		n07 = middleMan->getDividedNode( quad2[0], quad2[7] );
+		n4c = middleMan->getDividedNode( quad2[4], c );
+		n5c = middleMan->getDividedNode( quad2[5], c );
+		n6c = middleMan->getDividedNode( quad2[6], c );
+		n7c = middleMan->getDividedNode( quad2[7], c );
+	}
 	if( refinedBody ){
 		nodeTable[0] = quad2.getCellId(0);
 		nodeTable[1] = quad2.getCellId(4);
@@ -910,7 +978,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 		nodeTable[5] = n15;
 		nodeTable[6] = n5c;
 		nodeTable[7] = n4c;
-		e[1] = refinedBody->addElement( kmb::QUAD, nodeTable );
+		e[1] = refinedBody->addElement( kmb::QUAD2, nodeTable );
 
 		nodeTable[0] = c;
 		nodeTable[1] = quad2.getCellId(5);
@@ -920,7 +988,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 		nodeTable[5] = n25;
 		nodeTable[6] = n26;
 		nodeTable[7] = n6c;
-		e[2] = refinedBody->addElement( kmb::QUAD, nodeTable );
+		e[2] = refinedBody->addElement( kmb::QUAD2, nodeTable );
 
 		nodeTable[0] = quad2.getCellId(7);
 		nodeTable[1] = c;
@@ -930,7 +998,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 		nodeTable[5] = n6c;
 		nodeTable[6] = n36;
 		nodeTable[7] = n37;
-		e[3] = refinedBody->addElement( kmb::QUAD, nodeTable );
+		e[3] = refinedBody->addElement( kmb::QUAD2, nodeTable );
 	}
 
 	const int faceNum = kmb::Element::getBoundaryCount( kmb::QUAD2 );
@@ -939,9 +1007,6 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
 
-			REVOCAP_Debug_3("quad2 group condition update %d %d %d %d %d %d %d %d\n",
-				quad2.getCellId(0), quad2.getCellId(1), quad2.getCellId(2), quad2.getCellId(3),
-				quad2.getCellId(4), quad2.getCellId(5), quad2.getCellId(6), quad2.getCellId(7));
 			nodeGroupUpdate( quad2, c, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad2.getCellId(0), quad2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad2.getCellId(1), quad2.getCellId(4), n14, dIter->originalData, dIter->refinedData );
@@ -960,9 +1025,6 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
 		{
 
-			REVOCAP_Debug_3("quad2 variable condition update %d %d %d %d %d %d %d %d\n",
-				quad2.getCellId(0), quad2.getCellId(1), quad2.getCellId(2), quad2.getCellId(3),
-				quad2.getCellId(4), quad2.getCellId(5), quad2.getCellId(6), quad2.getCellId(7));
 			nodeVariableUpdate( quad2, c, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad2.getCellId(0), quad2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad2.getCellId(1), quad2.getCellId(4), n14, dIter->originalData, dIter->refinedData );
@@ -985,22 +1047,19 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 					switch(i)
 					{
 					case 0:
-						REVOCAP_Debug_3("refined quad2 facegroup 0\n");
 						dIter->refinedData->addId( kmb::Face(e[0],0) );
 						dIter->refinedData->addId( kmb::Face(e[1],0) );
 						break;
 					case 1:
-						REVOCAP_Debug_3("refined quad2 facegroup 1\n");
 						dIter->refinedData->addId( kmb::Face(e[1],1) );
 						dIter->refinedData->addId( kmb::Face(e[2],1) );
 						break;
 					case 2:
-						REVOCAP_Debug_3("refined quad2 facegroup 2\n");
 						dIter->refinedData->addId( kmb::Face(e[2],2) );
 						dIter->refinedData->addId( kmb::Face(e[3],2) );
+
 						break;
 					case 3:
-						REVOCAP_Debug_3("refined quad2 facegroup 3\n");
 						dIter->refinedData->addId( kmb::Face(e[3],3) );
 						dIter->refinedData->addId( kmb::Face(e[0],3) );
 						break;
@@ -1039,7 +1098,6 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 void
 kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementBase &tetra, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineTetrahedron elementId = %ld\n",elementId);
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -1200,7 +1258,6 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 
-					REVOCAP_Debug("refined tetra facegroup %d\n",i);
 					for(int j=0;j<4;++j){
 						if( i == j ){
 							dIter->refinedData->addId( kmb::Face(ef[i],0) );
@@ -1241,7 +1298,6 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 void
 kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::ElementBase &tetra2, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineTetrahedron elementId = %ld\n",elementId);
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -1254,35 +1310,89 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 		kmb::Element::nullElementId};
 	kmb::nodeIdType nodeTable[10];
 
-	kmb::nodeIdType n05 = middleMan->getDividedNode( tetra2.getCellId(0), tetra2.getCellId(5) );
-	kmb::nodeIdType n06 = middleMan->getDividedNode( tetra2.getCellId(0), tetra2.getCellId(6) );
-	kmb::nodeIdType n07 = middleMan->getDividedNode( tetra2.getCellId(0), tetra2.getCellId(7) );
-	kmb::nodeIdType n14 = middleMan->getDividedNode( tetra2.getCellId(1), tetra2.getCellId(4) );
-	kmb::nodeIdType n16 = middleMan->getDividedNode( tetra2.getCellId(1), tetra2.getCellId(6) );
-	kmb::nodeIdType n18 = middleMan->getDividedNode( tetra2.getCellId(1), tetra2.getCellId(8) );
-	kmb::nodeIdType n24 = middleMan->getDividedNode( tetra2.getCellId(2), tetra2.getCellId(4) );
-	kmb::nodeIdType n25 = middleMan->getDividedNode( tetra2.getCellId(2), tetra2.getCellId(5) );
-	kmb::nodeIdType n29 = middleMan->getDividedNode( tetra2.getCellId(2), tetra2.getCellId(9) );
-	kmb::nodeIdType n37 = middleMan->getDividedNode( tetra2.getCellId(3), tetra2.getCellId(7) );
-	kmb::nodeIdType n38 = middleMan->getDividedNode( tetra2.getCellId(3), tetra2.getCellId(8) );
-	kmb::nodeIdType n39 = middleMan->getDividedNode( tetra2.getCellId(3), tetra2.getCellId(9) );
+	kmb::nodeIdType n05 = kmb::nullNodeId;
+	kmb::nodeIdType n06 = kmb::nullNodeId;
+	kmb::nodeIdType n07 = kmb::nullNodeId;
+	kmb::nodeIdType n14 = kmb::nullNodeId;
+	kmb::nodeIdType n16 = kmb::nullNodeId;
+	kmb::nodeIdType n18 = kmb::nullNodeId;
+	kmb::nodeIdType n24 = kmb::nullNodeId;
+	kmb::nodeIdType n25 = kmb::nullNodeId;
+	kmb::nodeIdType n29 = kmb::nullNodeId;
+	kmb::nodeIdType n37 = kmb::nullNodeId;
+	kmb::nodeIdType n38 = kmb::nullNodeId;
+	kmb::nodeIdType n39 = kmb::nullNodeId;
 
-	kmb::nodeIdType n45 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(5) );
-	kmb::nodeIdType n46 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(6) );
-	kmb::nodeIdType n48 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(8) );
-	kmb::nodeIdType n49 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(9) );
-	kmb::nodeIdType n56 = middleMan->getDividedNode( tetra2.getCellId(5), tetra2.getCellId(6) );
-	kmb::nodeIdType n57 = middleMan->getDividedNode( tetra2.getCellId(5), tetra2.getCellId(7) );
-	kmb::nodeIdType n59 = middleMan->getDividedNode( tetra2.getCellId(5), tetra2.getCellId(9) );
-	kmb::nodeIdType n67 = middleMan->getDividedNode( tetra2.getCellId(6), tetra2.getCellId(7) );
-	kmb::nodeIdType n68 = middleMan->getDividedNode( tetra2.getCellId(6), tetra2.getCellId(8) );
-	kmb::nodeIdType n78 = middleMan->getDividedNode( tetra2.getCellId(7), tetra2.getCellId(8) );
-	kmb::nodeIdType n79 = middleMan->getDividedNode( tetra2.getCellId(7), tetra2.getCellId(9) );
-	kmb::nodeIdType n89 = middleMan->getDividedNode( tetra2.getCellId(8), tetra2.getCellId(9) );
+	kmb::nodeIdType n45 = kmb::nullNodeId;
+	kmb::nodeIdType n46 = kmb::nullNodeId;
+	kmb::nodeIdType n48 = kmb::nullNodeId;
+	kmb::nodeIdType n49 = kmb::nullNodeId;
+	kmb::nodeIdType n56 = kmb::nullNodeId;
+	kmb::nodeIdType n57 = kmb::nullNodeId;
+	kmb::nodeIdType n59 = kmb::nullNodeId;
+	kmb::nodeIdType n67 = kmb::nullNodeId;
+	kmb::nodeIdType n68 = kmb::nullNodeId;
+	kmb::nodeIdType n78 = kmb::nullNodeId;
+	kmb::nodeIdType n79 = kmb::nullNodeId;
+	kmb::nodeIdType n89 = kmb::nullNodeId;
 
 	kmb::nodeIdType n47 = kmb::nullNodeId;
 	kmb::nodeIdType n58 = kmb::nullNodeId;
 	kmb::nodeIdType n69 = kmb::nullNodeId;
+
+	if(secondFitting){
+		n05 = middleMan->getDividedNode3( tetra2[0], tetra2[5], tetra2[2] );
+		n06 = middleMan->getDividedNode3( tetra2[0], tetra2[6], tetra2[1] );
+		n07 = middleMan->getDividedNode3( tetra2[0], tetra2[7], tetra2[3] );
+		n14 = middleMan->getDividedNode3( tetra2[1], tetra2[4], tetra2[2] );
+		n16 = middleMan->getDividedNode3( tetra2[1], tetra2[6], tetra2[0] );
+		n18 = middleMan->getDividedNode3( tetra2[1], tetra2[8], tetra2[3] );
+		n24 = middleMan->getDividedNode3( tetra2[2], tetra2[4], tetra2[1] );
+		n25 = middleMan->getDividedNode3( tetra2[2], tetra2[5], tetra2[0] );
+		n29 = middleMan->getDividedNode3( tetra2[2], tetra2[9], tetra2[3] );
+		n37 = middleMan->getDividedNode3( tetra2[3], tetra2[7], tetra2[0] );
+		n38 = middleMan->getDividedNode3( tetra2[3], tetra2[8], tetra2[1] );
+		n39 = middleMan->getDividedNode3( tetra2[3], tetra2[9], tetra2[2] );
+
+		n45 = middleMan->getDividedNode5( tetra2[4], tetra2[5], tetra2[1], tetra2[0], tetra2[6] );
+		n46 = middleMan->getDividedNode5( tetra2[4], tetra2[6], tetra2[2], tetra2[0], tetra2[5] );
+		n48 = middleMan->getDividedNode5( tetra2[4], tetra2[8], tetra2[2], tetra2[3], tetra2[9] );
+		n49 = middleMan->getDividedNode5( tetra2[4], tetra2[9], tetra2[1], tetra2[3], tetra2[8] );
+		n56 = middleMan->getDividedNode5( tetra2[5], tetra2[6], tetra2[2], tetra2[1], tetra2[4] );
+		n57 = middleMan->getDividedNode5( tetra2[5], tetra2[7], tetra2[2], tetra2[3], tetra2[9] );
+		n59 = middleMan->getDividedNode5( tetra2[5], tetra2[9], tetra2[0], tetra2[3], tetra2[7] );
+		n67 = middleMan->getDividedNode5( tetra2[6], tetra2[7], tetra2[1], tetra2[3], tetra2[8] );
+		n68 = middleMan->getDividedNode5( tetra2[6], tetra2[8], tetra2[0], tetra2[3], tetra2[7] );
+		n78 = middleMan->getDividedNode5( tetra2[7], tetra2[8], tetra2[0], tetra2[1], tetra2[6] );
+		n79 = middleMan->getDividedNode5( tetra2[7], tetra2[9], tetra2[0], tetra2[2], tetra2[5] );
+		n89 = middleMan->getDividedNode5( tetra2[8], tetra2[9], tetra2[1], tetra2[2], tetra2[4] );
+	}else{
+		n05 = middleMan->getDividedNode( tetra2.getCellId(0), tetra2.getCellId(5) );
+		n06 = middleMan->getDividedNode( tetra2.getCellId(0), tetra2.getCellId(6) );
+		n07 = middleMan->getDividedNode( tetra2.getCellId(0), tetra2.getCellId(7) );
+		n14 = middleMan->getDividedNode( tetra2.getCellId(1), tetra2.getCellId(4) );
+		n16 = middleMan->getDividedNode( tetra2.getCellId(1), tetra2.getCellId(6) );
+		n18 = middleMan->getDividedNode( tetra2.getCellId(1), tetra2.getCellId(8) );
+		n24 = middleMan->getDividedNode( tetra2.getCellId(2), tetra2.getCellId(4) );
+		n25 = middleMan->getDividedNode( tetra2.getCellId(2), tetra2.getCellId(5) );
+		n29 = middleMan->getDividedNode( tetra2.getCellId(2), tetra2.getCellId(9) );
+		n37 = middleMan->getDividedNode( tetra2.getCellId(3), tetra2.getCellId(7) );
+		n38 = middleMan->getDividedNode( tetra2.getCellId(3), tetra2.getCellId(8) );
+		n39 = middleMan->getDividedNode( tetra2.getCellId(3), tetra2.getCellId(9) );
+
+		n45 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(5) );
+		n46 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(6) );
+		n48 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(8) );
+		n49 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(9) );
+		n56 = middleMan->getDividedNode( tetra2.getCellId(5), tetra2.getCellId(6) );
+		n57 = middleMan->getDividedNode( tetra2.getCellId(5), tetra2.getCellId(7) );
+		n59 = middleMan->getDividedNode( tetra2.getCellId(5), tetra2.getCellId(9) );
+		n67 = middleMan->getDividedNode( tetra2.getCellId(6), tetra2.getCellId(7) );
+		n68 = middleMan->getDividedNode( tetra2.getCellId(6), tetra2.getCellId(8) );
+		n78 = middleMan->getDividedNode( tetra2.getCellId(7), tetra2.getCellId(8) );
+		n79 = middleMan->getDividedNode( tetra2.getCellId(7), tetra2.getCellId(9) );
+		n89 = middleMan->getDividedNode( tetra2.getCellId(8), tetra2.getCellId(9) );
+	}
 
 	if( refinedBody ){
 		nodeTable[0] = tetra2.getCellId(0);
@@ -1574,7 +1684,6 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 
-					REVOCAP_Debug("refined tetra facegroup %d\n",i);
 					for(int j=0;j<4;++j){
 						if( i == j ){
 							dIter->refinedData->addId( kmb::Face(ef[i],0) );
@@ -1610,7 +1719,6 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 void
 kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBase &hexa, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineHexahedron elementId = %ld\n",elementId);
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -1634,7 +1742,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 
 	kmb::nodeIdType ne[12];
 	for(int i=0;i<12;++i){
-		REVOCAP_Debug_3("refineHexahedron middle from [%d,%d] \n", hexa.getEdgeCellId(i,0), hexa.getEdgeCellId(i,1));
 		ne[i] = middleMan->getDividedNode( hexa.getEdgeCellId(i,0), hexa.getEdgeCellId(i,1) );
 	}
 
@@ -1657,8 +1764,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 	kmb::nodeIdType nf5 = middleMan->getCenterNode( hexa, 5, elementId );
 	kmb::nodeIdType c   = middleMan->getCenterNode( hexa, elementId );
 
-	REVOCAP_Debug_3("refineHexahedron centernode: %d, %d, %d, %d, %d, %d, %d\n",
-									nf0, nf1, nf2, nf3, nf4, nf5, c);
 
 	if( refinedBody ){
 		nodeTable[0] = hexa.getCellId(0);
@@ -1670,9 +1775,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = c;
 		nodeTable[7] = nf5;
 		e[0] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 0 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[0]);
 
 		nodeTable[0] = ne[0];
 		nodeTable[1] = hexa.getCellId(1);
@@ -1683,9 +1785,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = nf3;
 		nodeTable[7] = c;
 		e[1] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 1 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[1]);
 
 		nodeTable[0] = nf0;
 		nodeTable[1] = ne[1];
@@ -1696,9 +1795,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = ne[10];
 		nodeTable[7] = nf4;
 		e[2] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 2 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[2]);
 
 		nodeTable[0] = ne[3];
 		nodeTable[1] = nf0;
@@ -1709,9 +1805,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = nf4;
 		nodeTable[7] = ne[11];
 		e[3] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 3 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[3]);
 
 		nodeTable[0] = ne[8];
 		nodeTable[1] = nf2;
@@ -1722,9 +1815,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = nf1;
 		nodeTable[7] = ne[7];
 		e[4] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 4 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[4]);
 
 		nodeTable[0] = nf2;
 		nodeTable[1] = ne[9];
@@ -1735,9 +1825,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = ne[5];
 		nodeTable[7] = nf1;
 		e[5] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 5 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[5]);
 
 		nodeTable[0] = c;
 		nodeTable[1] = nf3;
@@ -1748,9 +1835,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = hexa.getCellId(6);
 		nodeTable[7] = ne[6];
 		e[6] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 6 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[6]);
 
 		nodeTable[0] = nf5;
 		nodeTable[1] = c;
@@ -1761,9 +1845,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		nodeTable[6] = ne[6];
 		nodeTable[7] = hexa.getCellId(7);
 		e[7] = refinedBody->addElement( kmb::HEXAHEDRON, nodeTable );
-		REVOCAP_Debug_3("refineHexahedron addElement 7 [%d,%d,%d,%d,%d,%d,%d,%d] => %d\n",
-										nodeTable[0],nodeTable[1],nodeTable[2],nodeTable[3],
-										nodeTable[4],nodeTable[5],nodeTable[6],nodeTable[7],e[7]);
 	}
 	const int faceNum = kmb::Element::getBoundaryCount( kmb::HEXAHEDRON );
 
@@ -1800,7 +1881,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 
-					REVOCAP_Debug("refined hexa facegroup %d\n",i);
 					for(int j=0;j<4;++j){
 
 
@@ -1834,7 +1914,6 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 void
 kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementBase &hexa2, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineHexahedron2 elementId = %ld\n",elementId);
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -1870,65 +1949,160 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 
 	kmb::nodeIdType ne0[12];
 	kmb::nodeIdType ne1[12];
-	for(int i=0;i<12;++i){
-		ne0[i] = middleMan->getDividedNode( hexa2.getEdgeCellId(i,0), hexa2.getEdgeCellId(i,2) );
-		ne1[i] = middleMan->getDividedNode( hexa2.getEdgeCellId(i,2), hexa2.getEdgeCellId(i,1) );
+
+
+
+
+
+
+
+
+
+
+
+
+
+	kmb::nodeIdType nf0 = kmb::nullNodeId;
+	kmb::nodeIdType nf1 = kmb::nullNodeId;
+	kmb::nodeIdType nf2 = kmb::nullNodeId;
+	kmb::nodeIdType nf3 = kmb::nullNodeId;
+	kmb::nodeIdType nf4 = kmb::nullNodeId;
+	kmb::nodeIdType nf5 = kmb::nullNodeId;
+	kmb::nodeIdType c   = kmb::nullNodeId;
+
+	kmb::nodeIdType nf0_8  = kmb::nullNodeId;
+	kmb::nodeIdType nf0_9  = kmb::nullNodeId;
+	kmb::nodeIdType nf0_10 = kmb::nullNodeId;
+	kmb::nodeIdType nf0_11 = kmb::nullNodeId;
+	kmb::nodeIdType nf0_c  = kmb::nullNodeId;
+
+	kmb::nodeIdType nf1_12 = kmb::nullNodeId;
+	kmb::nodeIdType nf1_13 = kmb::nullNodeId;
+	kmb::nodeIdType nf1_14 = kmb::nullNodeId;
+	kmb::nodeIdType nf1_15 = kmb::nullNodeId;
+	kmb::nodeIdType nf1_c  = kmb::nullNodeId;
+
+	kmb::nodeIdType nf2_8  = kmb::nullNodeId;
+	kmb::nodeIdType nf2_12 = kmb::nullNodeId;
+	kmb::nodeIdType nf2_16 = kmb::nullNodeId;
+	kmb::nodeIdType nf2_17 = kmb::nullNodeId;
+	kmb::nodeIdType nf2_c  = kmb::nullNodeId;
+
+	kmb::nodeIdType nf3_9  = kmb::nullNodeId;
+	kmb::nodeIdType nf3_13 = kmb::nullNodeId;
+	kmb::nodeIdType nf3_17 = kmb::nullNodeId;
+	kmb::nodeIdType nf3_18 = kmb::nullNodeId;
+	kmb::nodeIdType nf3_c  = kmb::nullNodeId;
+
+	kmb::nodeIdType nf4_10 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_14 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_18 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_19 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_c  = kmb::nullNodeId;
+
+	kmb::nodeIdType nf5_11 = kmb::nullNodeId;
+	kmb::nodeIdType nf5_15 = kmb::nullNodeId;
+	kmb::nodeIdType nf5_16 = kmb::nullNodeId;
+	kmb::nodeIdType nf5_19 = kmb::nullNodeId;
+	kmb::nodeIdType nf5_c  = kmb::nullNodeId;
+
+	if( secondFitting ){
+		for(int i=0;i<12;++i){
+			ne0[i] = middleMan->getDividedNode3( hexa2.getEdgeCellId(i,0), hexa2.getEdgeCellId(i,2), hexa2.getEdgeCellId(i,1) );
+			ne1[i] = middleMan->getDividedNode3( hexa2.getEdgeCellId(i,1), hexa2.getEdgeCellId(i,2), hexa2.getEdgeCellId(i,0) );
+		}
+		nf0 = middleMan->getCenterNode2( hexa2, 0, elementId );
+		nf1 = middleMan->getCenterNode2( hexa2, 1, elementId );
+		nf2 = middleMan->getCenterNode2( hexa2, 2, elementId );
+		nf3 = middleMan->getCenterNode2( hexa2, 3, elementId );
+		nf4 = middleMan->getCenterNode2( hexa2, 4, elementId );
+		nf5 = middleMan->getCenterNode2( hexa2, 5, elementId );
+		c   = middleMan->getCenterNode2( hexa2, elementId );
+
+		nf0_8  = middleMan->getDividedNode3( hexa2[8],  nf0, hexa2[10] );
+		nf0_9  = middleMan->getDividedNode3( hexa2[9],  nf0, hexa2[11] );
+		nf0_10 = middleMan->getDividedNode3( hexa2[10], nf0, hexa2[8] );
+		nf0_11 = middleMan->getDividedNode3( hexa2[11], nf0, hexa2[9] );
+		nf0_c  = middleMan->getDividedNode3( nf0, c, nf1 );
+
+		nf1_12 = middleMan->getDividedNode3( hexa2[12], nf1, hexa2[14] );
+		nf1_13 = middleMan->getDividedNode3( hexa2[13], nf1, hexa2[15] );
+		nf1_14 = middleMan->getDividedNode3( hexa2[14], nf1, hexa2[12] );
+		nf1_15 = middleMan->getDividedNode3( hexa2[15], nf1, hexa2[13] );
+		nf1_c  = middleMan->getDividedNode3( nf1, c, nf0 );
+
+		nf2_8  = middleMan->getDividedNode3( hexa2[8],  nf2, hexa2[12] );
+		nf2_12 = middleMan->getDividedNode3( hexa2[12], nf2, hexa2[8] );
+		nf2_16 = middleMan->getDividedNode3( hexa2[16], nf2, hexa2[17] );
+		nf2_17 = middleMan->getDividedNode3( hexa2[17], nf2, hexa2[16] );
+		nf2_c  = middleMan->getDividedNode3( nf2, c, nf4 );
+
+		nf3_9  = middleMan->getDividedNode3( hexa2[9],  nf3, hexa2[13] );
+		nf3_13 = middleMan->getDividedNode3( hexa2[13], nf3, hexa2[9] );
+		nf3_17 = middleMan->getDividedNode3( hexa2[17], nf3, hexa2[18] );
+		nf3_18 = middleMan->getDividedNode3( hexa2[18], nf3, hexa2[17] );
+		nf3_c  = middleMan->getDividedNode3( nf3, c, nf5 );
+
+		nf4_10 = middleMan->getDividedNode3( hexa2[10], nf4, hexa2[14] );
+		nf4_14 = middleMan->getDividedNode3( hexa2[14], nf4, hexa2[10] );
+		nf4_18 = middleMan->getDividedNode3( hexa2[18], nf4, hexa2[19] );
+		nf4_19 = middleMan->getDividedNode3( hexa2[19], nf4, hexa2[18] );
+		nf4_c  = middleMan->getDividedNode3( nf4, c, nf2 );
+
+		nf5_11 = middleMan->getDividedNode3( hexa2[11], nf5, hexa2[15] );
+		nf5_15 = middleMan->getDividedNode3( hexa2[15], nf5, hexa2[11] );
+		nf5_16 = middleMan->getDividedNode3( hexa2[16], nf5, hexa2[19] );
+		nf5_19 = middleMan->getDividedNode3( hexa2[19], nf5, hexa2[16] );
+		nf5_c  = middleMan->getDividedNode3( nf5, c, nf3 );
+	}else{
+		for(int i=0;i<12;++i){
+			ne0[i] = middleMan->getDividedNode( hexa2.getEdgeCellId(i,0), hexa2.getEdgeCellId(i,2) );
+			ne1[i] = middleMan->getDividedNode( hexa2.getEdgeCellId(i,2), hexa2.getEdgeCellId(i,1) );
+		}
+		nf0 = middleMan->getCenterNode( hexa2, 0, elementId );
+		nf1 = middleMan->getCenterNode( hexa2, 1, elementId );
+		nf2 = middleMan->getCenterNode( hexa2, 2, elementId );
+		nf3 = middleMan->getCenterNode( hexa2, 3, elementId );
+		nf4 = middleMan->getCenterNode( hexa2, 4, elementId );
+		nf5 = middleMan->getCenterNode( hexa2, 5, elementId );
+		c   = middleMan->getCenterNode( hexa2, elementId );
+
+		nf0_8  = middleMan->getDividedNode( nf0, hexa2[8] );
+		nf0_9  = middleMan->getDividedNode( nf0, hexa2[9] );
+		nf0_10 = middleMan->getDividedNode( nf0, hexa2[10] );
+		nf0_11 = middleMan->getDividedNode( nf0, hexa2[11] );
+		nf0_c  = middleMan->getDividedNode( nf0, c );
+
+		nf1_12 = middleMan->getDividedNode( nf1, hexa2[12] );
+		nf1_13 = middleMan->getDividedNode( nf1, hexa2[13] );
+		nf1_14 = middleMan->getDividedNode( nf1, hexa2[14] );
+		nf1_15 = middleMan->getDividedNode( nf1, hexa2[15] );
+		nf1_c  = middleMan->getDividedNode( nf1, c );
+
+		nf2_8  = middleMan->getDividedNode( nf2, hexa2[8] );
+		nf2_12 = middleMan->getDividedNode( nf2, hexa2[12] );
+		nf2_16 = middleMan->getDividedNode( nf2, hexa2[16] );
+		nf2_17 = middleMan->getDividedNode( nf2, hexa2[17] );
+		nf2_c  = middleMan->getDividedNode( nf2, c );
+
+		nf3_9  = middleMan->getDividedNode( nf3, hexa2[9] );
+		nf3_13 = middleMan->getDividedNode( nf3, hexa2[13] );
+		nf3_17 = middleMan->getDividedNode( nf3, hexa2[17] );
+		nf3_18 = middleMan->getDividedNode( nf3, hexa2[18] );
+		nf3_c  = middleMan->getDividedNode( nf3, c );
+
+		nf4_10 = middleMan->getDividedNode( nf4, hexa2[10] );
+		nf4_14 = middleMan->getDividedNode( nf4, hexa2[14] );
+		nf4_18 = middleMan->getDividedNode( nf4, hexa2[18] );
+		nf4_19 = middleMan->getDividedNode( nf4, hexa2[19] );
+		nf4_c  = middleMan->getDividedNode( nf4, c );
+
+		nf5_11 = middleMan->getDividedNode( nf5, hexa2[11] );
+		nf5_15 = middleMan->getDividedNode( nf5, hexa2[15] );
+		nf5_16 = middleMan->getDividedNode( nf5, hexa2[16] );
+		nf5_19 = middleMan->getDividedNode( nf5, hexa2[19] );
+		nf5_c  = middleMan->getDividedNode( nf5, c );
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-	kmb::nodeIdType nf0 = middleMan->getCenterNode( hexa2, 0, elementId );
-	kmb::nodeIdType nf1 = middleMan->getCenterNode( hexa2, 1, elementId );
-	kmb::nodeIdType nf2 = middleMan->getCenterNode( hexa2, 2, elementId );
-	kmb::nodeIdType nf3 = middleMan->getCenterNode( hexa2, 3, elementId );
-	kmb::nodeIdType nf4 = middleMan->getCenterNode( hexa2, 4, elementId );
-	kmb::nodeIdType nf5 = middleMan->getCenterNode( hexa2, 5, elementId );
-	kmb::nodeIdType c   = middleMan->getCenterNode( hexa2, elementId );
-
-	kmb::nodeIdType nf0_8  = middleMan->getDividedNode( nf0, hexa2.getCellId(8) );
-	kmb::nodeIdType nf0_9  = middleMan->getDividedNode( nf0, hexa2.getCellId(9) );
-	kmb::nodeIdType nf0_10 = middleMan->getDividedNode( nf0, hexa2.getCellId(10) );
-	kmb::nodeIdType nf0_11 = middleMan->getDividedNode( nf0, hexa2.getCellId(11) );
-	kmb::nodeIdType nf0_c  = middleMan->getDividedNode( nf0, c );
-
-	kmb::nodeIdType nf1_12 = middleMan->getDividedNode( nf1, hexa2.getCellId(12) );
-	kmb::nodeIdType nf1_13 = middleMan->getDividedNode( nf1, hexa2.getCellId(13) );
-	kmb::nodeIdType nf1_14 = middleMan->getDividedNode( nf1, hexa2.getCellId(14) );
-	kmb::nodeIdType nf1_15 = middleMan->getDividedNode( nf1, hexa2.getCellId(15) );
-	kmb::nodeIdType nf1_c  = middleMan->getDividedNode( nf1, c );
-
-	kmb::nodeIdType nf2_8  = middleMan->getDividedNode( nf2, hexa2.getCellId(8) );
-	kmb::nodeIdType nf2_12 = middleMan->getDividedNode( nf2, hexa2.getCellId(12) );
-	kmb::nodeIdType nf2_16 = middleMan->getDividedNode( nf2, hexa2.getCellId(16) );
-	kmb::nodeIdType nf2_17 = middleMan->getDividedNode( nf2, hexa2.getCellId(17) );
-	kmb::nodeIdType nf2_c  = middleMan->getDividedNode( nf2, c );
-
-	kmb::nodeIdType nf3_9  = middleMan->getDividedNode( nf3, hexa2.getCellId(9) );
-	kmb::nodeIdType nf3_13 = middleMan->getDividedNode( nf3, hexa2.getCellId(13) );
-	kmb::nodeIdType nf3_17 = middleMan->getDividedNode( nf3, hexa2.getCellId(17) );
-	kmb::nodeIdType nf3_18 = middleMan->getDividedNode( nf3, hexa2.getCellId(18) );
-	kmb::nodeIdType nf3_c  = middleMan->getDividedNode( nf3, c );
-
-	kmb::nodeIdType nf4_10 = middleMan->getDividedNode( nf4, hexa2.getCellId(10) );
-	kmb::nodeIdType nf4_14 = middleMan->getDividedNode( nf4, hexa2.getCellId(14) );
-	kmb::nodeIdType nf4_18 = middleMan->getDividedNode( nf4, hexa2.getCellId(18) );
-	kmb::nodeIdType nf4_19 = middleMan->getDividedNode( nf4, hexa2.getCellId(19) );
-	kmb::nodeIdType nf4_c  = middleMan->getDividedNode( nf4, c );
-
-	kmb::nodeIdType nf5_11 = middleMan->getDividedNode( nf5, hexa2.getCellId(11) );
-	kmb::nodeIdType nf5_15 = middleMan->getDividedNode( nf5, hexa2.getCellId(15) );
-	kmb::nodeIdType nf5_16 = middleMan->getDividedNode( nf5, hexa2.getCellId(16) );
-	kmb::nodeIdType nf5_19 = middleMan->getDividedNode( nf5, hexa2.getCellId(19) );
-	kmb::nodeIdType nf5_c  = middleMan->getDividedNode( nf5, c );
 
 	if( refinedBody ){
 		nodeTable[0] = hexa2.getCellId(0);
@@ -2248,7 +2422,6 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 
-					REVOCAP_Debug("refined hexa2 facegroup %d\n",i);
 					for(int j=0;j<4;++j){
 
 
@@ -2295,7 +2468,6 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 void
 kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &wedge, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineWedge elementId = %ld\n",elementId);
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -2415,7 +2587,6 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 
-					REVOCAP_Debug("refined wedge facegroup %d\n",i);
 
 					int faceVertexCount = kmb::Element::getBoundaryVertexCount( kmb::WEDGE, i );
 					for(int j=0;j<faceVertexCount;++j){
@@ -2466,7 +2637,6 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 void
 kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &wedge2, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refineWedge2 elementId = %ld\n",elementId);
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -2497,40 +2667,108 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 
 	kmb::nodeIdType ne0[9];
 	kmb::nodeIdType ne1[9];
-	for(int i=0;i<9;++i){
-		ne0[i] = middleMan->getDividedNode( wedge2.getEdgeCellId(i,0), wedge2.getEdgeCellId(i,2) );
-		ne1[i] = middleMan->getDividedNode( wedge2.getEdgeCellId(i,2), wedge2.getEdgeCellId(i,1) );
+	kmb::nodeIdType nf2 = kmb::nullNodeId;
+	kmb::nodeIdType nf3 = kmb::nullNodeId;
+	kmb::nodeIdType nf4 = kmb::nullNodeId;
+
+	kmb::nodeIdType nf2_8  = kmb::nullNodeId;
+	kmb::nodeIdType nf2_11 = kmb::nullNodeId;
+	kmb::nodeIdType nf2_12 = kmb::nullNodeId;
+	kmb::nodeIdType nf2_13 = kmb::nullNodeId;
+
+	kmb::nodeIdType nf3_6  = kmb::nullNodeId;
+	kmb::nodeIdType nf3_9  = kmb::nullNodeId;
+	kmb::nodeIdType nf3_13 = kmb::nullNodeId;
+	kmb::nodeIdType nf3_14 = kmb::nullNodeId;
+
+	kmb::nodeIdType nf4_7  = kmb::nullNodeId;
+	kmb::nodeIdType nf4_10 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_12 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_14 = kmb::nullNodeId;
+
+	kmb::nodeIdType nf2_f3 = kmb::nullNodeId;
+	kmb::nodeIdType nf2_f4 = kmb::nullNodeId;
+	kmb::nodeIdType nf3_f4 = kmb::nullNodeId;
+
+	kmb::nodeIdType n6_7  = kmb::nullNodeId;
+	kmb::nodeIdType n6_8  = kmb::nullNodeId;
+	kmb::nodeIdType n7_8  = kmb::nullNodeId;
+
+	kmb::nodeIdType n9_10  = kmb::nullNodeId;
+	kmb::nodeIdType n9_11  = kmb::nullNodeId;
+	kmb::nodeIdType n10_11 = kmb::nullNodeId;
+
+	if( secondFitting ){
+		for(int i=0;i<9;++i){
+			ne0[i] = middleMan->getDividedNode3( wedge2.getEdgeCellId(i,0), wedge2.getEdgeCellId(i,2), wedge2.getEdgeCellId(i,1) );
+			ne1[i] = middleMan->getDividedNode3( wedge2.getEdgeCellId(i,1), wedge2.getEdgeCellId(i,2), wedge2.getEdgeCellId(i,0) );
+		}
+		nf2 = middleMan->getCenterNode2( wedge2, 2, elementId );
+		nf3 = middleMan->getCenterNode2( wedge2, 3, elementId );
+		nf4 = middleMan->getCenterNode2( wedge2, 4, elementId );
+
+		nf2_8  = middleMan->getDividedNode3( wedge2[8],  nf2, wedge2[8] );
+		nf2_11 = middleMan->getDividedNode3( wedge2[11], nf2, wedge2[11] );
+		nf2_12 = middleMan->getDividedNode3( wedge2[12], nf2, wedge2[13] );
+		nf2_13 = middleMan->getDividedNode3( wedge2[13], nf2, wedge2[12] );
+
+		nf3_6  = middleMan->getDividedNode3( wedge2[6],  nf3, wedge2[9] );
+		nf3_9  = middleMan->getDividedNode3( wedge2[9],  nf3, wedge2[6] );
+		nf3_13 = middleMan->getDividedNode3( wedge2[13], nf3, wedge2[14] );
+		nf3_14 = middleMan->getDividedNode3( wedge2[14], nf3, wedge2[13] );
+
+		nf4_7  = middleMan->getDividedNode3( wedge2[7],  nf4, wedge2[10] );
+		nf4_10 = middleMan->getDividedNode3( wedge2[10], nf4, wedge2[7] );
+		nf4_12 = middleMan->getDividedNode3( wedge2[12], nf4, wedge2[14] );
+		nf4_14 = middleMan->getDividedNode3( wedge2[14], nf4, wedge2[12] );
+
+		nf2_f3 = middleMan->getDividedNode5( nf2, nf3, wedge2[12], wedge2[14], nf4 );
+		nf2_f4 = middleMan->getDividedNode5( nf2, nf4, wedge2[13], wedge2[14], nf3 );
+		nf3_f4 = middleMan->getDividedNode5( nf3, nf4, wedge2[13], wedge2[12], nf2 );
+
+		n6_7  = middleMan->getDividedNode5( wedge2[6], wedge2[7], wedge2[1], wedge2[0], wedge2[8] );
+		n6_8  = middleMan->getDividedNode5( wedge2[6], wedge2[8], wedge2[2], wedge2[0], wedge2[7] );
+		n7_8  = middleMan->getDividedNode5( wedge2[7], wedge2[8], wedge2[2], wedge2[1], wedge2[6] );
+
+		n9_10  = middleMan->getDividedNode5( wedge2[9],  wedge2[10], wedge2[4], wedge2[3], wedge2[11] );
+		n9_11  = middleMan->getDividedNode5( wedge2[9],  wedge2[11], wedge2[5], wedge2[3], wedge2[10] );
+		n10_11 = middleMan->getDividedNode5( wedge2[10], wedge2[11], wedge2[5], wedge2[4], wedge2[9] );
+	}else{
+		for(int i=0;i<9;++i){
+			ne0[i] = middleMan->getDividedNode( wedge2.getEdgeCellId(i,0), wedge2.getEdgeCellId(i,2) );
+			ne1[i] = middleMan->getDividedNode( wedge2.getEdgeCellId(i,2), wedge2.getEdgeCellId(i,1) );
+		}
+		nf2 = middleMan->getCenterNode( wedge2, 2, elementId );
+		nf3 = middleMan->getCenterNode( wedge2, 3, elementId );
+		nf4 = middleMan->getCenterNode( wedge2, 4, elementId );
+
+		nf2_8  = middleMan->getDividedNode( nf2, wedge2[8] );
+		nf2_11 = middleMan->getDividedNode( nf2, wedge2[11] );
+		nf2_12 = middleMan->getDividedNode( nf2, wedge2[12] );
+		nf2_13 = middleMan->getDividedNode( nf2, wedge2[13] );
+
+		nf3_6  = middleMan->getDividedNode( nf3, wedge2[6] );
+		nf3_9  = middleMan->getDividedNode( nf3, wedge2[9] );
+		nf3_13 = middleMan->getDividedNode( nf3, wedge2[13] );
+		nf3_14 = middleMan->getDividedNode( nf3, wedge2[14] );
+
+		nf4_7  = middleMan->getDividedNode( nf4, wedge2[7] );
+		nf4_10 = middleMan->getDividedNode( nf4, wedge2[10] );
+		nf4_12 = middleMan->getDividedNode( nf4, wedge2[12] );
+		nf4_14 = middleMan->getDividedNode( nf4, wedge2[14] );
+
+		nf2_f3 = middleMan->getDividedNode( nf2, nf3 );
+		nf2_f4 = middleMan->getDividedNode( nf2, nf4 );
+		nf3_f4 = middleMan->getDividedNode( nf3, nf4 );
+
+		n6_7  = middleMan->getDividedNode( wedge2[6], wedge2[7] );
+		n6_8  = middleMan->getDividedNode( wedge2[6], wedge2[8] );
+		n7_8  = middleMan->getDividedNode( wedge2[7], wedge2[8] );
+
+		n9_10  = middleMan->getDividedNode( wedge2[9],  wedge2[10] );
+		n9_11  = middleMan->getDividedNode( wedge2[9],  wedge2[11] );
+		n10_11 = middleMan->getDividedNode( wedge2[10], wedge2[11] );
 	}
-	kmb::nodeIdType nf2 = middleMan->getCenterNode( wedge2, 2, elementId );
-	kmb::nodeIdType nf3 = middleMan->getCenterNode( wedge2, 3, elementId );
-	kmb::nodeIdType nf4 = middleMan->getCenterNode( wedge2, 4, elementId );
-
-	kmb::nodeIdType nf2_8  = middleMan->getDividedNode( nf2, wedge2.getCellId(8) );
-	kmb::nodeIdType nf2_11 = middleMan->getDividedNode( nf2, wedge2.getCellId(11) );
-	kmb::nodeIdType nf2_12 = middleMan->getDividedNode( nf2, wedge2.getCellId(12) );
-	kmb::nodeIdType nf2_13 = middleMan->getDividedNode( nf2, wedge2.getCellId(13) );
-
-	kmb::nodeIdType nf3_6  = middleMan->getDividedNode( nf3, wedge2.getCellId(6) );
-	kmb::nodeIdType nf3_9  = middleMan->getDividedNode( nf3, wedge2.getCellId(9) );
-	kmb::nodeIdType nf3_13 = middleMan->getDividedNode( nf3, wedge2.getCellId(13) );
-	kmb::nodeIdType nf3_14 = middleMan->getDividedNode( nf3, wedge2.getCellId(14) );
-
-	kmb::nodeIdType nf4_7  = middleMan->getDividedNode( nf4, wedge2.getCellId(7) );
-	kmb::nodeIdType nf4_10 = middleMan->getDividedNode( nf4, wedge2.getCellId(10) );
-	kmb::nodeIdType nf4_12 = middleMan->getDividedNode( nf4, wedge2.getCellId(12) );
-	kmb::nodeIdType nf4_14 = middleMan->getDividedNode( nf4, wedge2.getCellId(14) );
-
-	kmb::nodeIdType nf2_f3 = middleMan->getDividedNode( nf2, nf3 );
-	kmb::nodeIdType nf2_f4 = middleMan->getDividedNode( nf2, nf4 );
-	kmb::nodeIdType nf3_f4 = middleMan->getDividedNode( nf3, nf4 );
-
-	kmb::nodeIdType n6_7  = middleMan->getDividedNode( wedge2.getCellId(6), wedge2.getCellId(7) );
-	kmb::nodeIdType n6_8  = middleMan->getDividedNode( wedge2.getCellId(6), wedge2.getCellId(8) );
-	kmb::nodeIdType n7_8  = middleMan->getDividedNode( wedge2.getCellId(7), wedge2.getCellId(8) );
-
-	kmb::nodeIdType n9_10  = middleMan->getDividedNode( wedge2.getCellId(9),  wedge2.getCellId(10) );
-	kmb::nodeIdType n9_11  = middleMan->getDividedNode( wedge2.getCellId(9),  wedge2.getCellId(11) );
-	kmb::nodeIdType n10_11 = middleMan->getDividedNode( wedge2.getCellId(10), wedge2.getCellId(11) );
 
 	if( refinedBody ){
 		nodeTable[0] = wedge2.getCellId(0);
@@ -2761,7 +2999,6 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 
-					REVOCAP_Debug("refined wedge2 facegroup %d\n",i);
 
 					int faceVertexCount = kmb::Element::getBoundaryVertexCount( kmb::WEDGE2, i );
 					for(int j=0;j<faceVertexCount;++j){
@@ -2811,7 +3048,6 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 void
 kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase &pyramid, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refinePyramid elementId = %ld\n",elementId);
 	kmb::elementIdType e[10] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -2924,7 +3160,6 @@ kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase 
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
 
-			REVOCAP_Debug("refined pyramid facegroup\n");
 			kmb::Face f0(elementId,0);
 			kmb::Face f1(elementId,1);
 			kmb::Face f2(elementId,2);
@@ -2996,7 +3231,6 @@ kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase 
 void
 kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase &pyramid2, kmb::ElementContainer* refinedBody )
 {
-	REVOCAP_Debug_3("call refinePyramid2 elementId = %ld\n",elementId);
 	kmb::elementIdType e[10] = {
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId,
@@ -3027,35 +3261,96 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 
 	kmb::nodeIdType ne0[8];
 	kmb::nodeIdType ne1[8];
-	for(int i=0;i<8;++i){
-		ne0[i] = middleMan->getDividedNode( pyramid2.getEdgeCellId(i,0), pyramid2.getEdgeCellId(i,2) );
-		ne1[i] = middleMan->getDividedNode( pyramid2.getEdgeCellId(i,2), pyramid2.getEdgeCellId(i,1) );
+	kmb::nodeIdType nf4 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_5 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_6 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_7 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_8 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_9 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_10 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_11 = kmb::nullNodeId;
+	kmb::nodeIdType nf4_12 = kmb::nullNodeId;
+
+	kmb::nodeIdType n5_6 = kmb::nullNodeId;
+	kmb::nodeIdType n5_9 = kmb::nullNodeId;
+	kmb::nodeIdType n6_9 = kmb::nullNodeId;
+
+	kmb::nodeIdType n6_7  = kmb::nullNodeId;
+	kmb::nodeIdType n6_10 = kmb::nullNodeId;
+	kmb::nodeIdType n7_10 = kmb::nullNodeId;
+
+	kmb::nodeIdType n7_8  = kmb::nullNodeId;
+	kmb::nodeIdType n7_11 = kmb::nullNodeId;
+	kmb::nodeIdType n8_11 = kmb::nullNodeId;
+
+	kmb::nodeIdType n5_8  = kmb::nullNodeId;
+	kmb::nodeIdType n5_12 = kmb::nullNodeId;
+	kmb::nodeIdType n8_12 = kmb::nullNodeId;
+	if( secondFitting ){
+		for(int i=0;i<8;++i){
+			ne0[i] = middleMan->getDividedNode3( pyramid2.getEdgeCellId(i,0), pyramid2.getEdgeCellId(i,2), pyramid2.getEdgeCellId(i,1) );
+			ne1[i] = middleMan->getDividedNode3( pyramid2.getEdgeCellId(i,1), pyramid2.getEdgeCellId(i,2), pyramid2.getEdgeCellId(i,0) );
+		}
+		nf4 = middleMan->getCenterNode2( pyramid2, 4, elementId );
+
+		nf4_5 = middleMan->getDividedNodePyrmid2c( 5, nf4, pyramid2, elementId );
+		nf4_6 = middleMan->getDividedNodePyrmid2c( 6, nf4, pyramid2, elementId );
+		nf4_7 = middleMan->getDividedNodePyrmid2c( 7, nf4, pyramid2, elementId );
+		nf4_8 = middleMan->getDividedNodePyrmid2c( 8, nf4, pyramid2, elementId );
+
+		nf4_9  = middleMan->getDividedNode3( pyramid2[9],  nf4, pyramid2[11] );
+		nf4_10 = middleMan->getDividedNode3( pyramid2[10], nf4, pyramid2[12] );
+		nf4_11 = middleMan->getDividedNode3( pyramid2[11], nf4, pyramid2[9] );
+		nf4_12 = middleMan->getDividedNode3( pyramid2[12], nf4, pyramid2[10] );
+
+
+
+		n5_6 = middleMan->getDividedNode5( pyramid2[5], pyramid2[6], pyramid2[1], pyramid2[2], pyramid2[9] );
+		n5_9 = middleMan->getDividedNode5( pyramid2[5], pyramid2[9], pyramid2[0], pyramid2[2], pyramid2[6] );
+		n6_9 = middleMan->getDividedNode5( pyramid2[6], pyramid2[9], pyramid2[0], pyramid2[1], pyramid2[5] );
+
+		n6_7  = middleMan->getDividedNode5( pyramid2[6], pyramid2[7], pyramid2[2], pyramid2[3], pyramid2[10] );
+		n6_10 = middleMan->getDividedNode5( pyramid2[6], pyramid2[10], pyramid2[0], pyramid2[3], pyramid2[7] );
+		n7_10 = middleMan->getDividedNode5( pyramid2[7], pyramid2[10], pyramid2[0], pyramid2[2], pyramid2[6] );
+
+		n7_8  = middleMan->getDividedNode5( pyramid2[7], pyramid2[8], pyramid2[3], pyramid2[4], pyramid2[11] );
+		n7_11 = middleMan->getDividedNode5( pyramid2[7], pyramid2[11], pyramid2[0], pyramid2[4], pyramid2[8] );
+		n8_11 = middleMan->getDividedNode5( pyramid2[8], pyramid2[11], pyramid2[0], pyramid2[3], pyramid2[7] );
+
+		n5_8  = middleMan->getDividedNode5( pyramid2[5], pyramid2[8], pyramid2[1], pyramid2[4], pyramid2[12] );
+		n5_12 = middleMan->getDividedNode5( pyramid2[5], pyramid2[12], pyramid2[0], pyramid2[4], pyramid2[8] );
+		n8_12 = middleMan->getDividedNode5( pyramid2[8], pyramid2[12], pyramid2[0], pyramid2[1], pyramid2[5] );
+	}else{
+		for(int i=0;i<8;++i){
+			ne0[i] = middleMan->getDividedNode( pyramid2.getEdgeCellId(i,0), pyramid2.getEdgeCellId(i,2) );
+			ne1[i] = middleMan->getDividedNode( pyramid2.getEdgeCellId(i,2), pyramid2.getEdgeCellId(i,1) );
+		}
+		nf4 = middleMan->getCenterNode( pyramid2, 4, elementId );
+		nf4_5 = middleMan->getDividedNode( nf4, pyramid2[5] );
+		nf4_6 = middleMan->getDividedNode( nf4, pyramid2[6] );
+		nf4_7 = middleMan->getDividedNode( nf4, pyramid2[7] );
+		nf4_8 = middleMan->getDividedNode( nf4, pyramid2[8] );
+		nf4_9 = middleMan->getDividedNode( nf4, pyramid2[9] );
+		nf4_10 = middleMan->getDividedNode( nf4, pyramid2[10] );
+		nf4_11 = middleMan->getDividedNode( nf4, pyramid2[11] );
+		nf4_12 = middleMan->getDividedNode( nf4, pyramid2[12] );
+
+		n5_6 = middleMan->getDividedNode( pyramid2[5], pyramid2[6] );
+		n5_9 = middleMan->getDividedNode( pyramid2[5], pyramid2[9] );
+		n6_9 = middleMan->getDividedNode( pyramid2[6], pyramid2[9] );
+
+		n6_7  = middleMan->getDividedNode( pyramid2[6], pyramid2[7] );
+		n6_10 = middleMan->getDividedNode( pyramid2[6], pyramid2[10] );
+		n7_10 = middleMan->getDividedNode( pyramid2[7], pyramid2[10] );
+
+		n7_8  = middleMan->getDividedNode( pyramid2[7], pyramid2[8] );
+		n7_11 = middleMan->getDividedNode( pyramid2[7], pyramid2[11] );
+		n8_11 = middleMan->getDividedNode( pyramid2[8], pyramid2[11] );
+
+		n5_8  = middleMan->getDividedNode( pyramid2[5], pyramid2[8] );
+		n5_12 = middleMan->getDividedNode( pyramid2[5], pyramid2[12] );
+		n8_12 = middleMan->getDividedNode( pyramid2[8], pyramid2[12] );
 	}
-	kmb::nodeIdType nf4 = middleMan->getCenterNode( pyramid2, 4, elementId );
-	kmb::nodeIdType nf4_5 = middleMan->getDividedNode( nf4, pyramid2.getCellId(5) );
-	kmb::nodeIdType nf4_6 = middleMan->getDividedNode( nf4, pyramid2.getCellId(6) );
-	kmb::nodeIdType nf4_7 = middleMan->getDividedNode( nf4, pyramid2.getCellId(7) );
-	kmb::nodeIdType nf4_8 = middleMan->getDividedNode( nf4, pyramid2.getCellId(8) );
-	kmb::nodeIdType nf4_9 = middleMan->getDividedNode( nf4, pyramid2.getCellId(9) );
-	kmb::nodeIdType nf4_10 = middleMan->getDividedNode( nf4, pyramid2.getCellId(10) );
-	kmb::nodeIdType nf4_11 = middleMan->getDividedNode( nf4, pyramid2.getCellId(11) );
-	kmb::nodeIdType nf4_12 = middleMan->getDividedNode( nf4, pyramid2.getCellId(12) );
-
-	kmb::nodeIdType n5_6 = middleMan->getDividedNode( pyramid2.getCellId(5), pyramid2.getCellId(6) );
-	kmb::nodeIdType n5_9 = middleMan->getDividedNode( pyramid2.getCellId(6), pyramid2.getCellId(9) );
-	kmb::nodeIdType n6_9 = middleMan->getDividedNode( pyramid2.getCellId(6), pyramid2.getCellId(9) );
-
-	kmb::nodeIdType n6_7  = middleMan->getDividedNode( pyramid2.getCellId(6), pyramid2.getCellId(7) );
-	kmb::nodeIdType n6_10 = middleMan->getDividedNode( pyramid2.getCellId(6), pyramid2.getCellId(10) );
-	kmb::nodeIdType n7_10 = middleMan->getDividedNode( pyramid2.getCellId(7), pyramid2.getCellId(10) );
-
-	kmb::nodeIdType n7_8  = middleMan->getDividedNode( pyramid2.getCellId(7), pyramid2.getCellId(8) );
-	kmb::nodeIdType n7_11 = middleMan->getDividedNode( pyramid2.getCellId(7), pyramid2.getCellId(11) );
-	kmb::nodeIdType n8_11 = middleMan->getDividedNode( pyramid2.getCellId(8), pyramid2.getCellId(11) );
-
-	kmb::nodeIdType n5_8  = middleMan->getDividedNode( pyramid2.getCellId(5), pyramid2.getCellId(8) );
-	kmb::nodeIdType n5_12 = middleMan->getDividedNode( pyramid2.getCellId(5), pyramid2.getCellId(12) );
-	kmb::nodeIdType n8_12 = middleMan->getDividedNode( pyramid2.getCellId(8), pyramid2.getCellId(12) );
 
 	if( refinedBody ){
 
@@ -3279,7 +3574,6 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
 
-			REVOCAP_Debug("refined pyramid2 facegroup\n");
 			kmb::Face f0(elementId,0);
 			kmb::Face f1(elementId,1);
 			kmb::Face f2(elementId,2);
@@ -3334,7 +3628,6 @@ kmb::MeshRefiner::getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* ori
 	if( middleMan && mesh ){
 		kmb::elementIdType elementId = middleMan->getOriginalNode(middleNodeId,a,b);
 		if( elementId != kmb::Element::nullElementId ){
-			REVOCAP_Debug_3("getOriginal %d => element %d ", middleNodeId, elementId);
 			kmb::ElementContainer::const_iterator eIter = mesh->findElement( elementId );
 			if( !eIter.isFinished() ){
 
@@ -3347,29 +3640,22 @@ kmb::MeshRefiner::getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* ori
 					for(int i=0;i<num;++i){
 						originalNodes[i] = eIter.getCellId(i);
 					}
-					REVOCAP_Debug_3("%s\n", eIter.getTypeString().c_str());
 					return eIter.getType();
 				}else if( faceIndex < boundaryCount ){
 					int num = eIter.getBoundaryNodeCount( faceIndex );
 					for(int i=0;i<num;++i){
 						originalNodes[i] = eIter.getBoundaryCellId( faceIndex, i );
 					}
-					REVOCAP_Debug_3("%s %d %s\n", eIter.getTypeString().c_str(), faceIndex,
-						kmb::Element::getTypeString(eIter.getBoundaryType(faceIndex)).c_str() );
 					return eIter.getBoundaryType( faceIndex );
 				}else if( faceIndex < boundaryCount + eIter.getEdgeCount() ){
 					int num = eIter.getEdgeNodeCount( faceIndex - boundaryCount );
 					for(int i=0;i<num;++i){
 						originalNodes[i] = eIter.getEdgeCellId( faceIndex - boundaryCount, i );
 					}
-					REVOCAP_Debug_3("%s %d %s\n", eIter.getTypeString().c_str(), faceIndex,
-						kmb::Element::getTypeString(eIter.getEdgeType(faceIndex-boundaryCount)).c_str() );
 					return eIter.getEdgeType( faceIndex - boundaryCount );
 				}
 			}
-			REVOCAP_Debug_3("[%d %d]\n", a, b);
 		}else if( a != kmb::nullNodeId && b != kmb::nullNodeId ){
-			REVOCAP_Debug_3("getOriginal %d => no element [%d %d]\n", middleNodeId, a, b );
 			originalNodes[0] = a;
 			originalNodes[1] = b;
 			return kmb::SEGMENT;
@@ -3418,7 +3704,6 @@ kmb::MeshRefiner::nodeGroupUpdate( kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::
 	if( originalData==NULL || refinedData==NULL || n01 == kmb::nullNodeId ){
 		return false;
 	}
-	REVOCAP_Debug_3("refined tetra nodegroup update\n");
 	bool res0 = originalData->hasId( n0 );
 	bool res1 = originalData->hasId( n1 );
 	if( res0 )	refinedData->addId( n0 );
@@ -3485,7 +3770,6 @@ kmb::MeshRefiner::nodeVariableUpdate( kmb::nodeIdType n0, kmb::nodeIdType n1, km
 	long v0 = 0, v1 = 0;
 	bool res0 = originalData->getPhysicalValue(n0,&v0);
 	bool res1 = originalData->getPhysicalValue(n1,&v1);
-	REVOCAP_Debug_3("nodeVariableUpdate [%d,%d] [%d,%d] => %d\n",n0,v0,n1,v1,n01);
 	if( res0 )	refinedData->setPhysicalValue(n0,&v0);
 	if( res1 )	refinedData->setPhysicalValue(n1,&v1);
 	if( res0 && res1 )
@@ -3536,7 +3820,6 @@ kmb::MeshRefiner::nodeVariableUpdate( kmb::ElementBase &elem, kmb::nodeIdType ce
 		}
 		flag &= res;
 	}
-	REVOCAP_Debug_3("nodeVariableUpdate %s => %d\n",elem.getTypeString().c_str(),centerId);
 	if( flag ){
 		switch(interpRule){
 			case kmb::MeshRefiner::MIN:
@@ -3582,7 +3865,6 @@ kmb::MeshRefiner::nodeVariableUpdate( kmb::ElementBase &elem, int faceIndex, kmb
 		}
 		flag &= res;
 	}
-	REVOCAP_Debug_3("nodeVariableUpdate [%s %d] => %d\n",elem.getTypeString().c_str(),faceIndex,centerId);
 	if( flag ){
 		switch(interpRule){
 			case kmb::MeshRefiner::MIN:

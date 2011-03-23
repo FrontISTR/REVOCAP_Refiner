@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Tensor6ValueBindings                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -58,6 +58,8 @@ public:
 	};
 	virtual iterator begin(void);
 	virtual const_iterator begin(void) const;
+	const double* getDoubleArray(void) const;
+	double* getDoubleArray(void);
 private:
 	int size;
 	double* values;

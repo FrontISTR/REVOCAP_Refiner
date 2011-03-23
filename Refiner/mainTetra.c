@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 0.4                          #
+# Software Name : REVOCAP_Refiner version 1.0                          #
 # Sample Program Tetrahedron                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,7 +13,6 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * gcc -D_CONSOLE mainTetra.c -L../lib/i486-linux/ -lstdc++ -lRcapRefiner
  *
  * サンプル実行例＆テスト用プログラム
  * 四面体の細分チェック用
@@ -23,8 +22,10 @@
 #ifdef _CONSOLE
 
 #include "rcapRefiner.h"
+#include "rcapRefinerMacros.h"
 #include <stdio.h>
 #include <stdlib.h>  /* for calloc, free */
+#include <assert.h>
 
 int main(void)
 {
@@ -58,43 +59,71 @@ int main(void)
 	int32_t* result_ng0 = NULL;
 	size_t ng0Count = 3;
 
+	/* カウンタ */
+	int32_t i,j;
+
 	/* 節点番号のオフセット値を与える */
 	rcapInitRefiner( nodeOffset, elementOffset );
+	printf("----- Original Model -----\n");
 	/* 座標値を Refiner に与える */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
-
-	printf("---------------------- ORIGINAL -----------------------------------------\n");
+	/* 細分前の節点数 */
+	nodeCount = rcapGetNodeCount();
+	assert( nodeCount == 4 );
+	printf("Node : Count = %"PRIsz"\n", nodeCount );
+	for(i=0;(size_t)i<nodeCount;++i){
+		printf("%d : %f, %f, %f\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
+	}
 	/* 細分前の要素数 */
-	printf("Original Element Count = %d\n", elementCount );
+	assert( elementCount == 1 );
+	printf("Element : Count = %"PRIsz"\n", elementCount );
+	for(i=0;(size_t)i<elementCount;++i){
+		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype,
+			tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3]);
+	}
 	/* 節点グループの登録 */
 	rcapAppendNodeGroup("ng0",ng0Count,ng0);
 	ng0Count = rcapGetNodeGroupCount("ng0");
-	printf("Original Node Group Count %u\n", ng0Count );
-	/* 細分前の節点数 */
-	nodeCount = rcapGetNodeCount();
-	printf("Original Node Count = %u\n", nodeCount );
+	assert( ng0Count == 3 );
+	printf("Node Group : Count = %"PRIsz"\n", ng0Count );
+	for(i=0;(size_t)i<ng0Count;++i){
+		printf("%d\n", ng0[i]);
+	}
 
-	printf("---------------------- REFINE -----------------------------------------\n");
+	printf("----- Refined Model -----\n");
+
 	/* 要素の細分 */
 	refineElementCount = rcapRefineElement( elementCount, etype, tetras, NULL );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
 	elementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras);
-	printf("Refined Element Count = %u\n", elementCount );
 	rcapCommit();
+
+	/* 細分後の節点 */
+	refineNodeCount = rcapGetNodeCount();
+	printf("Node : Count = %"PRIsz"\n", refineNodeCount );
+	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
+	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
+	for(j=0;(size_t)j<refineNodeCount;++j){
+		printf("%d : %f, %f, %f\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
+	}
+	free( resultCoords );
+
+	/* 細分後の要素 */
+	printf("Element : Count = %"PRIsz"\n", refineElementCount );
+	for(i=0;(size_t)i<refineElementCount;++i){
+		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype,
+			refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
+	}
 
 	/* 細分後の節点グループの更新 */
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
-	printf("Refined Node Group Count %u\n", ng0Count );
+	printf("Refined Node Group : Count = %"PRIsz"\n", ng0Count );
 	rcapGetNodeGroup("ng0",ng0Count,result_ng0);
+	for(i=0;(size_t)i<ng0Count;++i){
+		printf("%d\n", result_ng0[i]);
+	}
 	free( result_ng0 );
-
-	/* 細分後の節点 */
-	refineNodeCount = rcapGetNodeCount();
-	printf("Refined Node Count = %u\n", refineNodeCount );
-	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
-	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
-	free( resultCoords );
 
 	free( refineTetras );
 	rcapTermRefiner();

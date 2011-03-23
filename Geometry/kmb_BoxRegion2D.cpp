@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BoxRegion2D                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,10 +24,13 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "Geometry/kmb_BoxRegion2D.h"
+#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmb_BoundingBox.h"
 
 #include <cmath>
+#include <cfloat>
 
-kmb::BoxRegion2D::BoxRegion2D(kmb::Point2D &l,kmb::Point2D &u)
+kmb::BoxRegion2D::BoxRegion2D(const kmb::Point2D &l,const kmb::Point2D &u)
 {
 	kmb::BoxRegion2D(l.x(), l.y(), u.x(), u.y() );
 }
@@ -219,33 +222,15 @@ kmb::BoxRegion2D::distanceSq(const double x,const double y) const
 bool
 kmb::BoxRegion2D::intersect(const kmb::BoxRegion2D &box) const
 {
-	double lowX = ( minX() < box.minX() ? box.minX() : minX() );
-	double lowY = ( minY() < box.minY() ? box.minY() : minY() );
-	double highX = ( maxX() > box.maxX() ? box.maxX() : maxX() );
-	double highY = ( maxY() > box.maxY() ? box.maxY() : maxY() );
+	double lowX = kmb::Maximizer::getMax( minX(), box.minX() );
+	double lowY = kmb::Maximizer::getMax( minY(), box.minY() );
+	double highX = kmb::Minimizer::getMin( maxX(), box.maxX() );
+	double highY = kmb::Minimizer::getMin( maxY(), box.maxY() );
 	if( lowX < highX && lowY < highY ){
 		return true;
 	}else{
 		return false;
 	}
-/*
-
-	if( ( box.maxPoint.x() < minPoint.x() && box.maxPoint.y() < minPoint.y() ) ||
-		( box.minPoint.x() < maxPoint.x() && box.minPoint.y() < maxPoint.y() ) ){
-			return false;
-	}
-
-
-	bool lowx = ( minPoint.x() < box.minPoint.x() && box.minPoint.x() < maxPoint.x() );
-	bool lowy = ( minPoint.y() < box.minPoint.y() && box.minPoint.y() < maxPoint.y() );
-	bool highx = ( minPoint.x() < box.maxPoint.x() && box.maxPoint.x() < maxPoint.x() );
-	bool highy = ( minPoint.y() < box.maxPoint.y() && box.maxPoint.y() < maxPoint.y() );
-	return
-		( lowx && lowy ) ||
-		( lowx && highy ) ||
-		( highx && lowy ) ||
-		( highx && highy );
-*/
 }
 
 double
@@ -258,10 +243,10 @@ double
 kmb::BoxRegion2D::intersectArea(const BoxRegion2D& box) const
 {
 
-	double lowX = ( minX() < box.minX() ? box.minX() : minX() );
-	double lowY = ( minY() < box.minY() ? box.minY() : minY() );
-	double highX = ( maxX() > box.maxX() ? box.maxX() : maxX() );
-	double highY = ( maxY() > box.maxY() ? box.maxY() : maxY() );
+	double lowX = kmb::Maximizer::getMax( minX(), box.minX() );
+	double lowY = kmb::Maximizer::getMax( minY(), box.minY() );
+	double highX = kmb::Minimizer::getMin( maxX(), box.maxX() );
+	double highY = kmb::Minimizer::getMin( maxY(), box.maxY() );
 	if( lowX < highX && lowY < highY ){
 		return (highX - lowX) * (highY - lowY);
 	}else{
@@ -293,3 +278,30 @@ kmb::BoxRegion2D::expand(double ratio)
 	}
 }
 
+void
+kmb::BoxRegion2D::crossOnLine(const kmb::Point2D& origin, const kmb::Vector2D& dir, double &min_t, double &max_t) const
+{
+	kmb::BoundingBox1D bbox_x, bbox_y;
+	if( dir.x() != 0.0 ){
+		bbox_x.update( (minPoint.x() - origin.x()) / dir.x() );
+		bbox_x.update( (maxPoint.x() - origin.x()) / dir.x() );
+	}else if( minPoint.x() <= origin.x() && origin.x() <= maxPoint.x() ){
+		bbox_x.update( DBL_MAX );
+		bbox_x.update( -DBL_MAX );
+	}
+	if( dir.y() != 0.0 ){
+		bbox_y.update( (minPoint.y() - origin.y()) / dir.y() );
+		bbox_y.update( (maxPoint.y() - origin.y()) / dir.y() );
+	}else if( minPoint.y() <= origin.y() && origin.y() <= maxPoint.y() ){
+		bbox_y.update( DBL_MAX );
+		bbox_y.update( -DBL_MAX );
+	}
+
+	if( bbox_x.intersect( bbox_y ) ){
+		min_t = kmb::Maximizer::getMax( bbox_x.getMin(), bbox_y.getMin() );
+		max_t = kmb::Minimizer::getMin( bbox_x.getMax(), bbox_y.getMax() );
+		return;
+	}
+	min_t = 0.0;
+	max_t = 0.0;
+}

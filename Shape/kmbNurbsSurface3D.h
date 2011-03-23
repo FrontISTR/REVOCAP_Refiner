@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : NurbsSurface3D                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -34,7 +34,9 @@ public:
 	void clear(void);
 	virtual kmb::Surface3D::surfaceType getSurfaceType(void) const;
 	virtual void getDomain( double &min_u, double &max_u, double &min_v, double &max_v ) const;
-	bool isDomain( double u, double v ) const;
+	virtual bool isDomain( double u, double v ) const;
+	virtual bool isUDomain( double u ) const;
+	virtual bool isVDomain( double v ) const;
 
 
 	bool setOrder(unsigned int uOrder,unsigned int vOrder);
@@ -49,16 +51,24 @@ public:
 	double getUKnot(int i) const;
 	double getVKnot(int i) const;
 	bool valid(void) const;
+	virtual bool getDerivative( derivativeType d, double u, double v, kmb::Vector3D& tangent ) const;
 	virtual bool getPoint( double u, double v, kmb::Point3D& point ) const;
+
+	virtual bool getMiddlePoint( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const;
+	virtual bool getMiddlePointByNearest( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const;
+
 	virtual int writeRNF( std::ofstream &output, std::string indent="  " ) const;
+
+	virtual bool getNearest( const kmb::Point3D& point, double &u, double &v ) const;
 protected:
 
-	virtual bool newtonMethod( double &u, double &v, const kmb::Point3D& point, double relax=1.0 ) const;
 
-	virtual bool getSubDerivative( derivativeType d, double u, double v, kmb::Vector3D& tangent ) const;
+
+
+	virtual bool getSubDerivative( derivativeType d, double u, double v, kmb::Vector3D &tangent ) const;
+	virtual bool getWeightDerivative( derivativeType d, double u, double v, double &w ) const;
+
 	virtual bool getWeight( double u, double v, double &w ) const;
-
-	bool shiftInsideDomain( double &u, double &v, double du, double dv ) const;
 };
 
 }

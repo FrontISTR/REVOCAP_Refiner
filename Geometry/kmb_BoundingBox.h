@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BoundingBox                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -38,7 +38,8 @@ public:
 	void initialize(void);
 	bool update(const Point3D& point);
 	bool update(const double x, const double y,const double z);
-	bool update(const BoundingBox& box);
+	bool update(const BoxRegion& box);
+	bool valid(void) const;
 };
 
 class BoundingBox2D : public BoxRegion2D
@@ -50,6 +51,7 @@ public:
 	void initialize(void);
 	bool update(const double x, const double y);
 	bool update(const Point2D& point);
+	bool valid(void) const;
 };
 
 class BoundingBox1D
@@ -64,6 +66,11 @@ public:
 	bool update(double value);
 	double center(void) const;
 	double range(void) const;
+	bool valid(void) const;
+
+	bool intersect(const kmb::BoundingBox1D& box) const;
+	double intersectLength(const kmb::BoundingBox1D& box) const;
+	double distanceSq(const kmb::BoundingBox1D& box) const;
 private:
 	double maxValue;
 	double minValue;

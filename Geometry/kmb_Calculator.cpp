@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Calculator                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -38,19 +38,22 @@ kmb::AverageCalculator::~AverageCalculator(void)
 {
 }
 
-void kmb::AverageCalculator::initialize(void)
+void
+kmb::AverageCalculator::initialize(void)
 {
 	this->sum = 0.0;
 	this->counter = 0;
 }
 
-void kmb::AverageCalculator::add(double value)
+void
+kmb::AverageCalculator::add(double value)
 {
 	this->sum += value;
 	++(this->counter);
 }
 
-double kmb::AverageCalculator::getAverage(void)
+double
+kmb::AverageCalculator::getAverage(void) const
 {
 	if( counter == 0 )
 		return DBL_MAX;
@@ -68,12 +71,14 @@ kmb::Minimizer::~Minimizer(void)
 {
 }
 
-void kmb::Minimizer::initialize(void)
+void
+kmb::Minimizer::initialize(void)
 {
 	this->minValue = DBL_MAX;
 }
 
-bool kmb::Minimizer::update(double value)
+bool
+kmb::Minimizer::update(double value)
 {
 	if( value < this->minValue ){
 		this->minValue = value;
@@ -83,12 +88,14 @@ bool kmb::Minimizer::update(double value)
 	}
 }
 
-double kmb::Minimizer::getMin(double x,double y)
+double
+kmb::Minimizer::getMin(double x,double y)
 {
 	return (x>y)? y : x;
 }
 
-double kmb::Minimizer::getMin(double x,double y,double z)
+double
+kmb::Minimizer::getMin(double x,double y,double z)
 {
 	return (x>y)?
 		( (y>z)? z : y ):
@@ -105,12 +112,14 @@ kmb::Maximizer::~Maximizer(void)
 {
 }
 
-void kmb::Maximizer::initialize(void)
+void
+kmb::Maximizer::initialize(void)
 {
 	this->maxValue = -DBL_MAX;
 }
 
-bool kmb::Maximizer::update(double value)
+bool
+kmb::Maximizer::update(double value)
 {
 	if( value > this->maxValue ){
 		this->maxValue = value;
@@ -120,12 +129,14 @@ bool kmb::Maximizer::update(double value)
 	}
 }
 
-double kmb::Maximizer::getMax(double x,double y)
+double
+kmb::Maximizer::getMax(double x,double y)
 {
 	return (x<y)? y : x;
 }
 
-double kmb::Maximizer::getMax(double x,double y,double z)
+double
+kmb::Maximizer::getMax(double x,double y,double z)
 {
 	return (x<y)?
 		( (y<z)? z : y ):
@@ -211,7 +222,7 @@ kmb::IntegerCalculator::update(long value)
 }
 
 long
-kmb::IntegerCalculator::getAverage(void)
+kmb::IntegerCalculator::getAverage(void) const
 {
 	if( counter == 0 )
 		return LONG_MAX;

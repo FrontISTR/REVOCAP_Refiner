@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : TetMeshMIO                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -33,119 +33,87 @@
 #include <vector>
 #include <cstdlib>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4996)
+#endif
+
 int
 kmb::TetMeshMIO::loadFromFile(const char* filename,MeshData* mesh)
 {
 	if( mesh == NULL ){
 		return -1;
 	}else{
-		kmb::nodeIdType ary[20] =
-		{
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId,
-			kmb::nullNodeId
-		};
+		kmb::nodeIdType tmp[20];
+		kmb::nodeIdType ary[20];
+		std::fill_n( tmp, 20, kmb::nullNodeId );
+		std::fill_n( ary, 20, kmb::nullNodeId );
 		std::ifstream input( filename, std::ios_base::in );
 		if( input.fail() ){
 			return -1;
 		}
 		size_t i;
-		std::vector<kmb::nodeIdType> vertices;
+		size_t count=0;
 		std::string line;
 		nodeIdType nodeId;
 		std::getline( input, line );
 		size_t elementCount = atol(line.c_str());
-		mesh->beginElement( elementCount, new kmb::ElementContainerArray(elementCount) );
+		mesh->beginElement( elementCount );
 		for(i = 0;i<elementCount;++i){
+			count = 0;
 			std::getline( input, line );
 			std::istringstream tokenizer(line);
 			while(tokenizer >> nodeId){
-				vertices.push_back(nodeId);
+				if( count < 20 ){
+					tmp[count] = nodeId;
+				}
+				++count;
 			}
-			switch( vertices.size() ){
-				case 4:
-					{
-						ary[0] = vertices[0];
-						ary[1] = vertices[1];
-						ary[2] = vertices[2];
-						ary[3] = vertices[3];
-						mesh->addElement( kmb::TETRAHEDRON, ary );
-					}
-					break;
-				case 10:
-					{
-						ary[0] = vertices[0];
-						ary[1] = vertices[1];
-						ary[2] = vertices[2];
-						ary[3] = vertices[3];
-						ary[4] = vertices[7];
-						ary[5] = vertices[5];
-						ary[6] = vertices[4];
-						ary[7] = vertices[6];
-						ary[8] = vertices[9];
-						ary[9] = vertices[8];
-						mesh->addElement( kmb::TETRAHEDRON2, ary );
-					}
-					break;
-				case 8:
-					{
-						ary[0] = vertices[0];
-						ary[1] = vertices[1];
-						ary[2] = vertices[2];
-						ary[3] = vertices[3];
-						ary[4] = vertices[4];
-						ary[5] = vertices[5];
-						ary[6] = vertices[6];
-						ary[7] = vertices[7];
-						mesh->addElement( kmb::HEXAHEDRON, ary );
-					}
-					break;
-				case 20:
-					{
-						ary[0] = vertices[0];
-						ary[1] = vertices[1];
-						ary[2] = vertices[2];
-						ary[3] = vertices[3];
-						ary[4] = vertices[4];
-						ary[5] = vertices[5];
-						ary[6] = vertices[6];
-						ary[7] = vertices[7];
-						ary[8] = vertices[8];
-						ary[9] = vertices[9];
-						ary[10] = vertices[10];
-						ary[11] = vertices[11];
-						ary[12] = vertices[16];
-						ary[13] = vertices[17];
-						ary[14] = vertices[18];
-						ary[15] = vertices[19];
-						ary[16] = vertices[12];
-						ary[17] = vertices[13];
-						ary[18] = vertices[14];
-						ary[19] = vertices[15];
-						mesh->addElement( kmb::HEXAHEDRON2, ary );
-					}
-					break;
-				default:
-					break;
+			switch( count ){
+			case 4:
+				mesh->addElement( kmb::TETRAHEDRON, tmp );
+				break;
+			case 10:
+				ary[0] = tmp[0];
+				ary[1] = tmp[1];
+				ary[2] = tmp[2];
+				ary[3] = tmp[3];
+				ary[6] = tmp[4];
+				ary[5] = tmp[5];
+				ary[7] = tmp[6];
+				ary[4] = tmp[7];
+				ary[9] = tmp[8];
+				ary[8] = tmp[9];
+				mesh->addElement( kmb::TETRAHEDRON2, ary );
+				break;
+			case 8:
+				mesh->addElement( kmb::HEXAHEDRON, tmp );
+				break;
+			case 20:
+				ary[0] = tmp[0];
+				ary[1] = tmp[1];
+				ary[2] = tmp[2];
+				ary[3] = tmp[3];
+				ary[4] = tmp[4];
+				ary[5] = tmp[5];
+				ary[6] = tmp[6];
+				ary[7] = tmp[7];
+				ary[8] = tmp[8];
+				ary[9] = tmp[9];
+				ary[10] = tmp[10];
+				ary[11] = tmp[11];
+				ary[16] = tmp[12];
+				ary[17] = tmp[13];
+				ary[18] = tmp[14];
+				ary[19] = tmp[15];
+				ary[12] = tmp[16];
+				ary[13] = tmp[17];
+				ary[14] = tmp[18];
+				ary[15] = tmp[19];
+				mesh->addElement( kmb::HEXAHEDRON2, ary );
+				break;
+			default:
+				break;
 			}
-			vertices.clear();
 		}
 		mesh->endElement();
 		unsigned int nodeCount = 0;
@@ -163,8 +131,12 @@ kmb::TetMeshMIO::loadFromFile(const char* filename,MeshData* mesh)
 		for(i=0;i<bodyCount;++i){
 			input >> elementCount;
 			if(i>0){
-				mesh->beginElement(elementCount);
+				kmb::bodyIdType bodyId = mesh->beginElement(elementCount);
 				mesh->endElement();
+
+
+
+				mesh->getBodyPtr(bodyId)->setOffsetId( 0 );
 			}
 			for(unsigned int j=0;j<elementCount;++j){
 				input >> elementId;

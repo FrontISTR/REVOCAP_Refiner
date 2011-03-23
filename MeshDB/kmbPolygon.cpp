@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Polygon                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,7 +29,6 @@
 
 #include "Geometry/kmb_Polygon2D.h"
 #include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Debug.h"
 
 kmb::Polygon::Polygon(void)
 : edges(NULL)
@@ -468,7 +467,6 @@ kmb::Polygon::dividePolygonsByDiagonals(
 	if( points == NULL ){
 		return;
 	}
-	REVOCAP_Debug("dividePolygonsByDiagonals original edge %u\n",getSize());
 
 
 	std::multimap< kmb::nodeIdType, kmb::nodeIdType > nodePairs;
@@ -481,7 +479,6 @@ kmb::Polygon::dividePolygonsByDiagonals(
 		++eIter;
 	}
 
-	REVOCAP_Debug("diagonals %u\n", diagonals.size());
 	std::vector< std::pair<kmb::nodeIdType, kmb::nodeIdType> >::iterator dIter = diagonals.begin();
 	while( dIter != diagonals.end() )
 	{
@@ -498,7 +495,6 @@ kmb::Polygon::dividePolygonsByDiagonals(
 		if( !flag ){
 			nodePairs.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >(dIter->first,dIter->second) );
 			nodePairs.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >(dIter->second,dIter->first) );
-			REVOCAP_Debug_3("%d %d\n", dIter->first, dIter->second);
 		}
 		++dIter;
 	}
@@ -515,7 +511,6 @@ kmb::Polygon::dividePolygonsByDiagonals(
 			kmb::nodeIdType nodeId = nIter->second;
 			kmb::Polygon* polygon = NULL;
 			polygon = new kmb::Polygon();
-			REVOCAP_Debug_3("createPolygon\n");
 			kmb::nodeIdType startId = nodeId;
 			while( nodeId != kmb::nullNodeId ){
 
@@ -543,7 +538,6 @@ kmb::Polygon::dividePolygonsByDiagonals(
 
 
 
-					REVOCAP_Debug_3("addSegment %d %d\n", nodeId, nextId);
 					polygon->addSegment( nodeId, nextId );
 				}
 				prevId = nodeId;
@@ -554,10 +548,8 @@ kmb::Polygon::dividePolygonsByDiagonals(
 			}
 			if( polygon->getSize() >= 3 && polygon->isClosed() ){
 				polygons.push_back( polygon );
-				REVOCAP_Debug_3("dividePolygonsByDiagonals success %d\n", polygon->getSize());
 			}else{
 
-				REVOCAP_Debug_3("dividePolygonsByDiagonals failure %d\n", polygon->getSize());
 				delete polygon;
 			}
 		}
@@ -589,7 +581,6 @@ kmb::Polygon::getNextNode(
 		if( deleteflag ){
 			nodePairs.erase( nextIter );
 		}
-		REVOCAP_Debug_3("getNextNode %d %d %d\n", prevId, nodeId, nextIter->second );
 	}
 
 	else{
@@ -604,10 +595,8 @@ kmb::Polygon::getNextNode(
 			kmb::Point2D nextPoint;
 			if( points->getPoint( nIter->second, nextPoint ) && nIter->second != prevId ){
 				double ang = Point2D::angle2( prevPoint, nowPoint, nextPoint );
-				REVOCAP_Debug_3("getNextNode %d %d %d => ang %f\n", prevId, nodeId, nextIter->second, ang );
 				if( maximizer.update( ang ) ){
 					nextIter = nIter;
-					REVOCAP_Debug_2("update next id %d\n", nIter->second );
 				}
 			}
 			++nIter;

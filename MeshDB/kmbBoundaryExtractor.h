@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BoundaryExtractor                                       #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -42,6 +42,7 @@ protected:
 	kmb::MeshData* mesh;
 
 	bool reverseMode;
+
 	std::multimap< kmb::nodeIdType, kmb::Face > facemap;
 
 
@@ -53,6 +54,8 @@ protected:
 
 
 	void eraseFaceMap(kmb::ElementBase &element,kmb::idType faceId,bool reverse=false,const kmb::ElementContainer* elements=NULL);
+
+	void appendElementContainer(kmb::ElementContainer* body);
 public:
 	BoundaryExtractor(void);
 	virtual ~BoundaryExtractor(void);
@@ -76,8 +79,6 @@ public:
 	bool isClosed(kmb::bodyIdType bodyId);
 
 	void clear(void);
-
-	void appendBody(kmb::ElementContainer* body);
 
 	void appendUnitBody(const kmb::ElementContainer* body);
 	void appendData(const kmb::DataBindings* data);

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : PolygonPartitioner                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -31,7 +31,6 @@
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbTypes.h"
 #include "Geometry/kmb_Geometry.h"
-#include "Geometry/kmb_Debug.h"
 
 #include <map>
 #include <vector>
@@ -129,18 +128,6 @@ kmb::PolygonPartitioner::vertexType
 kmb::PolygonPartitioner::getVertexType(const kmb::Point2D& previousPoint,const kmb::Point2D& targetPoint,const kmb::Point2D& nextPoint)
 {
 	double area = kmb::Point2D::area( previousPoint, targetPoint, nextPoint );
-	REVOCAP_Debug_3("getVertexType area %f\n", area);
-	REVOCAP_Debug_3("previous (x,y) = (%f,%f)\n", previousPoint->x(), previousPoint->y());
-	REVOCAP_Debug_3("target (x,y) = (%f,%f)\n", targetPoint->x(), targetPoint->y());
-	REVOCAP_Debug_3("next (x,y) = (%f,%f)\n", nextPoint->x(), nextPoint->y());
-	REVOCAP_Debug_3("target > previous %s\n", LARGER_Y( targetPoint, previousPoint ) ? "true" : "false" );
-	REVOCAP_Debug_3("target > next %s\n", LARGER_Y( targetPoint, nextPoint ) ? "true" : "false" );
-	REVOCAP_Debug_3("previous > target %s\n", LARGER_Y( previousPoint, targetPoint ) ? "true" : "false" );
-	REVOCAP_Debug_3("next > target %s\n", LARGER_Y( nextPoint, targetPoint ) ? "true" : "false" );
-	REVOCAP_Debug_3("target > previous y:", ( targetPoint->y() > previousPoint->y() ) ? "true" : "false" );
-	REVOCAP_Debug_3("target > next     y:", ( targetPoint->y() > nextPoint->y() ) ? "true" : "false" );
-	REVOCAP_Debug_3("previous > target y:", ( previousPoint->y() > targetPoint->y() ) ? "true" : "false" );
-	REVOCAP_Debug_3("next > target     y:", ( nextPoint->y() > targetPoint->y() ) ? "true" : "false" );
 
 
 	if      (
@@ -177,7 +164,6 @@ kmb::PolygonPartitioner::getVertexType(kmb::Polygon* polygon,kmb::nodeIdType nod
 	kmb::nodeIdType previousNodeId = polygon->getNodeId(nodeId,-1);
 	kmb::nodeIdType nextNodeId = polygon->getNodeId(nodeId,1);
 
-	REVOCAP_Debug_3("getVertexType by topology %d %d %d\n", previousNodeId, nodeId, nextNodeId);
 
 	kmb::Point2D p0,p1,p2;
 	if( points->getPoint( previousNodeId, p0 ) &&
@@ -347,7 +333,6 @@ kmb::PolygonPartitioner::partition( kmb::ElementContainer &body )
 	std::vector< std::pair<kmb::nodeIdType, kmb::nodeIdType > > diagonals;
 
 
-	REVOCAP_Debug("count: %d\n", points->getCount());
 
 	kmb::Point2DContainer::const_iterator pIter = points->begin();
 	while( pIter != points->end() ){
@@ -363,8 +348,6 @@ kmb::PolygonPartitioner::partition( kmb::ElementContainer &body )
 				if( helper != kmb::nullNodeId ){
 					diagonals.push_back( std::pair<kmb::nodeIdType, kmb::nodeIdType>(nodeId,helper) );
 				}
-				REVOCAP_Debug_3("%d: vtype = %d, helper = %d, left = %d, right = %d\n",
-								nodeId, vtype, helper, left, right);
 				break;
 			}
 		case kmb::PolygonPartitioner::MERGE:
@@ -375,12 +358,9 @@ kmb::PolygonPartitioner::partition( kmb::ElementContainer &body )
 				if( helper != kmb::nullNodeId ){
 					diagonals.push_back( std::pair<kmb::nodeIdType, kmb::nodeIdType>(nodeId,helper) );
 				}
-				REVOCAP_Debug_3("%d: vtype = %d, helper = %d, left = %d, right = %d\n",
-								nodeId, vtype, helper, left, right);
 				break;
 			}
 		default:
-				REVOCAP_Debug_3("%d: vtype = %d\n", nodeId, vtype);
 			break;
 		}
 		++pIter;
@@ -392,16 +372,16 @@ kmb::PolygonPartitioner::partition( kmb::ElementContainer &body )
 		initialPolygon->dividePolygonsByDiagonals( points, diagonals, polygons );
 		retVal &= (polygons.size() > 0);
 
-		std::vector< kmb::Polygon* >::iterator pIter = polygons.begin();
-		while( pIter != polygons.end() )
+		std::vector< kmb::Polygon* >::iterator gIter = polygons.begin();
+		while( gIter != polygons.end() )
 		{
-			kmb::Polygon* polygon = *pIter;
+			kmb::Polygon* polygon = *gIter;
 			if( polygon != NULL ){
 				retVal &= triangulateMonotonePolygon(polygon,body);
 				delete polygon;
 				polygon = NULL;
 			}
-			++pIter;
+			++gIter;
 		}
 		polygons.clear();
 	}
@@ -415,7 +395,6 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 	bool retVal = true;
 
 	kmb::nodeIdType cells[3] = {kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId};
-	REVOCAP_Debug_2("kmb::PolygonPartitioner::triangulateMonotonePolygon 0\n");
 	const kmb::ElementContainer* eCon = NULL;
 	if( polygon == NULL || points == NULL ||
 		(eCon = polygon->getEdges()) == NULL ||
@@ -425,7 +404,6 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 		return retVal;
 	}
 
-	REVOCAP_Debug_2("kmb::PolygonPartitioner::triangulateMonotonePolygon 1\n");
 
 	kmb::nodeIdType startVertex = kmb::nullNodeId;
 	kmb::nodeIdType endVertex = kmb::nullNodeId;
@@ -437,7 +415,6 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 	{
 		kmb::nodeIdType nodeId = (*nIter);
 		kmb::PolygonPartitioner::vertexType vtype = getVertexType(polygon,nodeId);
-		REVOCAP_Debug_3("nodeId = %d, vtype = %d\n", nodeId, vtype);
 		switch( vtype ){
 			case kmb::PolygonPartitioner::START:
 				startVertex = nodeId;
@@ -450,10 +427,8 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 		}
 		++nIter;
 	}
-	REVOCAP_Debug_2("start = %d, end = %d\n", startVertex, endVertex);
 
 	if( startVertex == kmb::nullNodeId || endVertex == kmb::nullNodeId ){
-		REVOCAP_Debug("fatal error not monotone polygon!! no START vertex or no END vertex\n");
 		retVal = false;
 		return retVal;
 	}
@@ -480,19 +455,15 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 
 	while( true ){
 		size_t stackSize = nodeStack.size();
-		REVOCAP_Debug_3("stack count = %d\n", nodeStack.size());
 		if( stackSize < 2 ){
-			REVOCAP_Debug("fatal error stack size\n");
 			break;
 		}
 
 		kmb::nodeIdType left_next = polygon->getNodeId(left,1);
 		kmb::nodeIdType right_next = polygon->getNodeId(right,-1);
-		REVOCAP_Debug_3("left_next = %d, right_next = %d\n", left_next, right_next);
 		if( !points->getPoint( left_next, leftPoint ) || !points->getPoint( right_next, rightPoint ) ){
 
 			retVal &= false;
-			REVOCAP_Debug("fatal error point NULL\n");
 			break;
 		}
 		nodeStackType nextNode;
@@ -511,7 +482,6 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 
 		nodeStackType last0 = nodeStack[ stackSize-1 ];
 		nodeStackType last1 = nodeStack[ stackSize-2 ];
-		REVOCAP_Debug_3("last0 = %d, last1 = %d\n", last0.nodeId, last1.nodeId);
 		Point2D lastPoint0,lastPoint1;
 		points->getPoint( last0.nodeId,lastPoint0 );
 		points->getPoint( last1.nodeId,lastPoint1 );
@@ -528,31 +498,21 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 				points->getPoint( n1.nodeId, p1 );
 				if( n1.isLeft ){
 					double area = kmb::Point2D::area( nextPoint, p0, p1 );
-					REVOCAP_Debug_3("triangle %d %d %d\n", nextNode.nodeId, n0.nodeId, n1.nodeId);
 					if( area >= 0.0 ){
 						cells[0] = nextNode.nodeId;
 						cells[1] = n0.nodeId;
 						cells[2] = n1.nodeId;
 						body.addElement( kmb::TRIANGLE, cells );
 					}else{
-						REVOCAP_Debug("fatal error not monotone polygon!! area too small %f\n", area);
-						REVOCAP_Debug("next Point (%f, %f)\n", nextPoint.x(), nextPoint.y());
-						REVOCAP_Debug("p0 (%f, %f)\n", p0.x(), p0.y());
-						REVOCAP_Debug("p1 (%f, %f)\n", p1.x(), p1.y());
 					}
 				}else{
 					double area = kmb::Point2D::area( nextPoint, p1, p0 );
-					REVOCAP_Debug_3("triangle %d %d %d\n", nextNode.nodeId, n1.nodeId, n0.nodeId);
 					if( area >= 0.0 ){
 						cells[0] = nextNode.nodeId;
 						cells[1] = n1.nodeId;
 						cells[2] = n0.nodeId;
 						body.addElement( kmb::TRIANGLE, cells );
 					}else{
-						REVOCAP_Debug("fatal error not monotone polygon!! area too small %f\n", area);
-						REVOCAP_Debug("next Point (%f, %f)\n", nextPoint.x(), nextPoint.y());
-						REVOCAP_Debug("p0 (%f, %f)\n", p0.x(), p0.y());
-						REVOCAP_Debug("p1 (%f, %f)\n", p1.x(), p1.y());
 					}
 				}
 			}
@@ -578,13 +538,11 @@ kmb::PolygonPartitioner::triangulateMonotonePolygon
 					kmb::Point2D::area( nextPoint, lastPoint0, lastPoint1 ) ;
 				if( area >= 0.0 ){
 					if( last0.isLeft ){
-						REVOCAP_Debug_3("triangle %d %d %d\n", nextNode.nodeId, last1.nodeId, last0.nodeId);
 						cells[0] = nextNode.nodeId;
 						cells[1] = last1.nodeId;
 						cells[2] = last0.nodeId;
 						body.addElement( kmb::TRIANGLE, cells );
 					}else{
-						REVOCAP_Debug_3("triangle %d %d %d\n", nextNode.nodeId, last0.nodeId, last1.nodeId);
 						cells[0] = nextNode.nodeId;
 						cells[1] = last0.nodeId;
 						cells[2] = last1.nodeId;

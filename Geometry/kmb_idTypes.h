@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : idTypes                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,10 +29,10 @@
 
 namespace kmb{
 
-typedef int nodeIdType;
-static const nodeIdType nullNodeId = -1;
+typedef int32_t nodeIdType;
+typedef int32_t idType;
 
-typedef int idType;
+static const nodeIdType nullNodeId = -1;
 static const idType nullId = -1;
 
 }

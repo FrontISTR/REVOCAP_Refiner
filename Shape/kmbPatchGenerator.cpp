@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : PatchGenerator                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -20,7 +20,8 @@
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbTriangle.h"
 #include "Shape/kmbShapeData.h"
-#include "Geometry/kmb_Point3DOctree.h"
+#include "Geometry/kmb_Octree.h"
+#include "Geometry/kmb_BoundingBox.h"
 
 #include <TopoDS.hxx>
 #include <TopoDS_Face.hxx>
@@ -38,9 +39,10 @@
 #include <vector>
 
 kmb::PatchGenerator::PatchGenerator(void)
-: deflection(15.0)
-, incremental(1.0)
+: deflection(0.5)
+, incremental(0.002)
 , tolerance(1.0e-5)
+, modelDiameter(-1.0)
 {
 }
 
@@ -90,6 +92,11 @@ bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 		return false;
 	}
 
+
+	if( modelDiameter < 0.0 ){
+		modelDiameter = shape.getBoundingBox().maxRange();
+	}
+
 	if( mesh.getNodes() == NULL ){
 		mesh.beginNode();
 		mesh.endNode();
@@ -100,9 +107,10 @@ bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 		data = mesh.createDataBindings( "FaceHashCode", kmb::DataBindings::BODYVARIABLE, kmb::PhysicalValue::INTEGER );
 	}
 
-	kmb::Point3DOctree octree;
+	kmb::OctreePoint3D octree;
+	octree.setContainer( mesh.getNodes() );
 
-	BRepMesh::Mesh( shape.getShape(), static_cast<Standard_Real>(incremental) );
+	BRepMesh::Mesh( shape.getShape(), static_cast<Standard_Real>( incremental*modelDiameter ) );
 
 
 	TopExp_Explorer exFace;
@@ -126,7 +134,7 @@ bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 				std::cout << " modify trimmed mode " << std::endl;
 			}
 
-			if( !BRepTools::Triangulation(face, static_cast<Standard_Real>(deflection)) ){
+			if( !BRepTools::Triangulation(face, static_cast<Standard_Real>( deflection*modelDiameter ) ) ){
 				std::cout << "BRepTools false!" << endl;
 				continue;
 			}
@@ -137,13 +145,13 @@ bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 			for(Standard_Integer i = 0; i < triangulation->NbNodes(); ++i ){
 				gp_Pnt point = triangulation->Nodes().Value(i+1);
 				kmb::nodeIdType nearestId = kmb::nullNodeId;
-				double dist = octree.getNearestPoint( point.Coord(1), point.Coord(2), point.Coord(3), mesh.getNodes(), nearestId );
+				double dist = octree.getNearest( point.Coord(1), point.Coord(2), point.Coord(3), nearestId );
 				if( dist < tolerance ){
 					nodeLabels.push_back( nearestId );
 				}else{
 					kmb:: nodeIdType nodeId = mesh.insertNode( point.Coord(1), point.Coord(2), point.Coord(3) );
 					nodeLabels.push_back( nodeId );
-					octree.appendSearchCache( mesh.getNodes(), nodeId );
+					octree.append( nodeId );
 				}
 			}
 			kmb::bodyIdType bodyId = mesh.beginElement( triangulation->NbTriangles() );

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Surface3D                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -22,26 +22,25 @@
 
 namespace kmb{
 
+class BoxRegion2D;
+
 class Surface3D
 {
 protected:
-
-	static int iterMax;
-
-	static double thres;
 	kmb::BoundingBox bbox;
 public:
 	enum surfaceType{
+		PLANE,
 		BEZIER,
 		BSPLINE,
-		NURBS,
+		NURBS
 	};
 	enum derivativeType{
 		DER_U,
 		DER_V,
 		DER_UU,
 		DER_UV,
-		DER_VV,
+		DER_VV
 	};
 	Surface3D(void);
 	virtual ~Surface3D(void);
@@ -53,21 +52,19 @@ public:
 	virtual bool getPoint( double u, double v, kmb::Point3D &point ) const = 0;
 	virtual void getDomain( double &min_u, double &max_u, double &min_v, double &max_v ) const = 0;
 	virtual bool isDomain( double u, double v ) const = 0;
+	virtual bool isUDomain( double u ) const = 0;
+	virtual bool isVDomain( double v ) const = 0;
 	virtual bool getDerivative( derivativeType d, double u, double v, kmb::Vector3D& tangent ) const;
 	virtual bool getBoundingBox( kmb::BoundingBox &bbox ) const;
+
+	virtual bool getMiddlePoint( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const;
+	virtual bool getMiddlePointByNearest( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const;
 
 
 
 	virtual bool getNearest( const kmb::Point3D& point, double &u, double &v ) const;
-
-
-
-	double getNearestOnGrid( const kmb::Point3D& point, unsigned int ugrid, unsigned int vgrid, double &u, double &v ) const;
 protected:
 	long surfaceId;
-
-
-	virtual bool newtonMethod( double &u, double &v, const kmb::Point3D& point, double relax=1.0 ) const;
 };
 
 }

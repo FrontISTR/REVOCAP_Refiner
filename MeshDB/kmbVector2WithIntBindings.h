@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Vector2WithIntBindings                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -31,18 +31,24 @@
 #pragma warning(disable:4100)
 #endif
 
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
+
 namespace kmb{
 
 template <typename T>
 class Vector2WithIntBindings : public kmb::DataBindings
 {
-private:
+public:
 	typedef struct{
 		double u;
 		double v;
 		long l;
-	} vec2int;
-	std::multimap<T,vec2int> mapper;
+	} valueType;
+private:
+	std::multimap<T,valueType> mapper;
 public:
 	Vector2WithIntBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE)
 	{
@@ -68,15 +74,15 @@ public:
 	};
 	bool setValue(T t,double u,double v,long l){
 		if( !hasId(t,l) ){
-			vec2int v2i={u,v,l};
-			mapper.insert( std::pair<T,vec2int>( t, v2i ) );
+			valueType v2i={u,v,l};
+			mapper.insert( std::pair<T,valueType>( t, v2i ) );
 			return true;
 		}
 		return false;
 	}
 
 	virtual bool getPhysicalValue(kmb::idType id, double *val) const{
-		typename std::multimap<T,vec2int>::const_iterator i = mapper.find( static_cast<T>(id) );
+		typename std::multimap<T,valueType>::const_iterator i = mapper.find( static_cast<T>(id) );
 		if( val && i != mapper.end() ){
 			val[0] = i->second.u;
 			val[1] = i->second.v;
@@ -85,7 +91,7 @@ public:
 		return false;
 	}
 	virtual bool getPhysicalValue(kmb::idType id, long *l) const{
-		typename std::multimap<T,vec2int>::const_iterator i = mapper.find( static_cast<T>(id) );
+		typename std::multimap<T,valueType>::const_iterator i = mapper.find( static_cast<T>(id) );
 		if( l && i != mapper.end() ){
 			*l = i->second.l;
 			return true;
@@ -93,7 +99,7 @@ public:
 		return false;
 	}
 	virtual bool hasId(kmb::idType id) const{
-		typename std::multimap<T,vec2int>::const_iterator i = mapper.find( static_cast<T>(id) );
+		typename std::multimap<T,valueType>::const_iterator i = mapper.find( static_cast<T>(id) );
 		return ( i != mapper.end() );
 	}
 	virtual size_t getIdCount() const{
@@ -104,24 +110,43 @@ public:
 		if( mapper.count(t) == 0 ){
 			return false;
 		}else{
-			typename std::multimap< T, vec2int >::const_iterator dataIter = mapper.lower_bound(t);
-			typename std::multimap< T, vec2int >::const_iterator endIter = mapper.upper_bound(t);
-			while( dataIter != endIter ){
-				if( dataIter->second.l == k ){
+			std::pair< typename std::multimap<T,valueType>::const_iterator,
+				typename std::multimap<T,valueType>::const_iterator > range = this->mapper.equal_range(t);
+			typename std::multimap< T, valueType >::const_iterator dIter = range.first;
+			while( dIter != range.second ){
+				if( dIter->second.l == k ){
 					return true;
 				}
-				++dataIter;
+				++dIter;
 			}
 		}
 		return false;
+	}
+	size_t replaceIds( const std::map<T,T>& iMapper ){
+		size_t count = 0;
+		typename std::multimap<T,valueType> temp;
+		temp.swap( mapper );
+		mapper.clear();
+		typename std::multimap<T,valueType>::iterator tIter = temp.begin();
+		while( tIter != temp.end() ){
+			typename std::map<T,T>::const_iterator iter = iMapper.find( tIter->first );
+			if( iter != iMapper.end() ){
+				++count;
+				mapper.insert( std::pair<T,valueType>( iter->second, tIter->second ) );
+			}else{
+				mapper.insert( std::pair<T,valueType>( tIter->first, tIter->second ) );
+			}
+			++tIter;
+		}
+		return count;
 	}
 public:
 	class _iterator : public DataBindings::_iterator
 	{
 		friend class Vector2WithIntBindings<T>;
 	private:
-		typename std::multimap<T,vec2int>::const_iterator dataIter;
-		typename std::multimap<T,vec2int>::const_iterator endIter;
+		typename std::multimap<T,valueType>::const_iterator dataIter;
+		typename std::multimap<T,valueType>::const_iterator endIter;
 	public:
 		_iterator(void){};
 		virtual ~_iterator(void){};
@@ -175,10 +200,49 @@ public:
 		_it->endIter = this->mapper.end();
 		return kmb::DataBindings::const_iterator(_it);
 	}
+
+
+	bool isCommonIntval(T t0,T t1,long &index,double u0[2],double u1[2]) const{
+		std::pair< typename std::multimap<T,valueType>::const_iterator,
+			typename std::multimap<T,valueType>::const_iterator > range0 = this->mapper.equal_range(t0);
+		std::pair< typename std::multimap<T,valueType>::const_iterator,
+			typename std::multimap<T,valueType>::const_iterator > range1 = this->mapper.equal_range(t1);
+		for( typename std::multimap<T,valueType>::const_iterator iter0 = range0.first; iter0 != range0.second; ++iter0 ){
+			for( typename std::multimap<T,valueType>::const_iterator iter1 = range1.first; iter1 != range1.second; ++iter1 ){
+				if( iter0->second.l == iter1->second.l ){
+					u0[0] = iter0->second.u;
+					u0[1] = iter0->second.v;
+					u1[0] = iter1->second.u;
+					u1[1] = iter1->second.v;
+					index = iter0->second.l;
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	int isCommonIntval(T t0,T t1,std::vector< valueType > &v0, std::vector< valueType > &v1) const{
+		int count = 0;
+		std::pair< typename std::multimap<T,valueType>::const_iterator,
+			typename std::multimap<T,valueType>::const_iterator > range0 = this->mapper.equal_range(t0);
+		std::pair< typename std::multimap<T,valueType>::const_iterator,
+			typename std::multimap<T,valueType>::const_iterator > range1 = this->mapper.equal_range(t1);
+		for( typename std::multimap<T,valueType>::const_iterator iter0 = range0.first; iter0 != range0.second; ++iter0 ){
+			for( typename std::multimap<T,valueType>::const_iterator iter1 = range1.first; iter1 != range1.second; ++iter1 ){
+				if( iter0->second.l == iter1->second.l ){
+					v0.push_back( iter0->second );
+					v1.push_back( iter1->second );
+					++count;
+				}
+			}
+		}
+		return count;
+	}
 };
 
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __INTEL_COMPILER
 #pragma warning(pop)
 #endif

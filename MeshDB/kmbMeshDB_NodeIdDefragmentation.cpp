@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,6 +29,7 @@
 #include "MeshDB/kmbTypes.h"
 #include "MeshDB/kmbDataBindings.h"
 #include "MeshDB/kmbElementContainer.h"
+#include "MeshDB/kmbNodeMapperBindings.h"
 
 #include <map>
 #include <cstring>
@@ -61,18 +62,17 @@ kmb::MeshDB::nodeIdDefragmentation(nodeIdType initId)
 	}
 
 
-	for(std::vector<kmb::ElementContainer*>::iterator p = this->bodies.begin();
-		p != this->bodies.end();
-		p++)
+	for(std::vector<kmb::ElementContainer*>::iterator cIter = this->bodies.begin();
+		cIter != this->bodies.end();
+		++cIter)
 	{
-		kmb::ElementContainer* body = (*p);
+		kmb::ElementContainer* body = (*cIter);
 		if( body ){
 			kmb::ElementContainer::iterator eIter = body->begin();
-			while( eIter != body->end() )
-			{
+			while( eIter != body->end() ){
 				int len = eIter.getNodeCount();
 				for(int i=0;i<len;++i){
-					nodeIdType oldId =	eIter.getCellId(i);
+					nodeIdType oldId = eIter.getCellId(i);
 					if( idmap.find(oldId) != idmap.end() ){
 						eIter.setCellId(i,idmap[oldId]);
 					}
@@ -91,16 +91,16 @@ kmb::MeshDB::nodeIdDefragmentation(nodeIdType initId)
 			switch(d->getBindingMode()){
 				case kmb::DataBindings::NODEGROUP:
 				{
-					kmb::DataBindingsGroup<kmb::nodeIdType>* data =
-						static_cast<kmb::DataBindingsGroup<kmb::nodeIdType>*>(d);
-					data->replaceId( idmap );
+					if( strcmp( "DataBindingsGroup", d->getContainerType() ) == 0 ){
+						reinterpret_cast<kmb::DataBindingsGroup<kmb::nodeIdType>*>(d)->replaceId( idmap );
+					}
 					break;
 				}
 				case kmb::DataBindings::NODEVARIABLE:
 				{
-					kmb::DataBindingsEach<kmb::nodeIdType>* data =
-						static_cast<kmb::DataBindingsEach<kmb::nodeIdType>*>(d);
-					data->replaceId( idmap );
+					if( strcmp( "DataVariable", d->getContainerType() ) == 0 ){
+						d->replaceNodeId( idmap );
+					}
 					break;
 				}
 				default:
@@ -198,48 +198,120 @@ kmb::MeshDB::reverseElement(kmb::elementIdType elementID,kmb::bodyIdType bodyID)
 	return elem.reverse();
 }
 
-
-bool
-kmb::MeshDB::replaceNodeIdOfBody(kmb::bodyIdType bodyId,kmb::nodeIdType oldNodeId,kmb::nodeIdType newNodeId)
+int
+kmb::MeshDB::duplicateNodeIdOfBody(kmb::bodyIdType bodyId,const char* coupleName)
 {
-	bool ret = false;
+	int count = 0;
+	kmb::nodeIdType orgNodeId = kmb::nullNodeId;
+	kmb::nodeIdType newNodeId = kmb::nullNodeId;
+	long l;
 	kmb::ElementContainer* body = this->getBodyPtr(bodyId);
-	if( body ){
+	kmb::Point3DContainer* points = this->getNodes();
+	kmb::DataBindings* data = NULL;
+	if( body && points ){
+		if( coupleName ){
+			data = this->getDataBindingsPtr(coupleName);
+			if( data == NULL ){
+				data = new kmb::NodeMapperBindings<kmb::nodeIdType>();
+				this->setDataBindingsPtr(coupleName,data);
+			}
+		}else{
+			data = new kmb::NodeMapperBindings<kmb::nodeIdType>();
+		}
 		kmb::ElementContainer::iterator eIter = body->begin();
-		while( eIter != body->end() )
-		{
-			ret = ( eIter.replaceNodeId(oldNodeId,newNodeId) || ret );
+		while( !eIter.isFinished() ){
+			int len = eIter.getNodeCount();
+			for(int i=0;i<len;++i){
+				orgNodeId = eIter[i];
+				if( !data->hasId( orgNodeId ) ){
+					++count;
+					newNodeId = points->duplicatePoint( orgNodeId );
+					eIter.setCellId(i,newNodeId);
+					l = static_cast<long>(newNodeId);
+					data->setPhysicalValue( orgNodeId, &l );
+				}else if( data->getPhysicalValue( orgNodeId, &l ) ){
+					newNodeId = static_cast<kmb::nodeIdType>(l);
+					eIter.setCellId(i,newNodeId);
+				}
+			}
 			++eIter;
 		}
-	}else{
-		ret = false;
+		if( data && coupleName == NULL ){
+
+			delete data;
+		}
 	}
-	return ret;
+	return count;
 }
 
 
-bool
-kmb::MeshDB::replaceNodeIdOfBody(kmb::bodyIdType bodyId,std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper)
+int
+kmb::MeshDB::replaceNodeIdOfBody(kmb::bodyIdType bodyId,kmb::nodeIdType oldNodeId,kmb::nodeIdType newNodeId)
 {
-	bool ret = false;
+	int count = 0;
 	kmb::ElementContainer* body = this->getBodyPtr(bodyId);
 	if( body ){
 		kmb::ElementContainer::iterator eIter = body->begin();
 		while( eIter != body->end() )
 		{
-			ret = ( eIter.replaceNodeId(nodeMapper)>0 || ret );
+			if( eIter.replaceNodeId(oldNodeId,newNodeId) ){
+				++count;
+			}
 			++eIter;
 		}
-	}else{
-		ret = false;
 	}
-	return ret;
+	return count;
+}
+
+
+int
+kmb::MeshDB::replaceNodeIdOfBody(kmb::bodyIdType bodyId,std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper)
+{
+	int count = 0;
+	kmb::ElementContainer* body = this->getBodyPtr(bodyId);
+	if( body ){
+		kmb::ElementContainer::iterator eIter = body->begin();
+		while( eIter != body->end() )
+		{
+			count += eIter.replaceNodeId(nodeMapper);
+			++eIter;
+		}
+	}
+	return count;
+}
+
+int
+kmb::MeshDB::replaceNodeIdOfBody(kmb::bodyIdType bodyId,const char* coupleName)
+{
+	int count = 0;
+	kmb::nodeIdType orgNodeId = kmb::nullNodeId;
+	kmb::nodeIdType newNodeId = kmb::nullNodeId;
+	kmb::ElementContainer* body = this->getBodyPtr(bodyId);
+	kmb::DataBindings* data = this->getDataBindingsPtr(coupleName);
+	long l = 0L;
+	if( body && data &&
+		strcmp("NodeMapperBindings",data->getContainerType()) == 0 )
+	{
+		kmb::ElementContainer::iterator eIter = body->begin();
+		while( !eIter.isFinished() ){
+			int len = eIter.getNodeCount();
+			for(int i=0;i<len;++i){
+				orgNodeId = eIter[i];
+				if( data->hasId( orgNodeId ) && data->getPhysicalValue( orgNodeId, &l ) ){
+					newNodeId = static_cast<kmb::nodeIdType>(l);
+					eIter.setCellId(i,newNodeId);
+				}
+			}
+			++eIter;
+		}
+	}
+	return count;
 }
 
 void
-kmb::MeshDB::reverseBody(kmb::bodyIdType bodyID)
+kmb::MeshDB::reverseBody(kmb::bodyIdType bodyId)
 {
-	kmb::ElementContainer* body = this->getBodyPtr(bodyID);
+	kmb::ElementContainer* body = this->getBodyPtr(bodyId);
 	if( body ){
 		kmb::ElementContainer::iterator eIter = body->begin();
 		while( eIter != body->end() )

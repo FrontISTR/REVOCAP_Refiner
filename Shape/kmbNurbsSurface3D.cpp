@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : NurbsSurface3D                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,6 +14,9 @@
 ----------------------------------------------------------------------*/
 
 #include "Shape/kmbNurbsSurface3D.h"
+#include "Geometry/kmb_Optimization.h"
+#include "Geometry/kmb_Calculator.h"
+#include "Matrix/kmbVector.h"
 #include <cmath>
 
 kmb::NurbsSurface3D::NurbsSurface3D(void)
@@ -56,70 +59,16 @@ kmb::NurbsSurface3D::isDomain( double u, double v ) const
 	return uBspline.isDomain(u) && vBspline.isDomain(v);
 }
 
+bool
+kmb::NurbsSurface3D::isUDomain( double u ) const
+{
+	return uBspline.isDomain(u);
+}
 
 bool
-kmb::NurbsSurface3D::shiftInsideDomain( double &u, double &v, double du, double dv ) const
+kmb::NurbsSurface3D::isVDomain( double v ) const
 {
-	double max_u, min_u, max_v, min_v;
-	uBspline.getDomainOnFrame( u, du, min_u, max_u);
-	vBspline.getDomainOnFrame( v, dv, min_v, max_v);
-	REVOCAP_Debug_3("domain u => (%f, %f), v => (%f, %f)\n", min_u, max_u, min_v, max_v);
-	double abs_du = fabs(du);
-	double abs_dv = fabs(dv);
-	if( abs_du < kmb::Surface3D::thres ){
-		if( abs_dv < kmb::Surface3D::thres ){
-			return false;
-		}
-
-		if( 1.0 < max_v ){
-			v += dv;
-		}else if( dv > 0.0 ){
-			vBspline.getDomain( dv, v );
-		}else{
-			vBspline.getDomain( v, dv );
-		}
-		return true;
-	}else if( abs_dv < kmb::Surface3D::thres ){
-
-		if( 1.0 < max_u ){
-			u += du;
-		}else if( du > 0.0 ){
-			uBspline.getDomain( du, u );
-		}else{
-			uBspline.getDomain( u, du );
-		}
-		return true;
-	}else if( 1.0 < max_u && 1.0 < max_v ){
-
-		u += du;
-		v += dv;
-		return true;
-	}else if( 0.0 < max_u && max_u < max_v ){
-
-
-
-
-		if( du > 0.0 ){
-			uBspline.getDomain( du, u );
-		}else{
-			uBspline.getDomain( u, du );
-		}
-		v += max_u * dv;
-		return true;
-	}else if( 0.0 < max_v && max_v < max_u ){
-
-
-
-
-		u += max_v * du;
-		if( dv > 0.0 ){
-			vBspline.getDomain( dv, v );
-		}else{
-			vBspline.getDomain( v, dv );
-		}
-		return true;
-	}
-	return false;
+	return vBspline.isDomain(v);
 }
 
 bool
@@ -204,6 +153,18 @@ kmb::NurbsSurface3D::valid(void) const
 }
 
 bool
+kmb::NurbsSurface3D::getDerivative( derivativeType d, double u, double v, kmb::Vector3D& tangent ) const
+{
+	kmb::Vector3D sub;
+	double w = 0.0;
+	if( getSubDerivative( d, u, v, sub ) && getWeight(u,v,w) ){
+		tangent = (1.0/w) * sub;
+		return true;
+	}
+	return false;
+}
+
+bool
 kmb::NurbsSurface3D::getPoint( double u, double v, kmb::Point3D& point ) const
 {
 	point.zero();
@@ -230,57 +191,233 @@ kmb::NurbsSurface3D::getPoint( double u, double v, kmb::Point3D& point ) const
 	return true;
 }
 
-
 bool
-kmb::NurbsSurface3D::newtonMethod( double &u, double &v, const kmb::Point3D& point, double relax ) const
+kmb::NurbsSurface3D::getMiddlePoint( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const
 {
-	kmb::Point3D pt;
-	kmb::Vector3D uVec, vVec, uuVec, uvVec, vvVec;
-	double weight = 0;
-	if( !getPoint(u,v,pt) ||
-		!getSubDerivative( kmb::Surface3D::DER_U, u, v, uVec) ||
-		!getSubDerivative( kmb::Surface3D::DER_V, u, v, vVec) ||
-		!getSubDerivative( kmb::Surface3D::DER_UU, u, v, uuVec) ||
-		!getSubDerivative( kmb::Surface3D::DER_UV, u, v, uvVec) ||
-		!getSubDerivative( kmb::Surface3D::DER_VV, u, v, vvVec) ||
-		!getWeight( u, v, weight ) ||
-		weight == 0.0 )
-	{
-		REVOCAP_Debug_1("newtonMethod getPoint or getDerivative error %f %f\n",u,v);
+
+	kmb::Point3D p0,p1,pm,pt;
+	if( !getPoint(u0,v0,p0) ){
 		return false;
 	}
-	REVOCAP_Debug_3("newtonMethod (u,v) = (%f, %f)\n",u,v);
-	REVOCAP_Debug_3("newtonMethod point = (%f, %f, %f)\n", pt.x(), pt.y(), pt.z());
-	REVOCAP_Debug_3("newtonMethod uVec  = (%f, %f, %f)\n", uVec.x(), uVec.y(), uVec.z());
-	REVOCAP_Debug_3("newtonMethod vVec  = (%f, %f, %f)\n", vVec.x(), vVec.y(), vVec.z());
-	REVOCAP_Debug_3("newtonMethod uuVec = (%f, %f, %f)\n", uuVec.x(), uuVec.y(), uuVec.z());
-	REVOCAP_Debug_3("newtonMethod uvVec = (%f, %f, %f)\n", uvVec.x(), uvVec.y(), uvVec.z());
-	REVOCAP_Debug_3("newtonMethod vvVec = (%f, %f, %f)\n", vvVec.x(), vvVec.y(), vvVec.z());
-	REVOCAP_Debug_3("newtonMethod weight = %f\n", weight);
-	double sqWeight = weight * weight;
-	kmb::Vector3D d(pt,point);
-	kmb::Vector2D r0( d*uVec, d*vVec );
-	kmb::Vector2D r1;
-	kmb::Matrix2x2 mat(
-		uVec*uVec/sqWeight+d*uuVec, uVec*vVec/sqWeight+d*uvVec,
-		vVec*uVec/sqWeight+d*uvVec, vVec*vVec/sqWeight+d*vvVec
-	);
-	REVOCAP_Debug_3("newtonMethod d = (%f, %f, %f)\n", d.x(), d.y(), d.z());
-	REVOCAP_Debug_3("newtonMethod r0 = (%f, %f)\n", r0.x(), r0.y());
-	REVOCAP_Debug_3("newtonMethod [ %f, %f]\n", mat.get(0,0), mat.get(0,1) );
-	REVOCAP_Debug_3("newtonMethod [ %f, %f]\n", mat.get(1,0), mat.get(1,1) );
-	if( mat.solve( r0, r1 ) ){
-		REVOCAP_Debug_3("newtonMethod r1 = (%f, %f)\n", r1.x(), r1.y());
-		shiftInsideDomain( u, v, -relax*r1.x(), -relax*r1.y() );
-		REVOCAP_Debug_3("newtonMethod update (%f, %f)\n",u,v);
+	if( !getPoint(u1,v1,p1) ){
+		return false;
+	}
+	pm = kmb::Point3D::getCenter(p0,p1);
+
+	kmb::Minimizer minimizer;
+	bool res = false;
+
+	if( getPoint(0.5*(u0+u1),0.5*(v0+v1),pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = 0.5*(u0+u1);
+		v = 0.5*(v0+v1);
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(u0,0.5*(v0+v1),pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = u0;
+		v = 0.5*(v0+v1);
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(u1,0.5*(v0+v1),pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = u1;
+		v = 0.5*(v0+v1);
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(0.5*(u0+u1),v0,pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = 0.5*(u0+u1);
+		v = v0;
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(0.5*(u0+u1),v1,pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = 0.5*(u0+u1);
+		v = v1;
+		point.set( pt );
+		res = true;
+	}
+	return res;
+}
+
+bool
+kmb::NurbsSurface3D::getMiddlePointByNearest( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const
+{
+
+	kmb::Point3D p0,p1,pm,pt;
+	if( !getPoint(u0,v0,p0) ){
+		return false;
+	}
+	if( !getPoint(u1,v1,p1) ){
+		return false;
+	}
+
+	double um = 0.5*(u0+u1);
+	double vm = 0.5*(v0+v1);
+	pm = kmb::Point3D::getCenter(p0,p1);
+
+	kmb::Minimizer minimizer;
+	bool res = false;
+
+	if( getPoint(um,vm,pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = um;
+		v = vm;
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(u0,vm,pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = u0;
+		v = vm;
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(u1,vm,pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = u1;
+		v = vm;
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(um,v0,pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = um;
+		v = v0;
+		point.set( pt );
+		res = true;
+	}
+
+	if( getPoint(um,v1,pt) && minimizer.update( pt.distanceSq(pm) ) ){
+		u = um;
+		v = v1;
+		point.set( pt );
+		res = true;
+	}
+
+
+
+	if( getNearest(pm,um,vm) && getPoint(um,vm,pt) && minimizer.update( pm.distanceSq(pt) ) ){
+		u = um;
+		v = vm;
+		point.set(pt);
+		res = true;
+	}
+	return res;
+}
+
+bool
+kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v ) const
+{
+	class dist_local : public kmb::OptTargetSV_0 {
+	private:
+		const kmb::Surface3D* surface;
+		const kmb::Point3D target;
+	public:
+		int getDomainDim(void) const{
+			return 2;
+		};
+		double f(const double* t){
+			kmb::Point3D pt;
+			if( !surface->getPoint(t[0],t[1],pt) ){
+				return DBL_MAX;
+			}
+			return target.distanceSq( pt );
+		}
+		dist_local(const kmb::Surface3D* s,const kmb::Point3D p)
+		: surface(s), target(p){}
+	};
+	dist_local dist_obj(this,point);
+
+	class opt_local : public kmb::OptTargetVV {
+	private:
+		const kmb::NurbsSurface3D* surface;
+		const kmb::Point3D target;
+		double t0,t1;
+		bool calculated;
+		double weight;
+		kmb::Point3D pt;
+		kmb::Vector3D uVec, vVec, uuVec, uvVec, vvVec;
+
+		bool calc(double u,double v){
+			if( u == t0 && v == t1 && calculated ){
+				return true;
+			}
+			if( surface->getPoint(u,v,pt) &&
+					surface->getSubDerivative( kmb::Surface3D::DER_U, u, v, uVec) &&
+					surface->getSubDerivative( kmb::Surface3D::DER_V, u, v, vVec) &&
+					surface->getSubDerivative( kmb::Surface3D::DER_UU, u, v, uuVec) &&
+					surface->getSubDerivative( kmb::Surface3D::DER_UV, u, v, uvVec) &&
+					surface->getSubDerivative( kmb::Surface3D::DER_VV, u, v, vvVec) &&
+					surface->getWeight( u, v, weight ) )
+			{
+				t0 = u;
+				t1 = v;
+				calculated = true;
+				return true;
+			}else{
+				calculated = false;
+				return false;
+			}
+		}
+	public:
+		int getDomainDim(void) const{
+			return 2;
+		}
+		int getRangeDim(void) const{
+			return 2;
+		}
+		bool f(const ColumnVector &t,ColumnVector &val){
+			if( !calc(t[0],t[1]) ){
+				return false;
+			}
+			kmb::Vector3D d(pt,target);
+			val[0] = d*uVec;
+			val[1] = d*vVec;
+			return true;
+		}
+		bool df(const ColumnVector &t,Matrix &jac){
+			if( !calc(t[0],t[1]) ){
+				return false;
+			}
+			kmb::Vector3D d(pt,target);
+			jac.set(0,0,uVec*uVec/weight+d*uuVec);
+			jac.set(0,1,uVec*vVec/weight+d*uvVec);
+			jac.set(1,0,vVec*uVec/weight+d*uvVec);
+			jac.set(1,1,vVec*vVec/weight+d*vvVec);
+			return true;
+		}
+		opt_local(const kmb::NurbsSurface3D* s,const kmb::Point3D p)
+		: surface(s), target(p), t0(0.0), t1(0.0), calculated(false), weight(0.0){}
+	};
+	opt_local opt_obj(this,point);
+	kmb::Optimization opt;
+	double min_t[2]={0.0,0.0}, max_t[2]={0.0,0.0};
+	getDomain(min_t[0],max_t[0],min_t[1],max_t[1]);
+	double t0[2] = {0.0,0.0};
+	double opt_t[2] = {0.0,0.0};
+	int div[2] = {10,10};
+	opt.calcMinOnGrid( dist_obj, t0, min_t, max_t, div );
+	if( opt.calcZero_DN( opt_obj, opt_t, t0 ) &&
+		min_t[0] <= opt_t[0] && opt_t[0] <= max_t[0] &&
+		min_t[1] <= opt_t[1] && opt_t[1] <= max_t[1] ){
+		u = opt_t[0];
+		v = opt_t[1];
 		return true;
 	}
-	REVOCAP_Debug_1("newtonMethod can't solve matrix%f %f\n",u,v);
+
+	if( opt.calcMin_GS( dist_obj, opt_t, min_t, max_t ) ){
+		u = opt_t[0];
+		v = opt_t[1];
+		return true;
+	}
 	return false;
 }
 
-#undef _DEBUG_
-#include "Geometry/kmb_Debug.h"
+
 
 bool
 kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double u, double v, kmb::Vector3D& tangent ) const
@@ -289,6 +426,7 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 	if( !valid() ){
 		return false;
 	}
+
 	kmb::Point3D pt;
 	double weight = 0.0;
 	if( !getPoint(u,v,pt) || !getWeight(u,v,weight) ){
@@ -304,9 +442,9 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 			for(int i=0;i<uNum;++i){
 				double ui1 = uBspline.getDerivative(i,uOrder-1,u);
 				tangent.addCoordinate(
-					ui1*vj0*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.x()),
-					ui1*vj0*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.y()),
-					ui1*vj0*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.z()));
+					ui1*vj0*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.x()),
+					ui1*vj0*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.y()),
+					ui1*vj0*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.z()));
 			}
 		}
 		return true;
@@ -316,9 +454,9 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 			for(int i=0;i<uNum;++i){
 				double ui0 = uBspline.getValue(i,uOrder-1,u);
 				tangent.addCoordinate(
-					ui0*vj1*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.x()),
-					ui0*vj1*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.y()),
-					ui0*vj1*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.z()));
+					ui0*vj1*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.x()),
+					ui0*vj1*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.y()),
+					ui0*vj1*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.z()));
 			}
 		}
 		return true;
@@ -328,10 +466,17 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 			for(int i=0;i<uNum;++i){
 				double ui2 = uBspline.getSecondDerivative(i,uOrder-1,u);
 				tangent.addCoordinate(
-					ui2*vj0*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.x()),
-					ui2*vj0*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.y()),
-					ui2*vj0*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.z()));
+					ui2*vj0*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.x()),
+					ui2*vj0*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.y()),
+					ui2*vj0*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.z()));
 			}
+		}
+		{
+			kmb::Vector3D tangent_u;
+			double weight_u = 0.0;
+			getSubDerivative( kmb::Surface3D::DER_U, u, v, tangent_u );
+			getWeightDerivative( kmb::Surface3D::DER_U, u, v, weight_u );
+			tangent -= 2.0 * weight_u * tangent_u;
 		}
 		return true;
 	case kmb::Surface3D::DER_UV:
@@ -339,31 +484,27 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 			kmb::Vector4D uder;
 			kmb::Vector4D vder;
 			for(int j=0;j<vNum;++j){
-				double vj0 = vBspline.getValue(j,vOrder-1,v);
 				double vj1 = vBspline.getDerivative(j,vOrder-1,v);
 				for(int i=0;i<uNum;++i){
-					double ui0 = uBspline.getValue(i,uOrder-1,u);
 					double ui1 = uBspline.getDerivative(i,uOrder-1,u);
 					tangent.addCoordinate(
-						ui1*vj1*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.x()),
-						ui1*vj1*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.y()),
-						ui1*vj1*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.z()));
-					uder.addCoordinate(
-						ui1 * vj0 * ctrlPts[i+j*uNum].x(),
-						ui1 * vj0 * ctrlPts[i+j*uNum].y(),
-						ui1 * vj0 * ctrlPts[i+j*uNum].z(),
-						ui1 * vj0 * ctrlPts[i+j*uNum].w());
-					vder.addCoordinate(
-						ui0 * vj1 * ctrlPts[i+j*uNum].x(),
-						ui0 * vj1 * ctrlPts[i+j*uNum].y(),
-						ui0 * vj1 * ctrlPts[i+j*uNum].z(),
-						ui0 * vj1 * ctrlPts[i+j*uNum].w());
+						ui1*vj1*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.x()),
+						ui1*vj1*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.y()),
+						ui1*vj1*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.z()));
 				}
 			}
-			tangent.addCoordinate(
-				uder.x() * vder.w() - vder.x() * uder.w(),
-				uder.y() * vder.w() - vder.y() * uder.w(),
-				uder.z() * vder.w() - vder.z() * uder.w());
+		}
+		{
+			kmb::Vector3D tangent_u;
+			double weight_u = 0.0;
+			kmb::Vector3D tangent_v;
+			double weight_v = 0.0;
+			getSubDerivative( kmb::Surface3D::DER_U, u, v, tangent_u );
+			getWeightDerivative( kmb::Surface3D::DER_U, u, v, weight_u );
+			getSubDerivative( kmb::Surface3D::DER_V, u, v, tangent_v );
+			getWeightDerivative( kmb::Surface3D::DER_V, u, v, weight_v );
+			tangent -= weight_v * tangent_v;
+			tangent -= weight_u * tangent_u;
 		}
 		return true;
 	case kmb::Surface3D::DER_VV:
@@ -372,10 +513,17 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 			for(int i=0;i<uNum;++i){
 				double ui0 = uBspline.getValue(i,uOrder-1,u);
 				tangent.addCoordinate(
-					ui0*vj2*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.x()),
-					ui0*vj2*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.y()),
-					ui0*vj2*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w()*weight - ctrlPts[i+j*uNum].w()*pt.z()));
+					ui0*vj2*(ctrlPts[i+j*uNum].x()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.x()),
+					ui0*vj2*(ctrlPts[i+j*uNum].y()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.y()),
+					ui0*vj2*(ctrlPts[i+j*uNum].z()*ctrlPts[i+j*uNum].w() - ctrlPts[i+j*uNum].w()*pt.z()));
 			}
+		}
+		{
+			kmb::Vector3D tangent_v;
+			double weight_v = 0.0;
+			getSubDerivative( kmb::Surface3D::DER_V, u, v, tangent_v );
+			getWeightDerivative( kmb::Surface3D::DER_V, u, v, weight_v );
+			tangent -= 2.0 * weight_v * tangent_v;
 		}
 		return true;
 	default:
@@ -402,6 +550,43 @@ kmb::NurbsSurface3D::getWeight( double u, double v, double &w ) const
 	}
 	w = weight;
 	return true;
+}
+
+bool
+kmb::NurbsSurface3D::getWeightDerivative( derivativeType d, double u, double v, double &w ) const
+{
+	if( !valid() ){
+		return false;
+	}
+	int uNum = uBspline.getKnotCount()-uOrder;
+	int vNum = vBspline.getKnotCount()-vOrder;
+	double weight = 0.0;
+	switch( d )
+	{
+	case kmb::Surface3D::DER_U:
+		for(int j=0;j<vNum;++j){
+			double v0 = vBspline.getValue(j,vOrder-1,v);
+			for(int i=0;i<uNum;++i){
+				double u1 = uBspline.getDerivative(i,uOrder-1,u);
+				weight += u1*v0*ctrlPts[i+j*uNum].w();
+			}
+		}
+		w = weight;
+		return true;
+	case kmb::Surface3D::DER_V:
+		for(int j=0;j<vNum;++j){
+			double v1 = vBspline.getDerivative(j,vOrder-1,v);
+			for(int i=0;i<uNum;++i){
+				double u0 = uBspline.getValue(i,uOrder-1,u);
+				weight += u0*v1*ctrlPts[i+j*uNum].w();
+			}
+		}
+		w = weight;
+		return true;
+	default:
+		break;
+	}
+	return false;
 }
 
 int

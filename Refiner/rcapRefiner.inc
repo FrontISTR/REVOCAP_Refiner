@@ -1,10 +1,10 @@
 !/*----------------------------------------------------------------------
 !#                                                                      #
-!# Software Name : REVOCAP_Refiner version 0.4                          #
+!# Software Name : REVOCAP_Refiner version 1.0                          #
 !# Program Name : rcapRefiner                                           #
 !#                                                                      #
 !#                                Written by                            #
-!#                                           K. Tokunaga 2010/03/23     #
+!#                                           K. Tokunaga 2011/03/23     #
 !#                                                                      #
 !#      Contact Address: IIS, The University of Tokyo CISS              #
 !#                                                                      #
@@ -31,125 +31,34 @@
       integer(kind=1), parameter :: RCAP_HEXAHEDRON2 = 13
 
 !C elements face relation table lists for REVOCAP Refiner
-! example: tetra faces
-!     1 [2,3,4]
-!     2 [1,4,3]
-!     3 [1,2,4]
-!     4 [1,3,2]
 
-      integer(kind=2), dimension(12), parameter :: RCAP_TETRAFACES = (/
-     & 2, 3, 4,
-     & 1, 4, 3,
-     & 1, 2, 4,
-     & 1, 3, 2 /)
+!      integer(kind=2), parameter :: RCAP_TETRAFACES(12) = (/
+!     * 2, 3, 4,
+!     * 1, 4, 3,
+!     * 1, 2, 4,
+!     * 1, 3, 2 /)
 
-      integer(kind=2), dimension(24), parameter :: RCAP_HEXAFACES = (/
-     & 4, 3, 2, 1,
-     & 5, 6, 7, 8,
-     & 2, 6, 5, 1,
-     & 2, 3, 7, 6,
-     & 4, 8, 7, 3,
-     & 5, 8, 4, 1 /)
+!      integer(kind=2), parameter :: RCAP_HEXAFACES(24) = (/
+!     *  4, 3, 2, 1,
+!     *  5, 6, 7, 8,
+!     *  2, 6, 5, 1,
+!     *  2, 3, 7, 6,
+!     *  4, 8, 7, 3,
+!     *  5, 8, 4, 1 /)
 
-      integer(kind=2), dimension(20), parameter :: RCAP_PYRAFACES = (/
-     & 1, 2, 3,-1,
-     & 1, 3, 4,-1,
-     & 1, 4, 5,-1,
-     & 1, 5, 2,-1,
-     & 5, 4, 3, 2 /)
+!      integer(kind=2), parameter :: RCAP_PYRAFACES(20) = (/
+!     *  1, 2, 3,-1,
+!     *  1, 3, 4,-1,
+!     *  1, 4, 5,-1,
+!     *  1, 5, 2,-1,
+!     *  5, 4, 3, 2 /)
 
-      integer(kind=2), dimension(20), parameter :: RCAP_WEDGEFACES = (/
-     & 1, 3, 2,-1,
-     & 4, 5, 6,-1,
-     & 1, 2, 5, 4,
-     & 2, 3, 6, 5,
-     & 3, 1, 4, 6 /)
-
-!#ifdef LINUX64
-!     integer(kind=2), parameter :: RCAP_SIZE_T = 8
-!#else
-!     integer(kind=2), parameter :: RCAP_SIZE_T = 4
-!#endif
-
-! C åæåÍÇ≈äOïîíËã`Ç≥ÇÍÇΩÇ‡ÇÃÇÕ interface êÈåæÇµÇƒÇÕÉ_ÉÅ
-      interface
-!        subroutine rcapInitRefiner( nodeOffset, elementOffset )
-!          integer(kind=4), intent(in) :: nodeOffset
-!          integer(kind=4), intent(in) :: elementOffset
-!        end subroutine rcapInitRefiner
-
-!        subroutine rcapClearRefiner()
-!        end subroutine rcapClearRefiner
-
-!        subroutine rcapTermRefiner()
-!        end subroutine rcapTermRefiner
-
-!        subroutine rcapSetCADFilename( filename )
-!          character(80), intent(in) :: filename
-!        end subroutine rcapSetCADFilename
-
-!        subroutine rcapSetPartitionFilename( filename )
-!          character(80), intent(in) :: filename
-!        end subroutine rcapSetPartitionFilename
-
-!        subroutine rcapSetNode64( num, coords, globalIds, localIds )
-!          integer(kind=8), intent(in) :: num
-!          double precision, intent(in) :: coords(:)
-!          integer(kind=4), intent(in) :: globalIds(:)
-!          integer(kind=4), intent(in) :: localIds(:)
-!        end subroutine rcapSetNode64
-
-!        subroutine rcapSetNode32( num, coords, globalIds, localIds )
-!          integer(kind=8), intent(in) :: num
-!          real, intent(in) :: coords(:)
-!          integer(kind=4), intent(in) :: globalIds(:)
-!          integer(kind=4), intent(in) :: localIds(:)
-!        end subroutine rcapSetNode32
-
-!        subroutine rcapGetNode64( num, localIds, coords )
-!          integer(kind=8), intent(in) :: num
-!          integer(kind=4), intent(in) :: localIds(:)
-!          double precision, intent(inout) :: coords(:)
-!        end subroutine rcapGetNode64
-
-!        subroutine rcapGetNode32( num, localIds, coords )
-!          integer(kind=8), intent(in) :: num
-!          integer(kind=4), intent(in) :: localIds(:)
-!          real, intent(inout) :: coords(:)
-!        end subroutine rcapGetNode32
-
-!        subroutine rcapGetNodeSeq64( num, initId, coords )
-!          integer(kind=8), intent(in) :: num
-!          integer(kind=8), intent(in) :: initId
-!          double precision, intent(inout) :: coords(:)
-!        end subroutine rcapGetNodeSeq64
-
-!        subroutine rcapGetNodeSeq32( num, initId, coords )
-!          integer(kind=8), intent(in) :: num
-!          integer(kind=8), intent(in) :: initId
-!          real ,intent(inout) :: coords(:)
-!        end subroutine rcapGetNodeSeq32
-
-!        integer(kind=8) function rcapGetNodeCount()
-!        end function rcapGetNodeCount
-
-!        integer(kind=8) function rcapRefineElement( num, etype, nodeArray, resultNodeArray )
-!          integer(kind=8), intent(in) :: num
-!          integer(kind=2), intent(in) :: etype
-!          integer(kind=4), intent(in) :: nodeArray(:)
-!          integer(kind=4), intent(inout) :: resultNodeArray(:)
-!        end function rcapRefineElement
-
-!        subroutine rcapAppendNodeGroup( dataname, num, nodeArray )
-!          character*80, intent(in) :: dataname
-!          integer(kind=8), intent(in) :: num
-!          integer(kind=4), intent(in) :: nodeArray(:)
-!        end subroutine rcapAppendNodeGroup
-
-!        integer(kind=8) function rcapGetNodeGroupCount( dataname )
-!          character*80, intent(in) :: dataname
-!        end function rcapGetNodeGroupCount
-      end interface
+!      integer(kind=2), parameter :: RCAP_WEDGEFACES(20) = (/
+!     *  1, 3, 2,-1,
+!     *  4, 5, 6,-1,
+!     *  1, 2, 5, 4,
+!     *  2, 3, 6, 5,
+!     *  3, 1, 4, 6 /)
 
       external :: rcapGetVersion
       external :: rcapInitRefiner
@@ -193,3 +102,4 @@
 
       external :: rcapGetInterpolateMode
       external :: rcapSetInterpolateMode
+

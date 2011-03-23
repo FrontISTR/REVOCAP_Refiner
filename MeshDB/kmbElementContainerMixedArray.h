@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementContainerMixedArray                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -93,9 +93,10 @@ public:
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
 
+	size_t getNodeTableSize(void);
 private:
-	size_t getNodeTableSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
-	size_t getElementSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
+	static size_t getRequiredNodeTableSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
+	static size_t getRequiredElementSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
 };
 
 }

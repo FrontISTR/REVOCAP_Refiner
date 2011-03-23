@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshData                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,7 +24,7 @@
 #include "Geometry/kmb_BoundingBox.h"
 #include "Geometry/kmb_Point3DContainer.h"
 #include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Point3DOctree.h"
+#include "Geometry/kmb_Octree.h"
 #include "Geometry/kmb_Calculator.h"
 
 #include <vector>
@@ -80,6 +80,11 @@ public:
 
 
 	virtual void endNode(void);
+
+
+
+	kmb::nodeIdType getMaxNodeId(void) const;
+	kmb::nodeIdType getMinNodeId(void) const;
 
 
 	const kmb::Point3DContainer* getNodes(void) const;
@@ -156,7 +161,7 @@ public:
 
 
 
-	virtual const std::multimap< std::string, kmb::DataBindings* > getDataBindingsMap(void) const;
+	virtual const std::multimap< std::string, kmb::DataBindings* >& getDataBindingsMap(void) const;
 
 	virtual kmb::DataBindings* createDataBindings(
 		const char* name,
@@ -189,6 +194,8 @@ public:
 
 	bool setDataSpecType(const char* name,const char* oldstype,const char* newstype);
 
+	const char* getDataContainerType(const char* name,const char* stype=NULL) const;
+
 	virtual void addId(const char* name,kmb::idType id,const char* stype=NULL);
 	virtual void addId(const char* name,kmb::Face f,const char* stype=NULL);
 
@@ -204,13 +211,15 @@ public:
 	virtual bool getPhysicalValueAtId(const char* name,kmb::Face f,double *val,const char* stype=NULL) const;
 
 	void appendTargetData(const char* name, const char* stype=NULL);
+	void appendTargetDataPtr(kmb::DataBindings* data);
 	void clearTargetData(void);
-	int getTargetDataNum(void);
-	int getTargetDataDim(void);
+	int getTargetDataNum(void) const;
+	int getTargetDataDim(void) const;
 	virtual void setMultiPhysicalValues(kmb::idType id, std::vector< kmb::PhysicalValue* > &values);
 	virtual void setMultiPhysicalValues(kmb::idType id, double* values);
 	virtual void setMultiPhysicalValues(kmb::idType id, long* values);
 	virtual void setMultiPhysicalValues(double* values);
+	virtual void getMultiPhysicalValues(kmb::idType id, double* values) const;
 
 
 	void deriveTargetData(kmb::elementIdType elementId,kmb::elementIdType orgElementId);
@@ -219,20 +228,39 @@ public:
 
 	void getNodeSetFromDataBindings(std::set<kmb::nodeIdType>&nodeSet,const char* name,const char* stype=NULL) const;
 
+	void getBoundingBoxOfData(kmb::BoundingBox &bbox,const kmb::DataBindings* data) const;
 
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4100)
 #endif
 
-	virtual PhysicalValue* getInterpolatedValue(const char* key,double x,double y,double z,double tolerance=0.0,const char* stype=NULL) const{ return NULL; };
-	virtual PhysicalValue* getInterpolatedValueInElement(const kmb::DataBindingsEach<kmb::nodeIdType>* bindings,kmb::ElementBase &element,double* coeff) const{ return NULL; };
-	virtual kmb::elementIdType searchElement(kmb::bodyIdType bodyId,double x,double y,double z,double* coeff,double tolerance=0.0) const{ return kmb::Element::nullElementId; };
-
-#ifdef _MSC_VER
-#pragma warning(pop)
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
+
+
+	virtual kmb::elementIdType searchElement(kmb::bodyIdType bodyId,double x,double y,double z,double tolerance=0.0) const{ return kmb::Element::nullElementId; };
+
+
+
+	virtual int getValueOnNearestNode(const char* name,double x,double y,double z,double *values,const char* stype=NULL) const { return -1; };
+
+	virtual int getInterpolatedValueInBody(const char* name,kmb::bodyIdType bodyId,double x,double y,double z,double *values,double tolerance=0.0,const char* stype=NULL) const { return -1; };
+	virtual int getInterpolatedValue(const char* name,double x,double y,double z,double *values,double tolerance=0.0,const char* stype=NULL) const { return -1; };
+	virtual int getInterpolatedValueInData(const char* name,const char* target,double x,double y,double z,double *values,double tolerance=0.0,const char* stype=NULL) const{ return -1; };
+
+
+
+	virtual int getInterpolatedValuesInBody(kmb::bodyIdType bodyId,double x,double y,double z,double *values) const { return -1; };
+	virtual int getInterpolatedValues(double x,double y,double z,double *values) const { return -1; };
+	virtual int getInterpolatedValuesInData(const char* target,double x,double y,double z,double *values,double tolerance=0.0) const{ return -1;};
+
+#if defined _MSC_VER || defined __INTEL_COMPILER
+#pragma warning(pop)
+#endif
 
 };
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BSplineCurve3D                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -37,7 +37,7 @@ public:
 	void appendCtrlPt(double x,double y,double z);
 	bool getCtrlPt(int i,kmb::Point3D &pt) const;
 	double getKnot(int i) const;
-	bool isDomain( double t ) const;
+	virtual bool isDomain( double t ) const;
 	virtual void getDomain( double &min_t, double &max_t ) const;
 	virtual bool getPoint( double t, kmb::Point3D& point ) const;
 	bool getDerivative( double t, kmb::Vector3D& tangent ) const;

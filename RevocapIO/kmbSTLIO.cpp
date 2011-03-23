@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : STLIO                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,6 +14,8 @@
 ----------------------------------------------------------------------*/
 #include "RevocapIO/kmbSTLIO.h"
 #include "MeshDB/kmbMeshData.h"
+#include "Geometry/kmb_Octree.h"
+
 #include <fstream>
 #include <string>
 #include <sstream>
@@ -68,7 +70,7 @@ kmb::STLIO::checkFormat(const char* filename)
 int
 kmb::STLIO::loadFromBinaryFile(const char* filename,kmb::MeshData* mesh)
 {
-	kmb::Point3DOctree nodeOctree;
+	kmb::OctreePoint3D nodeOctree;
 	kmb::nodeIdType nearestId = kmb::nullNodeId;
 	std::ifstream input( filename, std::ios_base::in|std::ios_base::binary );
 	input.seekg(0,std::ios::beg);
@@ -76,22 +78,25 @@ kmb::STLIO::loadFromBinaryFile(const char* filename,kmb::MeshData* mesh)
  	input.read(buf,80);
 	kmb::nodeIdType nodes[3] = {kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId};
 	int size = 0;
-	double v[3] = {0.0,0.0,0.0};
+	float v[3] = {0.0,0.0,0.0};
 	short attr;
 	double dist = 0.0;
 	mesh->beginNode();
 	mesh->beginElement();
+	nodeOctree.setContainer(mesh->getNodes());
 	input.read(reinterpret_cast<char*>(&size),sizeof(int));
 	for(int i=0;i<size;++i){
-		input.read(reinterpret_cast<char*>(v),3*sizeof(double));
+		input.read(reinterpret_cast<char*>(v),3*sizeof(float));
 		for(int j=0;j<3;++j){
-			input.read(reinterpret_cast<char*>(v),3*sizeof(double));
-			dist = nodeOctree.getNearestPoint( v[0], v[1], v[2], mesh->getNodes(), nearestId );
+			input.read(reinterpret_cast<char*>(v),3*sizeof(float));
+			dist = nodeOctree.getNearest( static_cast<double>(v[0]), static_cast<double>(v[1]), static_cast<double>(v[2]), nearestId );
+
 			if( nearestId != kmb::nullNodeId && dist < thresh ){
 				nodes[j] = nearestId;
 			}else{
-				nodes[j] = mesh->addNode( v[0], v[1], v[2] );
-				nodeOctree.appendSearchCache( mesh->getNodes(), nodes[j] );
+				nodes[j] = mesh->addNode( static_cast<double>(v[0]), static_cast<double>(v[1]), static_cast<double>(v[2]) );
+				nodeOctree.append( nodes[j] );
+
 			}
 		}
 		input.read(reinterpret_cast<char*>(&attr),sizeof(short));
@@ -106,7 +111,7 @@ kmb::STLIO::loadFromBinaryFile(const char* filename,kmb::MeshData* mesh)
 int
 kmb::STLIO::loadFromAsciiFile(const char* filename,kmb::MeshData* mesh)
 {
-	kmb::Point3DOctree nodeOctree;
+	kmb::OctreePoint3D nodeOctree;
 	std::ifstream input( filename, std::ios_base::in );
 	input.seekg(0,std::ios::beg);
 	std::string str,tag;
@@ -117,18 +122,21 @@ kmb::STLIO::loadFromAsciiFile(const char* filename,kmb::MeshData* mesh)
 	kmb::nodeIdType nearestId;
 	mesh->beginNode();
 	mesh->beginElement();
+	nodeOctree.setContainer(mesh->getNodes());
 	while( std::getline( input, str ) ){
 		if( str.find("endsol") != std::string::npos ){
 			break;
 		}else if( str.find("vertex") != std::string::npos && index < 3 ){
 			std::stringstream is(str);
 			is >> tag >> x >> y >> z;
-			dist = nodeOctree.getNearestPoint( x, y, z, mesh->getNodes(), nearestId );
+
+			dist = nodeOctree.getNearest( x,y,z,nearestId );
 			if( nearestId != kmb::nullNodeId && dist < thresh ){
 				nodes[index] = nearestId;
 			}else{
 				nodes[index] = mesh->addNode( x, y, z );
-				nodeOctree.appendSearchCache( mesh->getNodes(), nodes[index] );
+
+				nodeOctree.append( nodes[index] );
 			}
 			++index;
 		}else if( str.find("endfacet") != std::string::npos ){

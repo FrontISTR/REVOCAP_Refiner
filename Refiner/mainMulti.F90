@@ -1,10 +1,10 @@
 !/*----------------------------------------------------------------------
 !#                                                                      #
-!# Software Name : REVOCAP_Refiner version 0.4                          #
+!# Software Name : REVOCAP_Refiner version 1.0                          #
 !# Sample Program Multi By Fortran90                                    #
 !#                                                                      #
 !#                                Written by                            #
-!#                                           K. Tokunaga 2010/03/23     #
+!#                                           K. Tokunaga 2011/03/23     #
 !#                                                                      #
 !#      Contact Address: IIS, The University of Tokyo CISS              #
 !#                                                                      #
@@ -25,9 +25,7 @@
 !
 PROGRAM RefinerSampleMulti
   IMPLICIT NONE
-! RCAP_SIZE_T の設定は include の前にやること
-  integer, parameter :: RCAP_SIZE_T = 4
-  INCLUDE "rcapRefiner90.inc"
+  INCLUDE "rcapRefiner.inc"
   INTEGER*4 :: I,J,K
 
 ! 節点配列
@@ -46,7 +44,7 @@ PROGRAM RefinerSampleMulti
   INTEGER*4, DIMENSION(6+6+8) :: elements
   INTEGER*1, DIMENSION(3) :: elementTypes
   INTEGER*4, DIMENSION(:), ALLOCATABLE :: refineElements
-  INTEGER*4, DIMENSION(:), ALLOCATABLE :: refineElementTypes
+  INTEGER*1, DIMENSION(:), ALLOCATABLE :: refineElementTypes
   INTEGER*4, DIMENSION(20) :: originalNode
   INTEGER*4, DIMENSION(6) :: ng0
   INTEGER*4, DIMENSION(6) :: nv0
@@ -57,10 +55,6 @@ PROGRAM RefinerSampleMulti
 
   INTEGER*4 :: nodeOffset = 1
   INTEGER*4 :: elementOffset = 1
-
-  PRINT *, "TETRAHEDRON", RCAP_TETRAHEDRON
-  PRINT *, "WEDGE", RCAP_WEDGE
-  PRINT *, "HEXAHEDRON", RCAP_HEXAHEDRON
 
 ! 初期化：節点番号と要素番号の開始番号を指定する
   CALL rcapInitRefiner(nodeOffset,elementOffset)
@@ -94,38 +88,75 @@ PROGRAM RefinerSampleMulti
   elementCount = 3
 
   ng0 = (/ 1, 2, 4, 5, 10, 12 /)
-  nv0 = (/ 1, 1, 1, 1, 1, 1 /)
+  nv0 = (/ 1, 1, 2, 1, 2, 2 /)
 
-  PRINT *, "---------------------- ORIGINAL -----------------------------------------"
 ! global Id と座標値を Refiner に教える
   CALL rcapSetNode64( nodeCount, coords, globalIds, 0 )
-  PRINT *, "Original Element Count ", elementCount
+  PRINT *, "----- Original Model -----"
+
+  nodeCount = rcapGetNodeCount()
+  PRINT '("Node : Count ="I8)', nodeCount
+  PRINT '(I8,3F15.8)', (I, coords(3*I-2), coords(3*I-1), coords(3*I), I=1, nodeCount)
+
+  PRINT '("Element : Count = "I8)', elementCount
+  J = 1
+  DO I = 1, elementCount
+    IF ( elementTypes(I) == RCAP_WEDGE ) THEN
+      PRINT '(I8,I8,6I8)', I, elementTypes(I), &
+	elements(J), elements(J+1), elements(J+2), &
+	elements(J+3), elements(J+4), elements(J+5)
+      J = J + 6
+    ELSE IF ( elementTypes(I) == RCAP_HEXAHEDRON ) THEN
+      PRINT '(I8,I8,8I8)', I, elementTypes(I), &
+	elements(J), elements(J+1), elements(J+2), elements(J+3), &
+	elements(J+4), elements(J+5), elements(J+6), elements(J+7)
+      J = J + 8
+    END IF
+  END DO
 
 ! CHAR(0) を concat しておく
   str = "BND"//CHAR(0)
   nodeCount = 6
   CALL rcapAppendBNodeVarInt(str,nodeCount,ng0,nv0)
-  nodeCount = rcapGetNodeCount()
-  PRINT *, "Original Node Count ", nodeCount
+  PRINT '("Node Variable : Count ="I8)', nodeCount
+  PRINT '(I8,I8)', (ng0(I), nv0(I), I=1, nodeCount)
 
-  PRINT *, "---------------------- REFINE -----------------------------------------"
+! ---------------------- REFINE -----------------------------------------
 ! 要素の細分
 ! 細分後の節点配列の個数を調べる
+
+  PRINT *, "----- Refined Model -----"
   refineNodeCount = rcapRefineElementMulti( elementCount, elementTypes, elements, refineElementCount, -1, -1 )
-  PRINT *, "Refine Node Table Count ", refineNodeCount
-  PRINT *, "Refine Element Count ", refineElementCount
   ALLOCATE( refineElements(refineNodeCount) )
   ALLOCATE( refineElementTypes(refineElementCount) )
-  refineElements(1) = 0
-  refineElementTypes(1) = 0
+  refineElements = 0
+  refineElementTypes = 0
   res = rcapRefineElementMulti( elementCount, elementTypes, elements, refineElementCount, refineElementTypes, refineElements )
-  PRINT *, "Refined Element Count ", res
-  DO I = 1, 8*2
-    PRINT *, "NODE TABLE ", I, refineElements((I-1)*6+1:I*6)
+
+  refineNodeCount = rcapGetNodeCount()
+  ALLOCATE( resultCoords(3*refineNodeCount) )
+  CALL rcapGetNodeSeq64( refineNodeCount, 1, resultCoords )
+  PRINT '("Node : Count ="I8)', refineNodeCount
+  PRINT '(I8,3F15.8)', (I, resultCoords(3*I-2), resultCoords(3*I-1), resultCoords(3*I), &
+       & I=1, refineNodeCount)
+  DEALLOCATE( resultCoords )
+
+  PRINT '("Element : Count ="I8)', refineElementCount
+  J = 1
+  DO I = 1, refineElementCount
+    IF ( refineElementTypes(I) == RCAP_WEDGE ) THEN
+      PRINT '(I8,I8,6I8)', I, refineElementTypes(I), &
+	refineElements(J), refineElements(J+1), refineElements(J+2), &
+	refineElements(J+3), refineElements(J+4), refineElements(J+5)
+      J = J + 6
+    ELSE IF ( refineElementTypes(I) == RCAP_HEXAHEDRON ) THEN
+      PRINT '(I8,I8,8I8)', I, refineElementTypes(I), &
+	refineElements(J), refineElements(J+1), refineElements(J+2), refineElements(J+3), &
+	refineElements(J+4), refineElements(J+5), refineElements(J+6), refineElements(J+7)
+      J = J + 8
+    END IF
   END DO
-  DO I = 1, 8
-    PRINT *, "NODE TABLE ", I+16, refineElements(96+(I-1)*8+1:96+I*8)
-  END DO
+
   DEALLOCATE( refineElements )
   DEALLOCATE( refineElementTypes )
 
@@ -137,10 +168,10 @@ PROGRAM RefinerSampleMulti
   ALLOCATE( result_ng0(res) )
   ALLOCATE( result_nv0(res) )
   CALL rcapGetBNodeVarInt(str,res,result_ng0,result_nv0)
-  PRINT *, "Refined Node Group Count ", res
-  DO I = 1, res
-    PRINT *, "NODE VAR INT ", I, result_ng0(I), result_nv0(1)
-  END DO
+
+  PRINT '("Node Variable : Count ="I8)', res
+  PRINT '(I8,I8)', (result_ng0(I), result_nv0(I), I=1, res)
+
   DEALLOCATE( result_ng0 )
   DEALLOCATE( result_nv0 )
 

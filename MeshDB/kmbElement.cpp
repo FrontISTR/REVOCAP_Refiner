@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Element                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -40,6 +40,7 @@
 #include "MeshDB/kmbHexahedron2.h"
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbElementRelation.h"
+#include "Geometry/kmb_Calculator.h"
 
 kmb::elementIdType kmb::Element::nullElementId = -1;
 
@@ -85,7 +86,7 @@ kmb::ElementBase::getTypeString(elementType type)
 	}
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getType(std::string str)
 {
 	if(str == "SEGMENT")
@@ -122,7 +123,7 @@ kmb::ElementBase::getType(std::string str)
 		return kmb::UNKNOWNTYPE;
 }
 
-const int
+int
 kmb::ElementBase::getNodeCount(elementType type)
 {
 	switch(type){
@@ -145,7 +146,7 @@ kmb::ElementBase::getNodeCount(elementType type)
 	}
 }
 
-const int
+int
 kmb::ElementBase::getVertexCount(elementType type)
 {
 	switch(type){
@@ -177,7 +178,7 @@ kmb::ElementBase::getVertexCount(elementType type)
 	}
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getLinearType(kmb::elementType type)
 {
 	switch(type){
@@ -207,7 +208,7 @@ kmb::ElementBase::getLinearType(kmb::elementType type)
 	}
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getSecondType(kmb::elementType type)
 {
 	switch(type){
@@ -237,7 +238,7 @@ kmb::ElementBase::getSecondType(kmb::elementType type)
 	}
 }
 
-const int
+int
 kmb::ElementBase::getDiagIndex(kmb::elementType type,int index)
 {
 	switch(type){
@@ -330,7 +331,7 @@ kmb::ElementBase::getDiagIndex(kmb::elementType type,int index)
 }
 
 
-const int
+int
 kmb::ElementBase::getBoundaryCount(kmb::elementType type)
 {
 	switch(type){
@@ -362,7 +363,7 @@ kmb::ElementBase::getBoundaryCount(kmb::elementType type)
 	}
 }
 
-const int
+int
 kmb::ElementBase::getEdgeCount(kmb::elementType type)
 {
 	switch( type ){
@@ -394,7 +395,7 @@ kmb::ElementBase::getEdgeCount(kmb::elementType type)
 	}
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getBoundaryType(kmb::elementType type,int index)
 {
 	const int len = getBoundaryCount(type);
@@ -424,7 +425,7 @@ kmb::ElementBase::getBoundaryType(kmb::elementType type,int index)
 				return kmb::QUAD;
 			}
 		case kmb::PYRAMID2:
-			if(kmb::Pyramid::faceTable[index][7]==-1){
+			if(kmb::Pyramid2::faceTable[index][7]==-1){
 				return kmb::TRIANGLE2;
 			}else{
 				return kmb::QUAD2;
@@ -450,7 +451,7 @@ kmb::ElementBase::getBoundaryType(kmb::elementType type,int index)
 	}
 }
 
-const int
+int
 kmb::ElementBase::getBoundaryNodeCount(kmb::elementType type,int index)
 {
 	switch(type){
@@ -476,7 +477,7 @@ kmb::ElementBase::getBoundaryNodeCount(kmb::elementType type,int index)
 				return 4;
 			}
 		case kmb::PYRAMID2:
-			if(kmb::Pyramid::faceTable[index][7]==-1){
+			if(kmb::Pyramid2::faceTable[index][7]==-1){
 				return 6;
 			}else{
 				return 8;
@@ -502,7 +503,7 @@ kmb::ElementBase::getBoundaryNodeCount(kmb::elementType type,int index)
 	}
 }
 
-const int
+int
 kmb::ElementBase::getBoundaryVertexCount(kmb::elementType type,int index)
 {
 	switch(type){
@@ -541,7 +542,7 @@ kmb::ElementBase::getBoundaryVertexCount(kmb::elementType type,int index)
 	}
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getEdgeType(kmb::elementType type,int index)
 {
 	const int len = getEdgeCount(type);
@@ -577,7 +578,12 @@ kmb::ElementBase::getEdgeType(kmb::elementType type,int index)
 #pragma warning(disable:4100)
 #endif
 
-const int
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
+
+int
 kmb::ElementBase::getEdgeNodeCount(kmb::elementType type,int index)
 {
 	switch( type ){
@@ -604,7 +610,7 @@ kmb::ElementBase::getEdgeNodeCount(kmb::elementType type,int index)
 	}
 }
 
-const int
+int
 kmb::ElementBase::getEdgeVertexCount(kmb::elementType type,int index)
 {
 	switch( type ){
@@ -630,11 +636,11 @@ kmb::ElementBase::getEdgeVertexCount(kmb::elementType type,int index)
 	}
 }
 
-#ifdef _MSC_VER
+#if defined _MSC_VER || defined __INTEL_COMPILER
 #pragma warning(pop)
 #endif
 
-const int
+int
 kmb::ElementBase::getDimension(kmb::elementType type)
 {
 	switch(type){
@@ -664,7 +670,7 @@ kmb::ElementBase::getDimension(kmb::elementType type)
 	}
 }
 
-const int
+int
 kmb::ElementBase::getDegree(kmb::elementType type)
 {
 	switch(type){
@@ -695,13 +701,13 @@ kmb::ElementBase::getDegree(kmb::elementType type)
 
 
 
-const int
+int
 kmb::ElementBase::getNodeCount(void) const
 {
 	return kmb::ElementBase::getNodeCount( getType() );
 }
 
-const int
+int
 kmb::ElementBase::getVertexCount(void) const
 {
 	return kmb::ElementBase::getVertexCount( getType() );
@@ -713,85 +719,85 @@ kmb::ElementBase::getTypeString(void) const
 	return kmb::ElementBase::getTypeString( getType() );
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getLinearType(void) const
 {
 	return kmb::ElementBase::getLinearType( getType() );
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getSecondType(void) const
 {
 	return kmb::ElementBase::getSecondType( getType() );
 }
 
-const int
+int
 kmb::ElementBase::getDiagIndex(int index) const
 {
 	return kmb::ElementBase::getDiagIndex( getType(), index );
 }
 
-const int
+int
 kmb::ElementBase::getBoundaryCount(void) const
 {
 	return kmb::ElementBase::getBoundaryCount( getType() );
 }
 
-const int
+int
 kmb::ElementBase::getEdgeCount(void) const
 {
 	return kmb::ElementBase::getEdgeCount( getType() );
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getBoundaryType(int index) const
 {
 	return kmb::ElementBase::getBoundaryType( getType(), index );
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getEdgeType(int index) const
 {
 	return kmb::ElementBase::getEdgeType( getType(), index );
 }
 
-const int
+int
 kmb::ElementBase::getBoundaryNodeCount(int index) const
 {
 	return kmb::ElementBase::getNodeCount( getBoundaryType(index) );
 }
 
-const int
+int
 kmb::ElementBase::getBoundaryVertexCount(int index) const
 {
 	return kmb::ElementBase::getVertexCount( getBoundaryType(index) );
 }
 
-const int
+int
 kmb::ElementBase::getEdgeNodeCount(int index) const
 {
 	return kmb::ElementBase::getNodeCount( getEdgeType(index) );
 }
 
-const int
+int
 kmb::ElementBase::getEdgeVertexCount(int index) const
 {
 	return kmb::ElementBase::getVertexCount( getEdgeType(index) );
 }
 
-const int
+int
 kmb::ElementBase::getDimension(void) const
 {
 	return kmb::ElementBase::getDimension( getType() );
 }
 
-const int
+int
 kmb::ElementBase::getDegree(void) const
 {
 	return kmb::ElementBase::getDegree( getType() );
 }
 
-const bool
+bool
 kmb::ElementBase::include(kmb::nodeIdType nodeId) const
 {
 	unsigned int len = this->getNodeCount();
@@ -803,7 +809,7 @@ kmb::ElementBase::include(kmb::nodeIdType nodeId) const
 	return false;
 }
 
-const bool
+bool
 kmb::ElementBase::includeVertex(kmb::nodeIdType nodeId) const
 {
 	unsigned int len = this->getVertexCount();
@@ -815,7 +821,7 @@ kmb::ElementBase::includeVertex(kmb::nodeIdType nodeId) const
 	return false;
 }
 
-const int
+int
 kmb::ElementBase::indexOf(kmb::nodeIdType nodeId) const
 {
 	unsigned int len = this->getNodeCount();
@@ -827,7 +833,7 @@ kmb::ElementBase::indexOf(kmb::nodeIdType nodeId) const
 	return -1;
 }
 
-const int
+int
 kmb::ElementBase::countCommonNode(kmb::ElementBase& other) const
 {
 	int count = 0;
@@ -868,7 +874,7 @@ kmb::ElementBase::replaceNodeId(std::map<nodeIdType,nodeIdType> &idmap)
 	return counter;
 }
 
-const kmb::nodeIdType
+kmb::nodeIdType
 kmb::ElementBase::getBoundaryCellId(int index,int i) const
 {
 	if( 0 <= i && 0 <= index && index < getBoundaryCount() && i < getBoundaryNodeCount(index) ){
@@ -908,7 +914,7 @@ kmb::ElementBase::getBoundaryCellId(int index,int i) const
 	return kmb::nullNodeId;
 }
 
-const kmb::nodeIdType
+kmb::nodeIdType
 kmb::ElementBase::getEdgeCellId(int index,int i) const
 {
 
@@ -949,7 +955,7 @@ kmb::ElementBase::getEdgeCellId(int index,int i) const
 	return kmb::nullNodeId;
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getBoundaryElement(int index,kmb::nodeIdType* cell) const
 {
 	kmb::elementType etype = kmb::UNKNOWNTYPE;
@@ -980,7 +986,7 @@ kmb::ElementBase::getBoundaryElement(int index,kmb::ElementBase& elem) const
 	return false;
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementBase::getEdgeElement(int index,kmb::nodeIdType* cell) const
 {
 	kmb::elementType etype = kmb::UNKNOWNTYPE;
@@ -1011,7 +1017,7 @@ kmb::ElementBase::getEdgeElement(int index,kmb::ElementBase& elem) const
 	return false;
 }
 
-const int
+int
 kmb::ElementBase::isConnected(int index0,int index1) const
 {
 	const int len = getNodeCount();
@@ -1055,7 +1061,7 @@ kmb::ElementBase::isConnected(int index0,int index1) const
 	return 0;
 }
 
-const int
+int
 kmb::ElementBase::isFace(const kmb::ElementBase &element, int &faceIndex) const
 {
 	const int vcount = element.getVertexCount();
@@ -1091,7 +1097,7 @@ kmb::ElementBase::isFace(const kmb::ElementBase &element, int &faceIndex) const
 	return 0;
 }
 
-const int
+int
 kmb::ElementBase::isFace(int index0,int index1,int &faceIndex) const
 {
 	const int nodeCount = getNodeCount();
@@ -1138,7 +1144,7 @@ kmb::ElementBase::isFace(int index0,int index1,int &faceIndex) const
 	return 0;
 }
 
-const int
+int
 kmb::ElementBase::isFace(int index0,int index1,int index2,int &faceIndex) const
 {
 	int ret = 0;
@@ -1231,7 +1237,7 @@ kmb::ElementBase::isFace(int index0,int index1,int index2,int &faceIndex) const
 	return ret;
 }
 
-const int
+int
 kmb::ElementBase::isFace(int index0,int index1,int index2,int index3,int &faceIndex) const
 {
 	int ret = 0;
@@ -2287,7 +2293,7 @@ kmb::Element::setCellId(int index,kmb::nodeIdType id)
 	return true;
 }
 
-const kmb::nodeIdType
+kmb::nodeIdType
 kmb::Element::getCellId(int index) const
 {
 	return cell[index];
@@ -2301,7 +2307,7 @@ kmb::Element::operator[](const int i) const
 
 
 
-const kmb::elementType
+kmb::elementType
 kmb::Element::getType() const
 {
 	return type;

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : TriangleOrientedSet                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -18,7 +18,13 @@
 
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 kmb::TriangleOrientedSet::TriangleOrientedSet(void)
@@ -188,7 +194,6 @@ kmb::TriangleOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb
 		++(typeCounter[ kmb::TRIANGLE ]);
 		return 1;
 	}
-	return 0;
 }
 
 bool

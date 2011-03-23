@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -37,7 +37,13 @@
 #include "Geometry/kmb_Calculator.h"
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 const kmb::ElementContainer::iterator kmb::ElementContainer::endIterator;
@@ -177,7 +183,7 @@ kmb::ElementContainer::updateBoundingBox(const kmb::Point3DContainer* points)
 kmb::Element*
 kmb::ElementContainer::eraseElement(kmb::elementIdType id){
 	return NULL;
-};
+}
 
 
 kmb::elementIdType
@@ -424,7 +430,7 @@ kmb::ElementContainer::iterator::getElement(kmb::Element &element) const
 	return false;
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementContainer::iterator::getType(void) const
 {
 	if( _iter != NULL ){
@@ -434,7 +440,7 @@ kmb::ElementContainer::iterator::getType(void) const
 	}
 }
 
-const kmb::nodeIdType
+kmb::nodeIdType
 kmb::ElementContainer::iterator::getCellId(int cellIndex) const
 {
 	if( _iter != NULL ){
@@ -557,7 +563,7 @@ kmb::ElementContainer::const_iterator::~const_iterator(void)
 	_iter = NULL;
 }
 
-const kmb::elementIdType
+kmb::elementIdType
 kmb::ElementContainer::const_iterator::getId(void) const
 {
 	if( _iter != NULL ){
@@ -607,7 +613,7 @@ kmb::ElementContainer::const_iterator::getElement(kmb::Element &element) const
 	return false;
 }
 
-const kmb::elementType
+kmb::elementType
 kmb::ElementContainer::const_iterator::getType(void) const
 {
 	if( _iter != NULL ){
@@ -617,7 +623,7 @@ kmb::ElementContainer::const_iterator::getType(void) const
 	}
 }
 
-const kmb::nodeIdType
+kmb::nodeIdType
 kmb::ElementContainer::const_iterator::getCellId(int cellIndex) const
 {
 	if( _iter != NULL ){

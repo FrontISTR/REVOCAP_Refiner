@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : FortranIO                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -22,11 +22,8 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#ifdef WIN32
- typedef unsigned char uint8_t;
-#else
- #include <stdint.h>
-#endif
+
+#include "Geometry/kmb_Common.h"
 
 namespace kmb{
 
@@ -48,13 +45,13 @@ protected:
 		val.clear();
 		int size = 0;
 		input.read(reinterpret_cast<char*>(&size),sizeof(int));
-		if( endianFlag )	reverse_endian<int>(&size);
+		if( endianFlag ) reverse_endian<int>(&size);
 		const int len = size / sizeof(T);
 		val.reserve(len);
 		T value = 0;
 		for(int i=0;i<len;++i){
 			input.read(reinterpret_cast<char*>(&value),sizeof(T));
-			if( endianFlag )	reverse_endian<T>(&value);
+			if( endianFlag ) reverse_endian<T>(&value);
 			val.push_back(value);
 		}
 		input.read(reinterpret_cast<char*>(&size),sizeof(int));

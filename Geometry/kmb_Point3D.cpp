@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3D                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -33,15 +33,13 @@
 kmb::Point3D kmb::Point3D::infinity(DBL_MAX,DBL_MAX,DBL_MAX);
 
 kmb::Point3D
-kmb::Point3D::operator+(const Vector3D& other)
-const
+kmb::Point3D::operator+(const Vector3D& other) const
 {
 	return Point3D(v[0]+other.x(),v[1]+other.y(),v[2]+other.z());
 }
 
 kmb::Point3D
-kmb::Point3D::operator-(const Vector3D& other)
-const
+kmb::Point3D::operator-(const Vector3D& other) const
 {
 	return Point3D(v[0]-other.x(),v[1]-other.y(),v[2]-other.z());
 }
@@ -159,7 +157,6 @@ kmb::Point3D::distanceSqToTriangle(const Point3D& a,const Point3D& b,const Point
 	if( getFootOfPerpendicular( a, ab, ac, t0, t1 ) &&
 		t0 > 0 && t1 > 0 && t0 + t1 < 1 )
 	{
-		Vector3D ww = ab.scalar(t0) + ac.scalar(t1) - Vector3D(*this,a);
 
 		return this->distanceSq( a + ab.scalar(t0) + ac.scalar(t1) );
 	}else{
@@ -196,6 +193,18 @@ kmb::Point3D::proportionalPoint(const Point3D& other,double t) const
 		(1.0-t)*this->z() + t*other.z());
 }
 
+double
+kmb::Point3D::distance(const Point3D& a,const Point3D& b)
+{
+	return a.distance(b);
+}
+
+double
+kmb::Point3D::distanceSq(const Point3D& a,const Point3D& b)
+{
+	return a.distanceSq(b);
+}
+
 
 double
 kmb::Point3D::volume(const kmb::Point3D& a,const kmb::Point3D& b,const kmb::Point3D &c,const kmb::Point3D &d)
@@ -205,12 +214,6 @@ kmb::Point3D::volume(const kmb::Point3D& a,const kmb::Point3D& b,const kmb::Poin
 	kmb::Vector3D cd(d,c);
 
 	return kmb::Vector3D::triple(ad,bd,cd) / 6.0;
-
-
-
-
-
-
 }
 
 
@@ -289,15 +292,11 @@ kmb::Point3D::calcMinorCoordinate
 	kmb::Vector3D xc(c,x);
 	kmb::Vector3D xd(d,x);
 
-
 	coordinate[0] = kmb::Vector3D::triple(xb,xc,xd) / 6.0;
-
 
 	coordinate[1] = -kmb::Vector3D::triple(xa,xc,xd) / 6.0;
 
-
 	coordinate[2] = kmb::Vector3D::triple(xa,xb,xd) / 6.0;
-
 
 	coordinate[3] = -kmb::Vector3D::triple(xa,xb,xc) / 6.0;
 }

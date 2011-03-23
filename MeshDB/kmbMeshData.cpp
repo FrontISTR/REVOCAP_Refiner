@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshData                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,7 +24,13 @@
 #include <cstring>
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 kmb::MeshData::MeshData(void)
@@ -55,6 +61,8 @@ void kmb::MeshData::clearModel(void)
 
 	removeAllBodies();
 
+	clearTargetData();
+
 	std::multimap<std::string, kmb::DataBindings*>::iterator pIter = this->bindings.begin();
 	while( pIter != this->bindings.end() )
 	{
@@ -62,11 +70,10 @@ void kmb::MeshData::clearModel(void)
 		if(data){
 			delete data;
 			data = NULL;
+			pIter->second = NULL;
 		}
 		++pIter;
 	}
-	this->bindingsStack.clear();
-	this->bindingsStackDim = 0;
 	this->bindings.clear();
 }
 
@@ -129,13 +136,13 @@ kmb::MeshData::beginNode(size_t size,const char* containerType)
 	if( containerType == NULL ){
 		this->beginNode(size,new kmb::Point3DContainerMap());
 	}
-	else if(0==strcmp(containerType,kmb::Point3DContainerMap::CONTAINER_TYPE) ){
+	else if( 0==strcmp(containerType,kmb::Point3DContainerMap::CONTAINER_TYPE) ){
 		this->beginNode(size,new kmb::Point3DContainerMap());
 	}
-	else if(0==strcmp(containerType,kmb::Point3DContainerArray::CONTAINER_TYPE) ){
+	else if( 0==strcmp(containerType,kmb::Point3DContainerArray::CONTAINER_TYPE) ){
 		this->beginNode(size,new kmb::Point3DContainerArray());
 	}
-	else if(0==strcmp(containerType,kmb::Point3DContainerVect::CONTAINER_TYPE) ){
+	else if( 0==strcmp(containerType,kmb::Point3DContainerVect::CONTAINER_TYPE) ){
 		this->beginNode(size,new kmb::Point3DContainerVect());
 	}
 	else{
@@ -163,6 +170,20 @@ kmb::MeshData::addNodeWithId(double x,double y,double z, kmb::nodeIdType id)
 
 void kmb::MeshData::endNode(void)
 {
+}
+
+kmb::nodeIdType
+kmb::MeshData::getMaxNodeId(void) const
+{
+	if( node3Ds ) return this->node3Ds->getMaxId();
+	else return 0;
+}
+
+kmb::nodeIdType
+kmb::MeshData::getMinNodeId(void) const
+{
+	if( node3Ds ) return this->node3Ds->getMinId();
+	else return 0;
 }
 
 const kmb::Point3DContainer*
@@ -440,7 +461,7 @@ kmb::MeshData::removeAllBodies(void)
 	std::vector<kmb::ElementContainer*>::iterator bIter = bodies.begin();
 	while( bIter != this->bodies.end() ){
 		kmb::ElementContainer* body = *bIter;
-		if(body){
+		if( body ){
 			delete body;
 			body = NULL;
 		}
@@ -597,7 +618,7 @@ kmb::MeshData::getElementContainerType(bodyIdType bodyId) const
 		return NULL;
 }
 
-const std::multimap< std::string, kmb::DataBindings* >
+const std::multimap< std::string, kmb::DataBindings* >&
 kmb::MeshData::getDataBindingsMap(void) const
 {
 	return bindings;
@@ -607,7 +628,20 @@ kmb::DataBindings*
 kmb::MeshData::createDataBindings
 (const char* name,kmb::DataBindings::bindingMode bmode,PhysicalValue::valueType vtype,const char* stype,kmb::bodyIdType targetBodyId)
 {
-	return NULL;
+	if( name == NULL || this->getDataBindingsPtr( name, stype ) != NULL ){
+
+		return NULL;
+	}else{
+		kmb::DataBindings* data = kmb::DataBindings::createDataBindings(bmode,vtype,stype,targetBodyId);
+		if( data ){
+			if( setDataBindingsPtr( name, data, stype ) ){
+				return data;
+			}else{
+				delete data;
+			}
+		}
+		return NULL;
+	}
 }
 
 size_t
@@ -733,6 +767,16 @@ kmb::MeshData::setDataSpecType(const char* name,const char* oldstype,const char*
 	return false;
 }
 
+const char*
+kmb::MeshData::getDataContainerType(const char* name,const char* stype) const
+{
+	const kmb::DataBindings* data = this->getDataBindingsPtr(name,stype);
+	if( data ){
+		return data->getContainerType();
+	}
+	return NULL;
+}
+
 size_t
 kmb::MeshData::getIdCount(const char* name,const char* stype) const
 {
@@ -745,28 +789,45 @@ kmb::MeshData::getIdCount(const char* name,const char* stype) const
 }
 
 void
-kmb::MeshData::appendTargetData(const char* name, const char* stype)
+kmb::MeshData::appendTargetDataPtr(kmb::DataBindings* data)
 {
-	kmb::DataBindings* data = this->getDataBindingsPtr( name, stype );
 	if( data ){
-		this->bindingsStack.push_back( data );
 		switch( data->getValueType() ){
 			case kmb::PhysicalValue::SCALAR:
+				this->bindingsStack.push_back( data );
 				this->bindingsStackDim += 1;
 				break;
+			case kmb::PhysicalValue::VECTOR2:
+				this->bindingsStack.push_back( data );
+				this->bindingsStackDim += 2;
+				break;
 			case kmb::PhysicalValue::VECTOR3:
+				this->bindingsStack.push_back( data );
 				this->bindingsStackDim += 3;
 				break;
+			case kmb::PhysicalValue::VECTOR4:
+				this->bindingsStack.push_back( data );
+				this->bindingsStackDim += 4;
+				break;
 			case kmb::PhysicalValue::TENSOR6:
+				this->bindingsStack.push_back( data );
 				this->bindingsStackDim += 6;
 				break;
 			case kmb::PhysicalValue::POINT3VECTOR3:
+				this->bindingsStack.push_back( data );
 				this->bindingsStackDim += 6;
 				break;
 			default:
 				break;
 		}
 	}
+}
+
+void
+kmb::MeshData::appendTargetData(const char* name, const char* stype)
+{
+	kmb::DataBindings* data = this->getDataBindingsPtr( name, stype );
+	appendTargetDataPtr(data);
 }
 
 void
@@ -777,13 +838,13 @@ kmb::MeshData::clearTargetData(void)
 }
 
 int
-kmb::MeshData::getTargetDataNum(void)
+kmb::MeshData::getTargetDataNum(void) const
 {
 	return static_cast<int>(this->bindingsStack.size());
 }
 
 int
-kmb::MeshData::getTargetDataDim(void)
+kmb::MeshData::getTargetDataDim(void) const
 {
 	return this->bindingsStackDim;
 }
@@ -821,10 +882,22 @@ kmb::MeshData::setMultiPhysicalValues(kmb::idType id, double* values)
 						++i;
 						break;
 					}
+				case kmb::PhysicalValue::VECTOR2:
+					{
+						data->setPhysicalValue(id,&values[i]);
+						i += 2;
+						break;
+					}
 				case kmb::PhysicalValue::VECTOR3:
 					{
 						data->setPhysicalValue(id,&values[i]);
 						i += 3;
+						break;
+					}
+				case kmb::PhysicalValue::VECTOR4:
+					{
+						data->setPhysicalValue(id,&values[i]);
+						i += 4;
 						break;
 					}
 				case kmb::PhysicalValue::TENSOR6:
@@ -836,6 +909,60 @@ kmb::MeshData::setMultiPhysicalValues(kmb::idType id, double* values)
 				case kmb::PhysicalValue::POINT3VECTOR3:
 					{
 						data->setPhysicalValue(id,&values[i]);
+						i += 6;
+						break;
+					}
+				default:
+					break;
+			}
+		}
+		++dIter;
+	}
+}
+
+void
+kmb::MeshData::getMultiPhysicalValues(kmb::idType id, double* values) const
+{
+	std::vector< kmb::DataBindings* >::const_iterator dIter = bindingsStack.begin();
+	int i=0;
+	while( dIter != bindingsStack.end() )
+	{
+		kmb::DataBindings* data = *dIter;
+		if( data ){
+			switch( data->getValueType() ){
+				case kmb::PhysicalValue::SCALAR:
+					{
+						data->getPhysicalValue(id,&values[i]);
+						++i;
+						break;
+					}
+				case kmb::PhysicalValue::VECTOR2:
+					{
+						data->getPhysicalValue(id,&values[i]);
+						i += 2;
+						break;
+					}
+				case kmb::PhysicalValue::VECTOR3:
+					{
+						data->getPhysicalValue(id,&values[i]);
+						i += 3;
+						break;
+					}
+				case kmb::PhysicalValue::VECTOR4:
+					{
+						data->getPhysicalValue(id,&values[i]);
+						i += 4;
+						break;
+					}
+				case kmb::PhysicalValue::TENSOR6:
+					{
+						data->getPhysicalValue(id,&values[i]);
+						i += 6;
+						break;
+					}
+				case kmb::PhysicalValue::POINT3VECTOR3:
+					{
+						data->getPhysicalValue(id,&values[i]);
 						i += 6;
 						break;
 					}
@@ -1251,3 +1378,91 @@ kmb::MeshData::getNodeSetFromDataBindings(std::set<kmb::nodeIdType>&nodeSet,cons
 	}
 }
 
+void
+kmb::MeshData::getBoundingBoxOfData(kmb::BoundingBox &bbox,const kmb::DataBindings* data) const
+{
+	if(data != NULL){
+		kmb::bodyIdType bodyId = data->getTargetBodyId();
+		switch( data->getBindingMode() ){
+			case kmb::DataBindings::BODYVARIABLE:
+			case kmb::DataBindings::BODYGROUP:
+				{
+					kmb::DataBindings::const_iterator bIter = data->begin();
+					while( !bIter.isFinished() ){
+						kmb::bodyIdType bId = static_cast< kmb::bodyIdType >( bIter.getId() );
+						const kmb::Body* body = this->getBodyPtr( bId );
+						if( body != NULL ){
+							kmb::Point3D maxPt;
+							kmb::Point3D minPt;
+							body->getMaxPoint( maxPt );
+							body->getMinPoint( minPt );
+							bbox.update( maxPt );
+							bbox.update( minPt );
+						}
+						++bIter;
+					}
+					break;
+				}
+			case kmb::DataBindings::ELEMENTVARIABLE:
+			case kmb::DataBindings::ELEMENTGROUP:
+				{
+					kmb::DataBindings::const_iterator eIter = data->begin();
+					kmb::Node node;
+					while( !eIter.isFinished() ){
+						kmb::elementIdType elementId = static_cast< kmb::elementIdType >( eIter.getId() );
+						kmb::ElementContainer::const_iterator elem = this->findElement( elementId, bodyId );
+						if( !elem.isFinished() ){
+							const int len = elem.getNodeCount();
+							for(int i=0;i<len;++i)
+							{
+								if( this->getNode( elem.getCellId(i), node ) ){
+									bbox.update( node );
+								}
+							}
+						}
+						++eIter;
+					}
+					break;
+				}
+			case kmb::DataBindings::NODEVARIABLE:
+			case kmb::DataBindings::NODEGROUP:
+				{
+					kmb::DataBindings::const_iterator nIter = data->begin();
+					kmb::Node node(0.0,0.0,0.0);
+					while( !nIter.isFinished() ){
+						kmb::nodeIdType nodeId = static_cast< kmb::nodeIdType >( nIter.getId() );
+						if( this->getNode( nodeId, node ) ){
+							bbox.update( node );
+						}
+						++nIter;
+					}
+					break;
+				}
+			case kmb::DataBindings::FACEVARIABLE:
+			case kmb::DataBindings::FACEGROUP:
+				{
+					kmb::DataBindings::const_iterator fIter = data->begin();
+					kmb::Node node;
+					kmb::Face f;
+					while( !fIter.isFinished() ){
+						if( fIter.getFace( f ) ){
+							kmb::ElementContainer::const_iterator elem = this->findElement( f.getElementId(), bodyId );
+							if( !elem.isFinished() ){
+								const int len = elem.getBoundaryNodeCount(f.getLocalFaceId());
+								for(int i=0;i<len;++i)
+								{
+									if( this->getNode( elem.getBoundaryCellId(f.getLocalFaceId(),i), node ) ){
+										bbox.update( node );
+									}
+								}
+							}
+						}
+						++fIter;
+					}
+					break;
+				}
+			default:
+				break;
+		}
+	}
+}

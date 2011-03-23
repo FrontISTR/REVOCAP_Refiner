@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Matrix2x2                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,6 +27,7 @@
 #include <cfloat>
 #include "Geometry/kmb_Geometry2D.h"
 #include "Geometry/kmb_idTypes.h"
+#include "Matrix/kmbMatrix_DoubleArray.h"
 
 kmb::Matrix2x2::Matrix2x2(void)
 : SquareMatrix(2)
@@ -43,13 +44,33 @@ kmb::Matrix2x2::Matrix2x2(double m[4])
 }
 
 kmb::Matrix2x2::Matrix2x2(
-		  double m00,double m01,
-		  double m10,double m11)
+		double m00,double m01,
+		double m10,double m11)
 : SquareMatrix(2)
 {
 	m[0] = m00;	m[2] = m01;
 	m[1] = m10;	m[3] = m11;
 }
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
+
+int
+kmb::Matrix2x2::init(int rowSize, int colSize)
+{
+	return -1;
+}
+
+#if defined _MSC_VER || defined __INTEL_COMPILER
+#pragma warning(pop)
+#endif
 
 int
 kmb::Matrix2x2::getSize(void) const
@@ -67,6 +88,13 @@ bool
 kmb::Matrix2x2::set(int i,int j,double val)
 {
 	m[i+j*2] = val;
+	return true;
+}
+
+bool
+kmb::Matrix2x2::add(int i,int j,double val)
+{
+	m[i+j*2] += val;
 	return true;
 }
 
@@ -192,12 +220,11 @@ kmb::Matrix2x2::operator-(const kmb::Matrix2x2& other)
 kmb::Vector2D*
 kmb::Matrix2x2::solve(const Vector2D& b) const
 {
-	double d = this->determinant();
-	if( d != 0.0 ){
-		return new kmb::Vector2D(
-					(m[3]*b.x()-m[2]*b.y()) / d,
-					(-m[1]*b.x()+m[0]*b.y()) / d );
+	kmb::Vector2D* x = new kmb::Vector2D();
+	if( solve(b,*x) ){
+		return x;
 	}else{
+		delete x;
 		return NULL;
 	}
 }
@@ -205,14 +232,87 @@ kmb::Matrix2x2::solve(const Vector2D& b) const
 bool
 kmb::Matrix2x2::solve(const Vector2D& b,Vector2D& x) const
 {
-	double d = this->determinant();
-	if( d != 0.0 ){
-		x.setCoordinate(0, (m[3]*b.x()-m[2]*b.y()) / d );
-		x.setCoordinate(1, (-m[1]*b.x()+m[0]*b.y()) / d );
-		return true;
-	}else{
+
+	double coef[6] = {
+		m[0],m[1],
+		m[2],m[3],
+		b.x(),b.y()
+	};
+
+	kmb::Matrix_DoubleArray mat(2,3,coef);
+
+	int ind = -1;
+	double m = 0.0;
+
+	for(int i=0;i<2;++i){
+		double d = fabs(mat.get(i,0));
+		if( d > m ){
+			ind = i;
+			m = d;
+		}
+	}
+	if( m == 0.0 ){
+		return false;
+	}else if(ind != 0){
+		mat.row_exchange(0,ind);
+	}
+	mat.row_multi(0, 1.0/mat.get(0,0));
+	mat.row_transf(0, 1, -mat.get(1,0));
+
+
+	if( mat.get(1,1) == 0.0 ){
 		return false;
 	}
+	mat.row_multi(1, 1.0/mat.get(1,1));
+	mat.row_transf(1, 0, -mat.get(0,1));
+
+	x.setCoordinate(0,mat.get(0,2));
+	x.setCoordinate(1,mat.get(1,2));
+
+	return true;
+}
+
+bool
+kmb::Matrix2x2::solveSafely(const Vector2D& b,Vector2D& x,double thresh) const
+{
+
+	double coef[6] = {
+		m[0],m[1],
+		m[2],m[3],
+		b.x(),b.y()
+	};
+
+	kmb::Matrix_DoubleArray mat(2,3,coef);
+
+	int ind = -1;
+	double m = 0.0;
+
+	for(int i=0;i<2;++i){
+		double d = fabs(mat.get(i,0));
+		if( d > m ){
+			ind = i;
+			m = d;
+		}
+	}
+	if( m < thresh ){
+		return false;
+	}else if(ind != 0){
+		mat.row_exchange(0,ind);
+	}
+	mat.row_multi(0, 1.0/mat.get(0,0));
+	mat.row_transf(0, 1, -mat.get(1,0));
+
+
+	if( fabs(mat.get(1,1)) < thresh ){
+		return false;
+	}
+	mat.row_multi(1, 1.0/mat.get(1,1));
+	mat.row_transf(1, 0, -mat.get(0,1));
+
+	x.setCoordinate(0,mat.get(0,2));
+	x.setCoordinate(1,mat.get(1,2));
+
+	return true;
 }
 
 kmb::Matrix2x2*

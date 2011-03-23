@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : SurfaceOperation                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,6 +27,7 @@
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbElementContainerMap.h"
+#include "MeshDB/kmbElementContainerOpenGLDraw.h"
 #include "MeshDB/kmbNodeNeighborInfo.h"
 #include "MeshDB/kmbNodeNeighborFaceInfo.h"
 #include "MeshDB/kmbElementRelation.h"
@@ -39,6 +40,11 @@ kmb::SurfaceOperation::SurfaceOperation(void)
 : mesh(NULL)
 , elements(NULL)
 , neighborInfo(NULL)
+, dividedElementsInfo()
+, edgesBetweenElements()
+, dividedFacesInfo()
+, edgesBetweenFaces()
+, permitReverse(true)
 {
 }
 
@@ -68,6 +74,12 @@ kmb::SurfaceOperation::setMesh(kmb::MeshDB* mesh)
 }
 
 void
+kmb::SurfaceOperation::setPermitReverse(bool f)
+{
+	this->permitReverse = f;
+}
+
+void
 kmb::SurfaceOperation::setSurface(kmb::MeshDB* mesh,kmb::bodyIdType bodyId)
 {
 	this->mesh = mesh;
@@ -93,11 +105,19 @@ kmb::SurfaceOperation::divideSurface(bodyIdType bodyID,double angle,std::vector<
 	size_t surfNum = divideSurface( body, mesh->getNodes(), angle );
 
 
+
+
 	kmb::elementIdType elementId = kmb::Element::nullElementId;
 	this->dividedElementsInfo.first( elementId );
 	for(size_t i=0;i<surfNum;++i){
-		kmb::ElementContainerMap* surface = new kmb::ElementContainerMap();
+
+		size_t triCount = 0;
+		size_t quadCount = 0;
+		this->getDividedSurfaceElementCount( body, elementId, triCount, quadCount );
+		kmb::ElementContainerOpenGLDraw* surface = new kmb::ElementContainerOpenGLDraw(triCount,quadCount);
+
 		this->getDividedSurface( body, elementId, surface );
+		surface->calcNormals( mesh->getNodes() );
 		surface->updateBoundingBox( mesh->getNodes() );
 		surfIDs.push_back( mesh->appendBody( surface, false ) );
 		this->dividedElementsInfo.next( elementId );
@@ -110,11 +130,11 @@ kmb::SurfaceOperation::divideSurface(bodyIdType bodyID,double angle,std::vector<
 }
 
 void
-kmb::SurfaceOperation::divideSurfaceWithRidge(bodyIdType bodyID,double angle,std::map<kmb::bodyIdType,kmb::bodyIdType> &surfIDs)
+kmb::SurfaceOperation::divideSurfaceWithRidge(bodyIdType bodyId,double angle,std::map<kmb::bodyIdType,kmb::bodyIdType> &surfIDs)
 {
 	if( mesh == NULL )	return;
 
-	kmb::ElementContainer* body = mesh->getBodyPtr(bodyID);
+	kmb::ElementContainer* body = mesh->getBodyPtr(bodyId);
 
 
 	size_t surfNum = divideSurface( body, mesh->getNodes(), angle );
@@ -123,13 +143,18 @@ kmb::SurfaceOperation::divideSurfaceWithRidge(bodyIdType bodyID,double angle,std
 	kmb::elementIdType elementId = kmb::Element::nullElementId;
 	this->dividedElementsInfo.first( elementId );
 	for(size_t i=0;i<surfNum;++i){
-		kmb::ElementContainerMap* surface = new kmb::ElementContainerMap();
+		size_t triCount = 0;
+		size_t quadCount = 0;
+		this->getDividedSurfaceElementCount( body, elementId, triCount, quadCount );
+		kmb::ElementContainerOpenGLDraw* surface = new kmb::ElementContainerOpenGLDraw(triCount,quadCount);
 		kmb::ElementContainerMap* ridge = new kmb::ElementContainerMap();
 		this->getDividedSurface( body, elementId, surface );
 		this->getSurfaceRidge( body, elementId, ridge );
 		if( surface->getCount() > 0 || ridge->getCount() > 0 ){
+			surface->calcNormals( mesh->getNodes() );
 			surface->updateBoundingBox( mesh->getNodes() );
 			ridge->updateBoundingBox( mesh->getNodes() );
+
 			kmb::bodyIdType surfId = mesh->appendBody( surface, false );
 			kmb::bodyIdType ridgeId = mesh->appendBody( ridge );
 			surfIDs.insert( std::pair<kmb::bodyIdType,kmb::bodyIdType>(surfId,ridgeId) );
@@ -142,13 +167,12 @@ kmb::SurfaceOperation::divideSurfaceWithRidge(bodyIdType bodyID,double angle,std
 
 	kmb::ElementContainerMap* totalRidge = new kmb::ElementContainerMap();
 	this->getTotalRidge( body, totalRidge );
-	mesh->replaceBody(bodyID,totalRidge);
+	mesh->replaceBody(bodyId,totalRidge);
 	totalRidge->updateBoundingBox( mesh->getNodes() );
 }
 
 kmb::bodyIdType
-kmb::SurfaceOperation::divideFaceGroup
-(std::string name,double angle,std::vector<std::string> &subFaceGroups)
+kmb::SurfaceOperation::divideFaceGroup(std::string name,double angle,std::vector<std::string> &subFaceGroups)
 {
 	if( mesh == NULL )
 		return kmb::Body::nullBodyId;
@@ -182,8 +206,7 @@ kmb::SurfaceOperation::divideFaceGroup
 }
 
 kmb::bodyIdType
-kmb::SurfaceOperation::divideFaceGroupWithRidge
-(std::string name,double angle,std::map<std::string,kmb::bodyIdType> &subFaceGroupMapper)
+kmb::SurfaceOperation::divideFaceGroupWithRidge(std::string name,double angle,std::map<std::string,kmb::bodyIdType> &subFaceGroupMapper)
 {
 	if( mesh == NULL )
 		return kmb::Body::nullBodyId;
@@ -325,11 +348,7 @@ kmb::SurfaceOperation::decomposeFaceGroup(std::string faceGroup, std::vector<std
 }
 
 kmb::SurfaceOperation::vertexType
-kmb::SurfaceOperation::getVertexType
-(kmb::nodeIdType nodeId,
- kmb::MeshDB* mesh,
- kmb::ElementContainer* elements,
- kmb::NodeNeighborInfo* neighborInfo)
+kmb::SurfaceOperation::getVertexType(kmb::nodeIdType nodeId, kmb::MeshDB* mesh, kmb::ElementContainer* elements, kmb::NodeNeighborInfo* neighborInfo)
 {
 	if( mesh==NULL || elements==NULL || neighborInfo==NULL ){
 		return kmb::SurfaceOperation::UNKNOWN;
@@ -356,7 +375,6 @@ kmb::SurfaceOperation::getVertexType
 				neighborInfo->getNextElementAroundNode( elements, nodeId, elementId );
 			nextElement = elements->find( nextElementId );
 		}
-		REVOCAP_Debug_3("nodeId = %d, angleSum = %f\n", nodeId, angleSum );
 		if( angleSum > 2*PI ){
 			return kmb::SurfaceOperation::HYPERBOLIC;
 		}else if( angleSum < 2*PI ){
@@ -448,13 +466,9 @@ kmb::SurfaceOperation::surface2FaceGroup(kmb::bodyIdType bodyId,kmb::bodyIdType 
 			if( !parentElement.isFinished() ){
 				kmb::ElementRelation::relationType rel =
 					kmb::ElementRelation::getRelation( parentElement, index, eIter, otherindex );
-				switch( rel ){
-					case kmb::ElementRelation::COBOUNDARY:
-					case kmb::ElementRelation::ANTICOBOUNDARY:
-						faceGroup->addId( kmb::Face(neiIter->second,index) );
-						goto findFace;
-					default:
-						break;
+				if( rel == kmb::ElementRelation::COBOUNDARY || (rel == kmb::ElementRelation::ANTICOBOUNDARY && permitReverse) ){
+					faceGroup->addId( kmb::Face(neiIter->second,index) );
+					goto findFace;
 				}
 			}
 			++neiIter;
@@ -464,6 +478,77 @@ findFace:
 	}
 	return true;
 }
+
+bool
+kmb::SurfaceOperation::surface2FaceGroup(kmb::bodyIdType bodyId,const char* parentFaceGroup,const char* name)
+{
+	if( mesh == NULL ){
+		return false;
+	}
+	kmb::DataBindings* parentFg = mesh->getDataBindingsPtr( parentFaceGroup );
+	if( parentFg == NULL ||
+		parentFg->getBindingMode() != kmb::DataBindings::FACEGROUP )
+	{
+		return false;
+	}
+	kmb::bodyIdType parentBodyId = parentFg->getTargetBodyId();
+	kmb::Body* parentBody = NULL;
+	kmb::Body* body = NULL;
+	if( mesh == NULL
+		|| ((body=mesh->getBodyPtr(bodyId)) == NULL)
+		|| ((parentBody=mesh->getBodyPtr(parentBodyId)) == NULL)
+		){
+		return false;
+	}
+
+	if( !(body->isUniqueDim(2) && parentBody->isUniqueDim(3))
+		&& !(body->isUniqueDim(1) && parentBody->isUniqueDim(2))
+		)
+	{
+		return false;
+	}
+
+	if( mesh->hasData(name) ){
+		return false;
+	}
+	kmb::DataBindingsGroup<kmb::Face>* faceGroup
+		= reinterpret_cast< kmb::DataBindingsGroup<kmb::Face>* >(
+			mesh->createDataBindings
+				(name,
+				 kmb::DataBindings::FACEGROUP,
+				 kmb::PhysicalValue::NONE,
+				 "", parentBodyId ) );
+	int index = -1;
+	int otherindex = -1;
+	kmb::NodeNeighborFaceInfo neighborInfo;
+	neighborInfo.appendCoboundary( parentFg, parentBody );
+	kmb::ElementContainer::iterator eIter = body->begin();
+	kmb::ElementContainer::iterator eEnd = body->end();
+	while( eIter != eEnd )
+	{
+		kmb::nodeIdType n0 = eIter.getCellId(0);
+		kmb::NodeNeighborFace::iterator neiIter = neighborInfo.beginIteratorAt(n0);
+		kmb::NodeNeighborFace::iterator neiEnd = neighborInfo.endIteratorAt(n0);
+		while( neiIter != neiEnd ){
+			kmb::Face f = neiIter->second;
+			kmb::Element* e = f.createElement( parentBody );
+			if( e ){
+				kmb::ElementRelation::relationType rel =
+					kmb::ElementRelation::getRelation( *e, index, eIter, otherindex );
+				if( rel == kmb::ElementRelation::EQUAL || (rel == kmb::ElementRelation::REVERSE && permitReverse) ){
+					faceGroup->addId( f );
+					goto findFace;
+				}
+			}
+			++neiIter;
+		}
+findFace:
+		++eIter;
+	}
+	return true;
+}
+
+
 
 size_t
 kmb::SurfaceOperation::divideSurface(const kmb::ElementContainer* elements,const kmb::Point3DContainer* points,double angle)
@@ -516,6 +601,40 @@ kmb::SurfaceOperation::divideSurface(const kmb::ElementContainer* elements,const
 	return this->dividedElementsInfo.getClassCount();
 }
 
+bool
+kmb::SurfaceOperation::getDividedSurfaceElementCount(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,size_t &triCount,size_t &quadCount)
+{
+	if( orgSurf != NULL ){
+		triCount = 0;
+		quadCount = 0;
+		kmb::Classification<kmb::elementIdType>::iterator cIter = this->dividedElementsInfo.begin( initElementId );
+		kmb::Classification<kmb::elementIdType>::iterator cEnd = this->dividedElementsInfo.end( initElementId );
+		while( cIter != cEnd ){
+			kmb::elementIdType elementId = cIter.getValue();
+			kmb::ElementContainer::const_iterator eIter = orgSurf->find( elementId );
+			if( !eIter.isFinished() ){
+				switch( eIter.getType() )
+				{
+				case kmb::TRIANGLE:
+				case kmb::TRIANGLE2:
+					++triCount;
+					break;
+				case kmb::QUAD:
+				case kmb::QUAD2:
+					++quadCount;
+					break;
+				default:
+					break;
+				}
+			}
+			++cIter;
+		}
+	}
+	return false;
+}
+
+
+
 size_t
 kmb::SurfaceOperation::getDividedSurface(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,kmb::ElementContainer* dividedSurf) const
 {
@@ -523,17 +642,15 @@ kmb::SurfaceOperation::getDividedSurface(const kmb::ElementContainer* orgSurf,km
 	if( orgSurf != NULL && dividedSurf != NULL ){
 		kmb::nodeIdType* nodes = NULL;
 		nodes = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
+		kmb::elementType etype = kmb::UNKNOWNTYPE;
 		kmb::Classification<kmb::elementIdType>::iterator cIter = this->dividedElementsInfo.begin( initElementId );
 		kmb::Classification<kmb::elementIdType>::iterator cEnd = this->dividedElementsInfo.end( initElementId );
 		while( cIter != cEnd ){
 			kmb::elementIdType elementId = cIter.getValue();
 			kmb::ElementContainer::const_iterator eIter = orgSurf->find( elementId );
 			if( !eIter.isFinished() ){
-				const int len = eIter.getNodeCount();
-				for(int i=0;i<len;++i){
-					nodes[i] = eIter.getCellId(i);
-				}
-				dividedSurf->addElement( eIter.getType(), nodes, eIter.getId() );
+				eIter.getElement( etype, nodes );
+				dividedSurf->addElement( etype, nodes, eIter.getId() );
 				++count;
 			}
 			++cIter;
@@ -587,39 +704,35 @@ kmb::SurfaceOperation::getTotalRidge(const kmb::ElementContainer* org,kmb::Eleme
 }
 
 size_t
-kmb::SurfaceOperation::getSurfaceRidge(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,kmb::ElementContainer* ridges) const
+kmb::SurfaceOperation::getSurfaceRidge(const kmb::ElementContainer* elements,kmb::Face initFace,kmb::ElementContainer* ridges) const
 {
 	size_t count = 0;
-	if( orgSurf != NULL && orgSurf->isUniqueDim(2) && ridges != NULL ){
+	if( elements != NULL && elements->isUniqueDim(3) && ridges != NULL ){
 		kmb::nodeIdType cell[2];
-		std::set< std::pair<kmb::elementIdType, kmb::elementIdType> >::const_iterator
-			eIter = edgesBetweenElements.begin();
-		while( eIter != edgesBetweenElements.end() ){
+		std::set< std::pair<kmb::Face, kmb::Face> >::const_iterator
+			fIter = edgesBetweenFaces.begin();
+		while( fIter != edgesBetweenFaces.end() ){
 
 
-			if( !dividedElementsInfo.isEquivalent( eIter->first, eIter->second ) )
+			if( !dividedFacesInfo.isEquivalent( fIter->first, fIter->second ) )
 			{
-				if( dividedElementsInfo.isEquivalent( eIter->first, initElementId ) ){
-					kmb::ElementContainer::const_iterator elem0 = orgSurf->find( eIter->first );
-					kmb::ElementContainer::const_iterator elem1 = orgSurf->find( eIter->second );
-					kmb::elementType etype = kmb::ElementRelation::common( elem0, elem1, cell );
+				if( dividedFacesInfo.isEquivalent( fIter->first, initFace ) ){
+					kmb::elementType etype = kmb::ElementRelation::common( fIter->first, fIter->second, elements,  cell );
 					if( etype == kmb::SEGMENT ){
 						++count;
 						ridges->addElement(etype,cell);
 					}
 				}
-				else if( dividedElementsInfo.isEquivalent( eIter->second, initElementId ) ){
+				else if( dividedFacesInfo.isEquivalent( fIter->second, initFace ) ){
 
-					kmb::ElementContainer::const_iterator elem0 = orgSurf->find( eIter->first );
-					kmb::ElementContainer::const_iterator elem1 = orgSurf->find( eIter->second );
-					kmb::elementType etype = kmb::ElementRelation::common( elem1, elem0, cell );
+					kmb::elementType etype = kmb::ElementRelation::common( fIter->second, fIter->first, elements, cell );
 					if( etype == kmb::SEGMENT ){
 						++count;
 						ridges->addElement(etype,cell);
 					}
 				}
 			}
-			++eIter;
+			++fIter;
 		}
 	}
 	return count;
@@ -710,35 +823,39 @@ kmb::SurfaceOperation::getDividedFaceGroup(kmb::Face initFace,kmb::DataBindings*
 }
 
 size_t
-kmb::SurfaceOperation::getSurfaceRidge(const kmb::ElementContainer* elements,kmb::Face initFace,kmb::ElementContainer* ridges) const
+kmb::SurfaceOperation::getSurfaceRidge(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,kmb::ElementContainer* ridges) const
 {
 	size_t count = 0;
-	if( elements != NULL && elements->isUniqueDim(3) && ridges != NULL ){
+	if( orgSurf != NULL && orgSurf->isUniqueDim(2) && ridges != NULL ){
 		kmb::nodeIdType cell[2];
-		std::set< std::pair<kmb::Face, kmb::Face> >::const_iterator
-			fIter = edgesBetweenFaces.begin();
-		while( fIter != edgesBetweenFaces.end() ){
+		std::set< std::pair<kmb::elementIdType, kmb::elementIdType> >::const_iterator
+			eIter = edgesBetweenElements.begin();
+		while( eIter != edgesBetweenElements.end() ){
 
 
-			if( !dividedFacesInfo.isEquivalent( fIter->first, fIter->second ) )
+			if( !dividedElementsInfo.isEquivalent( eIter->first, eIter->second ) )
 			{
-				if( dividedFacesInfo.isEquivalent( fIter->first, initFace ) ){
-					kmb::elementType etype = kmb::ElementRelation::common( fIter->first, fIter->second, elements,  cell );
+				if( dividedElementsInfo.isEquivalent( eIter->first, initElementId ) ){
+					kmb::ElementContainer::const_iterator elem0 = orgSurf->find( eIter->first );
+					kmb::ElementContainer::const_iterator elem1 = orgSurf->find( eIter->second );
+					kmb::elementType etype = kmb::ElementRelation::common( elem0, elem1, cell );
 					if( etype == kmb::SEGMENT ){
 						++count;
 						ridges->addElement(etype,cell);
 					}
 				}
-				else if( dividedFacesInfo.isEquivalent( fIter->second, initFace ) ){
+				else if( dividedElementsInfo.isEquivalent( eIter->second, initElementId ) ){
 
-					kmb::elementType etype = kmb::ElementRelation::common( fIter->second, fIter->first, elements, cell );
+					kmb::ElementContainer::const_iterator elem0 = orgSurf->find( eIter->first );
+					kmb::ElementContainer::const_iterator elem1 = orgSurf->find( eIter->second );
+					kmb::elementType etype = kmb::ElementRelation::common( elem1, elem0, cell );
 					if( etype == kmb::SEGMENT ){
 						++count;
 						ridges->addElement(etype,cell);
 					}
 				}
 			}
-			++fIter;
+			++eIter;
 		}
 	}
 	return count;

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BSpline                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -174,7 +174,6 @@ kmb::BSpline::getValue(int index,int degree,double u) const
 		delete[] n;
 		return retVal;
 	}
-	return 0.0;
 }
 
 double
@@ -226,7 +225,6 @@ kmb::BSpline::getDerivative(int index,int degree,double u) const
 		delete[] n;
 		return retVal;
 	}
-	return 0.0;
 }
 
 double
@@ -286,5 +284,4 @@ kmb::BSpline::getSecondDerivative(int index,int degree,double u) const
 		delete[] n;
 		return retVal;
 	}
-	return 0.0;
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BLArray                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -84,7 +84,8 @@ public:
 	size_t getTopIndex(void) const;
 };
 
-template<typename T,int n>
+/* n ŒÂ‚Ì T ‚ð•À‚×‚ÄŠi”[‚·‚é‚Æ‚« */
+template<typename T,int n=1>
 class BLArray : public BLArrayBase
 {
 protected:
@@ -142,7 +143,7 @@ public:
 	{
 		return set(i>>bitlength,i&localbitmask,t);
 	}
-	bool set(kmb::BLArrayIndex &index,T *t)
+	bool set(const kmb::BLArrayIndex &index,T *t)
 	{
 		return set(index.getTopIndex(),index.getSubIndex(),t);
 	}
@@ -154,10 +155,28 @@ public:
 	{
 		return get(index.getTopIndex(),index.getSubIndex(),t);
 	}
+	bool erase(size_t i)
+	{
+		return erase(i>>bitlength,i&localbitmask);
+	}
+	bool erase(const kmb::BLArrayIndex &index)
+	{
+		return erase(index.getTopIndex(),index.getSubIndex());
+	}
 	bool has(const BLArrayIndex &index) const
 	{
 		size_t tIndex = index.getTopIndex();
 		size_t sIndex = index.getSubIndex();
+		return
+			tIndex < this->topSize &&
+			sIndex < this->subSize &&
+			ary[tIndex] != NULL &&
+			ary[tIndex][n*sIndex] != defval;
+	}
+	bool has(size_t i) const
+	{
+		size_t tIndex = i>>bitlength;
+		size_t sIndex = i&localbitmask;
 		return
 			tIndex < this->topSize &&
 			sIndex < this->subSize &&
@@ -188,6 +207,19 @@ protected:
 		}
 		for(size_t j=0;j<n;++j){
 			t[j] = ary[tIndex][n*sIndex+j];
+		}
+		return true;
+	}
+	bool erase(size_t tIndex,size_t sIndex)
+	{
+		if( tIndex >= topSize ){
+			return false;
+		}
+		if( ary[tIndex] == NULL ){
+			return false;
+		}
+		for(size_t j=0;j<n;++j){
+			ary[tIndex][n*sIndex+j] = defval;
 		}
 		return true;
 	}

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point3DContainerMArray                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -21,6 +21,10 @@ namespace kmb{
 
 class Point3DContainerMArray : public Point3DContainer
 {
+private:
+	BLArray<double,3> pointArray;
+	BLArrayIndex aIndex;
+	size_t count;
 public:
 	static const char* CONTAINER_TYPE;
 	Point3DContainerMArray(void);
@@ -54,6 +58,9 @@ protected:
 		virtual nodeIdType getId(void) const;
 		virtual bool getXYZ(double &x,double &y,double &z) const;
 		virtual bool getPoint(kmb::Point3D &point) const;
+		virtual double x() const;
+		virtual double y() const;
+		virtual double z() const;
 		virtual bool setXYZ(double x,double y,double z) const;
 		virtual bool setPoint(kmb::Point3D &point) const;
 		virtual Point3DContainer::_iterator* operator++(void);
@@ -65,10 +72,6 @@ protected:
 		Point3DContainerMArray* points;
 		BLArrayIndex aIndex;
 	};
-private:
-	BLArray<double,3> pointArray;
-	BLArrayIndex aIndex;
-	size_t count;
 };
 
 }

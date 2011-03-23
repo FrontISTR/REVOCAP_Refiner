@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementRelation                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -67,9 +67,7 @@ kmb::ElementRelation::getRelationTypeString(kmb::ElementRelation::relationType r
 
 
 kmb::ElementRelation::relationType
-kmb::ElementRelation::getRelation
-(const kmb::ElementBase &eIter0, int &index0,
- const kmb::ElementBase &eIter1, int &index1 )
+kmb::ElementRelation::getRelation(const kmb::ElementBase &eIter0, int &index0, const kmb::ElementBase &eIter1, int &index1 )
 {
 	index0 = -1;
 	index1 = -1;
@@ -196,17 +194,17 @@ kmb::ElementRelation::getRelation
 							const int boundaryCount = eIter0.getBoundaryCount();
 							ret = kmb::ElementRelation::OTHERRELATION;
 							for(int i=0;i<boundaryCount;++i){
-								const int vertexCount = eIter0.getBoundaryVertexCount(i);
+								const int vertexCount0 = eIter0.getBoundaryVertexCount(i);
 								int res = 0;
 								switch( eIter0.getType() ){
 								case kmb::PYRAMID:
 								case kmb::PYRAMID2:
-									if( vertexCount == 3 ){
+									if( vertexCount0 == 3 ){
 										res = eIter1.isFace(
 											indices[ kmb::Pyramid::faceTable[i][0] ],
 											indices[ kmb::Pyramid::faceTable[i][1] ],
 											indices[ kmb::Pyramid::faceTable[i][2] ], index1 );
-									}else if( vertexCount == 4 ){
+									}else if( vertexCount0 == 4 ){
 										res = eIter1.isFace(
 											indices[ kmb::Pyramid::faceTable[i][0] ],
 											indices[ kmb::Pyramid::faceTable[i][1] ],
@@ -216,12 +214,12 @@ kmb::ElementRelation::getRelation
 									break;
 								case kmb::WEDGE:
 								case kmb::WEDGE2:
-									if( vertexCount == 3 ){
+									if( vertexCount0 == 3 ){
 										res = eIter1.isFace(
 											indices[ kmb::Wedge::faceTable[i][0] ],
 											indices[ kmb::Wedge::faceTable[i][1] ],
 											indices[ kmb::Wedge::faceTable[i][2] ], index1 );
-									}else if( vertexCount == 4 ){
+									}else if( vertexCount0 == 4 ){
 										res = eIter1.isFace(
 											indices[ kmb::Wedge::faceTable[i][0] ],
 											indices[ kmb::Wedge::faceTable[i][1] ],
@@ -231,7 +229,7 @@ kmb::ElementRelation::getRelation
 									break;
 								case kmb::HEXAHEDRON:
 								case kmb::HEXAHEDRON2:
-									if( vertexCount == 4 ){
+									if( vertexCount0 == 4 ){
 										res = eIter1.isFace(
 											indices[ kmb::Hexahedron::faceTable[i][0] ],
 											indices[ kmb::Hexahedron::faceTable[i][1] ],
@@ -1755,6 +1753,7 @@ kmb::ElementRelation::getRelationForTriangle
 		break;
 	case TETRAHEDRON:
 	case TETRAHEDRON2:
+
 		ret = kmb::ElementRelation::getTriangleTetrahedronRelation(
 				eIter0.getCellId(0), eIter0.getCellId(1), eIter0.getCellId(2),
 				eIter1.getCellId(0), eIter1.getCellId(1), eIter1.getCellId(2), eIter1.getCellId(3),
@@ -2103,8 +2102,7 @@ kmb::ElementRelation::getRelationForQuad
 }
 
 kmb::ElementRelation::relationType
-kmb::ElementRelation::getRelationForTetrahedron
-(const kmb::ElementBase &eIter0, int &index0, const kmb::ElementBase &eIter1, int &index1 )
+kmb::ElementRelation::getRelationForTetrahedron(const kmb::ElementBase &eIter0, int &index0, const kmb::ElementBase &eIter1, int &index1 )
 {
 	index0 = -1;
 	index1 = -1;
@@ -2160,10 +2158,11 @@ kmb::ElementRelation::getRelationForTetrahedron
 		break;
 	default:
 		{
+
 			int indices[4];
 			int count = 0;
 			for(int i=0;i<4;++i){
-				indices[i] = eIter1.indexOf( eIter0.getCellId(i) );
+				indices[i] = eIter1.indexOf( eIter0[i] );
 				if( indices[i] >= eIter1.getVertexCount() ){
 					indices[i] = -1;
 				}
@@ -2200,6 +2199,7 @@ kmb::ElementRelation::getRelationForTetrahedron
 			case 3:
 				{
 					ret = kmb::ElementRelation::OTHERRELATION;
+
 					for(int i=0;i<4;++i){
 						if( indices[i] == -1 ){
 							int res = eIter1.isFace(
@@ -2209,16 +2209,17 @@ kmb::ElementRelation::getRelationForTetrahedron
 								index1);
 							switch( res ){
 							case 1:
-								index0 = 0;
+								index0 = i;
 								ret = kmb::ElementRelation::ANTIADJACENT;
 								break;
 							case -1:
-								index0 = 0;
+								index0 = i;
 								ret = kmb::ElementRelation::ADJACENT;
 								break;
 							default:
 								break;
 							}
+							break;
 						}
 					}
 				}

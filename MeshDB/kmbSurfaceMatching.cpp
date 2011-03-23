@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : SurfaceMatching                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -22,13 +22,14 @@
 #include "MeshDB/kmbElementRelation.h"
 #include "Matrix/kmbMatrix_DoubleArray.h"
 #include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Debug.h"
+#include "Geometry/kmb_Permutation.h"
 
 kmb::SurfaceMatching::SurfaceMatching(void)
 : mesh(NULL)
 , masterId(kmb::Body::nullBodyId)
 , masterSurf(NULL)
 , slaveFaceGroup(NULL)
+, slaveElements(NULL)
 , neighborInfo(NULL)
 , distanceMatrix(NULL)
 , elementIds(NULL)
@@ -41,6 +42,12 @@ kmb::SurfaceMatching::SurfaceMatching(void)
 kmb::SurfaceMatching::~SurfaceMatching(void)
 {
 	clear();
+}
+
+void
+kmb::SurfaceMatching::clear(void)
+{
+	clearPairInfo();
 	if( collision != NULL ){
 		delete collision;
 		collision = NULL;
@@ -52,12 +59,10 @@ kmb::SurfaceMatching::~SurfaceMatching(void)
 }
 
 void
-kmb::SurfaceMatching::clear(void)
+kmb::SurfaceMatching::clearPairInfo(void)
 {
+	connectionTable.clear();
 	mapping.clear();
-	if( neighborInfo != NULL ){
-		neighborInfo->clear();
-	}
 	masterSurf = NULL;
 	slaveFaceGroup = NULL;
 	if( distanceMatrix != NULL ){
@@ -72,17 +77,17 @@ kmb::SurfaceMatching::clear(void)
 		delete[] faces;
 		faces = NULL;
 	}
+	if( neighborInfo != NULL ){
+		neighborInfo->clear();
+	}
 }
 
 void
 kmb::SurfaceMatching::setMesh(kmb::MeshData* m,const char* insNodes)
 {
+	clear();
 	if( m != NULL ){
 		this->mesh = m;
-		if( collision ){
-			delete collision;
-			collision = NULL;
-		}
 		this->collision = new kmb::Collision(mesh);
 		this->neighborInfo = new kmb::NodeNeighborFaceInfo();
 		if( insNodes == NULL ){
@@ -100,7 +105,7 @@ void
 kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 {
 	if( this->mesh != NULL && this->collision != NULL && this->neighborInfo != NULL ){
-		clear();
+		clearPairInfo();
 		masterId = bodyId;
 		masterSurf = mesh->getBodyPtr(bodyId);
 		if( masterSurf == NULL || masterSurf->getDimension() != 2 ){
@@ -114,7 +119,7 @@ kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 			slaveFaceGroup = NULL;
 			return;
 		}
-		kmb::ElementContainer* slaveElements = mesh->getBodyPtr( slaveFaceGroup->getTargetBodyId() );
+		slaveElements = mesh->getBodyPtr( slaveFaceGroup->getTargetBodyId() );
 		if( slaveElements == NULL ){
 			masterSurf = NULL;
 			slaveFaceGroup = NULL;
@@ -128,6 +133,7 @@ kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 			slaveFaceGroup = NULL;
 			return;
 		}
+
 
 
 
@@ -153,40 +159,124 @@ kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 			++mIter;
 			++i;
 		}
-		calcMapping();
 
+		int i0,i1;
+		for(int j0=0;j0<masterLen;++j0){
+			kmb::ElementContainer::iterator m0Iter = masterSurf->find(elementIds[j0]);
+			for(int j1=0;j1<masterLen;++j1){
+				kmb::ElementContainer::iterator m1Iter = masterSurf->find(elementIds[j1]);
+				if( kmb::ElementRelation::getRelation(m0Iter,i0,m1Iter,i1) == kmb::ElementRelation::ADJACENT ){
+					connectionTable.insert( std::pair<int,int>(j0,j1) );
+				}
+			}
+		}
+
+
+
+
+
+
+
+		calcMapping();
 	}
 }
 
 
-void
+
+bool
 kmb::SurfaceMatching::calcMapping(void)
 {
-	if( distanceMatrix == NULL || elementIds == NULL || faces == NULL ){
-		return;
+	if( slaveElements == NULL || slaveFaceGroup == NULL ){
+		return false;
 	}
+	if( distanceMatrix == NULL || mesh == NULL || elementIds == NULL || faces == NULL ){
+		return false;
+	}
+
+
 	int rSize = distanceMatrix->getRowSize();
 	int cSize = distanceMatrix->getColSize();
+	if( cSize < rSize ){
+		return false;
+	}
+
+	kmb::Minimizer min;
+	kmb::Permutation perm;
+
+	perm.initialize( cSize, rSize );
+
+	int* minPerm = new int[rSize];
 	for(int i=0;i<rSize;++i){
-		kmb::Minimizer min;
-		int min_j = -1;
-		for(int j=0;j<cSize;++j){
-			if( mapping.find( faces[j] ) == mapping.end() ){
-				if( min.update( distanceMatrix->get(i,j) ) ){
-					min_j = j;
+		minPerm[i] = -1;
+	}
+
+	while( !perm.isFinished() ){
+		int check = checkTopologicalMapping(perm);
+		if( check == -1 ){
+			double sumDist = 0.0;
+			for(int i=0;i<rSize;++i){
+				sumDist += distanceMatrix->get(i,perm.getPerm(i));
+				if( sumDist > min.getMin() ){
+					perm.nextPerm(i);
+					goto perm_iterate;
 				}
 			}
+			if( min.update( sumDist ) && checkTopologicalMapping(perm) ){
+
+				for(int i=0;i<rSize;++i){
+					minPerm[i] = perm.getPerm(i);
+				}
+			}
+		}else if( check >= 0 ){
+			perm.nextPerm(check);
+			goto perm_iterate;
+		}else{
+			break;
 		}
-		int index = -1;
-		kmb::ElementContainer* slaveElements = mesh->getBodyPtr( slaveFaceGroup->getTargetBodyId() );
-		if( slaveElements == NULL ){
-			return;
-		}
-		kmb::ElementContainer::iterator eIter = masterSurf->find( elementIds[i] );
-		collision->distanceByNode( eIter, faces[min_j], slaveElements, index );
-		kmb::SurfaceMatching::rotatedElement re = {elementIds[i],index};
-		mapping.insert( std::pair< kmb::Face, kmb::SurfaceMatching::rotatedElement >( faces[min_j], re ) );
+		++perm;
+		perm_iterate:
+		;
 	}
+
+	if( minPerm[0] >= 0 ){
+
+		for(int i=0;i<rSize;++i){
+			int index = -1;
+			kmb::ElementContainer::iterator eIter = masterSurf->find( elementIds[i] );
+			collision->distanceByNode( eIter, faces[minPerm[i]], slaveElements, index );
+			kmb::SurfaceMatching::rotatedElement re = {elementIds[i],index};
+			mapping.insert( std::pair< kmb::Face, kmb::SurfaceMatching::rotatedElement >( faces[minPerm[i]], re ) );
+		}
+	}
+	delete[] minPerm;
+	return true;
+}
+
+
+int
+kmb::SurfaceMatching::checkTopologicalMapping( kmb::Permutation& perm ) const
+{
+	if( slaveElements == NULL || faces == NULL ){
+		return -2;
+	}
+	int i0,i1;
+	std::set< std::pair<int,int> >::const_iterator cIter = connectionTable.begin();
+	while( cIter != connectionTable.end() ){
+		int j0 = perm.getPerm(cIter->first);
+		int j1 = perm.getPerm(cIter->second);
+		kmb::Face f0 = faces[j0];
+		kmb::Face f1 = faces[j1];
+		kmb::Element* e0 = f0.createElement( slaveElements );
+		kmb::Element* e1 = f1.createElement( slaveElements );
+		kmb::ElementRelation::relationType rel = kmb::ElementRelation::getRelation(*e0,i0,*e1,i1);
+		delete e0;
+		delete e1;
+		if( rel != kmb::ElementRelation::ADJACENT ){
+			return (cIter->first < cIter->second) ? cIter->second : cIter->first;
+		}
+		++cIter;
+	}
+	return -1;
 }
 
 size_t
@@ -220,10 +310,8 @@ kmb::SurfaceMatching::constructDummyElements(void)
 kmb::elementIdType
 kmb::SurfaceMatching::getMatchingElementId(kmb::Face f,int &index)
 {
-	REVOCAP_Debug("getMatchingElementId 0\n");
 	std::map< kmb::Face, kmb::SurfaceMatching::rotatedElement >::iterator mIter = mapping.find(f);
 	if( mIter == mapping.end() ){
-		REVOCAP_Debug("getMatchingElementId 1 no match %d %d\n", f.getElementId(), f.getLocalFaceId() );
 
 		kmb::elementIdType elementId = appendDummyElement(f);
 		if( elementId != kmb::Element::nullElementId ){
@@ -232,7 +320,6 @@ kmb::SurfaceMatching::getMatchingElementId(kmb::Face f,int &index)
 		}
 		return kmb::Element::nullElementId;
 	}else{
-		REVOCAP_Debug("getMatchingElementId 1 match %d %d => %d\n", f.getElementId(), f.getLocalFaceId(), mIter->second.elementId );
 		index = mIter->second.index;
 		return mIter->second.elementId;
 	}
@@ -243,14 +330,12 @@ kmb::SurfaceMatching::getMatchingElementId(kmb::Face f,int &index)
 kmb::elementIdType
 kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 {
-	REVOCAP_Debug("appendDummyElement 0 [%d %d]\n", f.getElementId(), f.getLocalFaceId());
 	if( this->mesh == NULL || this->neighborInfo == NULL ||
 		this->masterSurf == NULL || this->slaveFaceGroup == NULL ||
 		f.getElementId() == kmb::Element::nullElementId )
 	{
 		return kmb::Element::nullElementId;
 	}
-	REVOCAP_Debug("appendDummyElement 1\n");
 	kmb::ElementContainer* slaveElements = mesh->getBodyPtr( slaveFaceGroup->getTargetBodyId() );
 	if( slaveElements == NULL ){
 		return kmb::Element::nullElementId;
@@ -258,7 +343,6 @@ kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 	if( !slaveFaceGroup->hasId(f) ){
 		return kmb::Element::nullElementId;
 	}
-	REVOCAP_Debug("appendDummyElement 2\n");
 
 	kmb::elementIdType appendId = kmb::Element::nullElementId;
 
@@ -276,18 +360,13 @@ kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 		if( mIter != mapping.end() ){
 			matchingElements[i] = mIter->second;
 		}
-		REVOCAP_Debug(" [%d %d] => %d %d\n",
-			bfaces[i].getElementId(), bfaces[i].getLocalFaceId(),
-			matchingElements[i].elementId, matchingElements[i].index );
 	}
-	REVOCAP_Debug("appendDummyElement 3\n");
 
 
 
 
 	if( etype == kmb::TRIANGLE ){
 	}else if( etype == kmb::QUAD ){
-		REVOCAP_Debug("appendDummyElement 4\n");
 		kmb::nodeIdType nodes[4] = { kmb::nullNodeId, kmb::nullNodeId, kmb::nullNodeId, kmb::nullNodeId };
 		kmb::Quad q0,q1;
 		f.getFaceElement( slaveElements, q0 );
@@ -310,7 +389,6 @@ kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 				}
 			}
 		}
-		REVOCAP_Debug("appendDummyElement [%d %d %d %d]\n", nodes[0], nodes[1], nodes[2], nodes[3] );
 		if( nodes[0] != kmb::nullNodeId && nodes[1] != kmb::nullNodeId &&
 			nodes[2] != kmb::nullNodeId && nodes[3] != kmb::nullNodeId )
 		{
@@ -368,11 +446,9 @@ kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 			nodes[3] = duplicateNode( nodes[2] );
 			appendId = mesh->insertElement( masterId, kmb::QUAD, nodes );
 		}
-		REVOCAP_Debug("appendDummyElement 6 %d [%d %d %d %d]\n", appendId, nodes[0], nodes[1], nodes[2], nodes[3] );
 	}
 	delete[] matchingElements;
 	delete[] bfaces;
-	REVOCAP_Debug("appendDummyElement 7 %d\n", appendId );
 
 	if( appendId != kmb::Element::nullElementId ){
 		kmb::SurfaceMatching::rotatedElement re = {appendId,0};

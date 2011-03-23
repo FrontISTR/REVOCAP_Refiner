@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Region                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -43,13 +43,13 @@ public:
 	Region(void);
 	virtual ~Region(void);
 
-	virtual	locationType	intersect(const Point3D &point) const = 0;
-	virtual	bool			intersect(const BoxRegion& box) const = 0;
+	virtual locationType intersect(const Point3D &point) const = 0;
+	virtual bool intersect(const BoxRegion& box) const = 0;
 
-	virtual double			distanceSq(const Point3D &point) const = 0;
-	virtual double			distanceSq(const double x,const double y,const double z) const;
-	virtual double			distance(const Point3D& point) const;
-	virtual double			distance(const double x,const double y,const double z) const;
+	virtual double distanceSq(const Point3D &point) const = 0;
+	virtual double distanceSq(const double x,const double y,const double z) const;
+	virtual double distance(const Point3D& point) const;
+	virtual double distance(const double x,const double y,const double z) const;
 };
 
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : PatchGenerator                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,6 +27,7 @@ private:
 	double deflection;
 	double incremental;
 	double tolerance;
+	double modelDiameter;
 public:
 	PatchGenerator(void);
 	virtual ~PatchGenerator(void);
@@ -37,6 +38,9 @@ public:
 	/*
 	 * 三角形化する時の辺の長さの最小値を与える
 	 * BRepTools::Triangulation
+	 *
+	 * 最初に読み込んだ shape の大きさの相対値とすることに注意
+	 *
 	 */
 	void setDeflection(double d);
 	double getDeflection(void);

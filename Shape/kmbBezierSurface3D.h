@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : BezierSurface3D                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -18,7 +18,7 @@
  * uOrder = n
  * uDegree = n-1
  *
- * ’è‹`ˆæ‚Í 0 <= t <= 1 ‚Æ‚·‚é
+ * ’è‹`ˆæ‚Í 0 <= u,v <= 1 ‚Æ‚·‚é
  */
 #pragma once
 
@@ -41,6 +41,8 @@ public:
 	void clear(void);
 	virtual kmb::Surface3D::surfaceType getSurfaceType(void) const;
 	virtual bool isDomain( double u, double v ) const;
+	virtual bool isUDomain( double u ) const;
+	virtual bool isVDomain( double v ) const;
 	virtual void getDomain( double &min_u, double &max_u, double &min_v, double &max_v ) const;
 
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Face                                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -80,29 +80,29 @@ public:
 	}
 	Face& operator=(const Face &other);
 
-	kmb::elementIdType	getElementId() const { return elementId; }
-	kmb::idType			getLocalFaceId() const { return localFaceId; }
-	void				setId(kmb::elementIdType elementId,kmb::idType localId);
+	kmb::elementIdType getElementId() const { return elementId; }
+	kmb::idType getLocalFaceId() const { return localFaceId; }
+	void setId(kmb::elementIdType elementId,kmb::idType localId);
 
-	kmb::Element*		createElement(const kmb::ElementContainer* body) const;
-	kmb::Element*		createElement(const kmb::MeshData* mesh) const;
-	bool				getFaceElement(const kmb::ElementContainer* body,kmb::ElementBase &element) const;
-	bool				getFaceElement(const kmb::MeshData* mesh,kmb::ElementBase &element) const;
-	kmb::elementType	getFaceElementType(const kmb::ElementContainer* body) const;
-	kmb::elementType	getFaceElementType(const kmb::MeshData* mesh) const;
-	bool				getFaceLinearElement(const kmb::ElementContainer* body,kmb::ElementBase &element) const;
-	bool				getFaceLinearElement(const kmb::MeshData* mesh,kmb::ElementBase &element) const;
-	kmb::elementType	getFaceLinearElementType(const kmb::ElementContainer* body) const;
-	kmb::elementType	getFaceLinearElementType(const kmb::MeshData* mesh) const;
-	int					getNodeCount(const kmb::ElementContainer* body) const;
-	int					getNodeCount(const kmb::MeshData* db) const;
+	kmb::Element* createElement(const kmb::ElementContainer* body) const;
+	kmb::Element* createElement(const kmb::MeshData* mesh) const;
+	bool getFaceElement(const kmb::ElementContainer* body,kmb::ElementBase &element) const;
+	bool getFaceElement(const kmb::MeshData* mesh,kmb::ElementBase &element) const;
+	kmb::elementType getFaceElementType(const kmb::ElementContainer* body) const;
+	kmb::elementType getFaceElementType(const kmb::MeshData* mesh) const;
+	bool getFaceLinearElement(const kmb::ElementContainer* body,kmb::ElementBase &element) const;
+	bool getFaceLinearElement(const kmb::MeshData* mesh,kmb::ElementBase &element) const;
+	kmb::elementType getFaceLinearElementType(const kmb::ElementContainer* body) const;
+	kmb::elementType getFaceLinearElementType(const kmb::MeshData* mesh) const;
+	int getNodeCount(const kmb::ElementContainer* body) const;
+	int getNodeCount(const kmb::MeshData* db) const;
 private:
-	kmb::Element*		createElement(const kmb::ElementBase &parent) const;
-	bool				getFaceElement(const kmb::ElementBase &parent,kmb::ElementBase &output) const;
-	kmb::elementType	getFaceElementType(const kmb::ElementBase &parent) const;
-	bool				getFaceLinearElement(const kmb::ElementBase &parent,kmb::ElementBase &output) const;
-	kmb::elementType	getFaceLinearElementType(const kmb::ElementBase &parent) const;
-	int					getNodeCount(const kmb::ElementBase &parent) const;
+	kmb::Element* createElement(const kmb::ElementBase &parent) const;
+	bool getFaceElement(const kmb::ElementBase &parent,kmb::ElementBase &output) const;
+	kmb::elementType getFaceElementType(const kmb::ElementBase &parent) const;
+	bool getFaceLinearElement(const kmb::ElementBase &parent,kmb::ElementBase &output) const;
+	kmb::elementType getFaceLinearElementType(const kmb::ElementBase &parent) const;
+	int getNodeCount(const kmb::ElementBase &parent) const;
 };
 
 }

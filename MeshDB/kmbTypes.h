@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Types                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,8 +26,6 @@
 /*
  * プロジェクト全体で共有したい typedef や enum を記述する
  * クラスで局所的に用いる enum はクラスの内部で定義する
- *
- * ここで int32_t 等を使うと、swing が native 型と判断できなくなってしまう
  */
 
 #pragma once
@@ -41,8 +39,9 @@
 
 namespace kmb{
 
-typedef int elementIdType;
-typedef int bodyIdType;
+typedef int32_t elementIdType;
+typedef int32_t bodyIdType;
+
 typedef Point3D Node;
 
 typedef std::set<elementIdType> ElementNeighbor;

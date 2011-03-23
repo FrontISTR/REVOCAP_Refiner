@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Classification                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -47,9 +47,9 @@ class Classification2
 public:
 	Classification2(void){}
 	virtual ~Classification2(void){}
-	std::multimap<T,T>	equivalentTable;
+	std::multimap<T,T> equivalentTable;
 private:
-	std::map<T,T>		representTable;
+	std::map<T,T> representTable;
 public:
 	bool add(T t0){
 		if( representTable.find(t0) == representTable.end() ){

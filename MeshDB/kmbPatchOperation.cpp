@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : PatchOperation                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -38,7 +38,6 @@
 #include "MeshDB/kmbMatching.h"
 #include "MeshDB/kmbPolygonPartitioner.h"
 #include "MeshDB/kmbNodeNeighborInfo.h"
-#include "Geometry/kmb_Debug.h"
 #include <cmath>
 #include <map>
 
@@ -512,7 +511,6 @@ kmb::PatchOperation::divideByPlane
  kmb::bodyIdType &positiveID,kmb::bodyIdType &negativeID,
  bool capFlag,bool duplicateFlag,double tolerance)
 {
-	REVOCAP_Debug("divideByPlane 0\n");
 	positiveID = kmb::Body::nullBodyId;
 	negativeID = kmb::Body::nullBodyId;
 	kmb::ElementContainer* target = NULL;
@@ -541,7 +539,6 @@ kmb::PatchOperation::divideByPlane
 
 	kmb::ElementContainerMap positiveSegments;
 
-	REVOCAP_Debug("divideByPlane 1\n");
 
 
 	kmb::Point3D p0,p1,p2;
@@ -565,9 +562,6 @@ kmb::PatchOperation::divideByPlane
 			if( fabs(eval0) < tolerance ) eval0 = 0.0;
 			if( fabs(eval1) < tolerance ) eval1 = 0.0;
 			if( fabs(eval2) < tolerance ) eval2 = 0.0;
-			REVOCAP_Debug_3("eval0 = %f, eval1 = %f, eval2 = %f\n", eval0, eval1, eval2);
-			REVOCAP_Debug_3("elementId = %d\n", elementId);
-			REVOCAP_Debug_3("positive count = %d, negative count = %d, target count = %d\n", positive->getCount(), negative->getCount(), target->getCount());
 			if( eval0 == 0.0 && eval1 == 0.0 && eval2 == 0.0)
 			{
 
@@ -878,7 +872,6 @@ kmb::PatchOperation::divideByPlane
 		}
 	}
 	target->clear();
-	REVOCAP_Debug("devideByPlane 2 %d\n",capFlag);
 	if( capFlag ){
 
 
@@ -900,13 +893,9 @@ kmb::PatchOperation::divideByPlane
 				point2Ds.addPoint( uv, nodeId );
 			}
 		}
-		REVOCAP_Debug("devideByPlane projection\n");
 		partitioner.setPoints( &point2Ds );
-		REVOCAP_Debug("devideByPlane setpoint %d\n", point2Ds.getCount());
 		partitioner.setInitialPolygon( &positiveSegments );
-		REVOCAP_Debug("devideByPlane initialpolygon %d\n",positiveSegments.getCount());
 		retVal &= partitioner.partition( triangles );
-		REVOCAP_Debug("devideByPlane partition\n");
 		if( triangles.getCount() > 0 ){
 
 
@@ -916,20 +905,19 @@ kmb::PatchOperation::divideByPlane
 			kmb::ElementContainerMap::iterator tIter = triangles.begin();
 			while( tIter != triangles.end() )
 			{
-				kmb::nodeIdType p0 = tIter.getCellId(0);
-				kmb::nodeIdType p1 = tIter.getCellId(1);
-				kmb::nodeIdType p2 = tIter.getCellId(2);
-				kmb::nodeIdType tripos[3] = {p0,p2,p1};
+				kmb::nodeIdType n0 = tIter.getCellId(0);
+				kmb::nodeIdType n1 = tIter.getCellId(1);
+				kmb::nodeIdType n2 = tIter.getCellId(2);
+				kmb::nodeIdType tripos[3] = {n0,n2,n1};
 				positive->addElement(kmb::TRIANGLE,tripos,mesh->generateElementId());
-				REVOCAP_Debug_3("add triangle %d %d %d\n",p0,p1,p2);
 				if( duplicateFlag ){
-					kmb::nodeIdType n0 = posnegNodes[ p0 ];
-					kmb::nodeIdType n1 = posnegNodes[ p1 ];
-					kmb::nodeIdType n2 = posnegNodes[ p2 ];
-					kmb::nodeIdType trineg[3] = {n0,n1,n2};
+					kmb::nodeIdType neg0 = posnegNodes[ n0 ];
+					kmb::nodeIdType neg1 = posnegNodes[ n1 ];
+					kmb::nodeIdType neg2 = posnegNodes[ n2 ];
+					kmb::nodeIdType trineg[3] = {neg0,neg1,neg2};
 					negative->addElement(kmb::TRIANGLE,trineg,mesh->generateElementId());
 				}else{
-					kmb::nodeIdType trineg[3] = {p0,p1,p2};
+					kmb::nodeIdType trineg[3] = {n0,n1,n2};
 					negative->addElement(kmb::TRIANGLE,trineg,mesh->generateElementId());
 				}
 				++tIter;

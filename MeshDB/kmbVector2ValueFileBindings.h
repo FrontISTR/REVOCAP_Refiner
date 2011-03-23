@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Vector2ValueFileBindings                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,7 +24,7 @@ namespace kmb{
 
 class Vector2ValueBindings;
 
-class Vector2ValueFileBindings : public kmb::DataBindings, kmb::ContainerOnDisk
+class Vector2ValueFileBindings : public kmb::DataBindings, public kmb::ContainerOnDisk
 {
 public:
 	Vector2ValueFileBindings(size_t count,const char* filename,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE);

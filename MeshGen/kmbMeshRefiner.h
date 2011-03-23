@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshRefiner                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -56,6 +56,8 @@ protected:
 	void setSecondNodes( kmb::ElementBase& element );
 	double distanceSqBetweenNodes( kmb::nodeIdType n0, kmb::nodeIdType n1 );
 	interpolationRule interpRule;
+
+	bool secondFitting;
 public:
 	MeshRefiner(void);
 	virtual ~MeshRefiner(void);
@@ -98,7 +100,8 @@ public:
 	void commitData(void);
 	void setInterpolationMode(const char* mode);
 	const char* getInterpolationMode(void) const;
-
+	void setSecondFitting(bool flag);
+	bool setSecondFitting(void) const;
 private:
 
 

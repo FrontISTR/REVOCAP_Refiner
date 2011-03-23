@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : NurbsCurve3D                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,6 +14,7 @@
 ----------------------------------------------------------------------*/
 
 #include "Geometry/kmb_Geometry4D.h"
+#include "Geometry/kmb_Optimization.h"
 #include "Shape/kmbNurbsCurve3D.h"
 
 kmb::NurbsCurve3D::NurbsCurve3D(void)
@@ -176,28 +177,92 @@ kmb::NurbsCurve3D::getSubSecondDerivative( double t, kmb::Vector3D& tangent ) co
 	return true;
 }
 
-
 bool
-kmb::NurbsCurve3D::newtonMethod( double &t, kmb::Point3D& point, double relax ) const
+kmb::NurbsCurve3D::getNearest( const kmb::Point3D& point, double& t ) const
 {
-	kmb::Point3D pt;
-	kmb::Vector3D subvec;
-	kmb::Vector3D subacc;
-	double weight = 0;
-	if( !getPoint(t,pt) ||
-		!getSubDerivative(t,subvec) ||
-		!getSubSecondDerivative(t,subacc) ||
-		!getWeight( t, weight ) ||
-		weight == 0.0 )
-	{
-		return false;
-	}
-	kmb::Vector3D d(pt,point);
-	double denominator = (subvec * subvec) / ( weight * weight ) + ( d * subacc );
-	double numerator = d * subvec;
-	if( denominator != 0.0 ){
-		t -= relax * (numerator / denominator);
+	class dist_local : public kmb::OptTargetSS_0 {
+	private:
+		const kmb::Curve3D* curve;
+		const kmb::Point3D target;
+	public:
+		double f(double t){
+			kmb::Point3D pt;
+			if( !curve->getPoint(t,pt) ){
+				return DBL_MAX;
+			}
+			return target.distanceSq( pt );
+		}
+		dist_local(const kmb::Curve3D* c,const kmb::Point3D p)
+		: curve(c), target(p){}
+	};
+
+
+	class opt_local : public kmb::OptTargetSS {
+	private:
+		const kmb::NurbsCurve3D* curve;
+		const kmb::Point3D target;
+		double t0;
+		bool calculated;
+		double weight;
+		kmb::Point3D pt;
+		kmb::Vector3D subvec;
+		kmb::Vector3D subacc;
+
+		bool calc(double t){
+			if( t == t0 && calculated ){
+				return true;
+			}
+			if( curve->getPoint(t,pt) && curve->getWeight(t,weight)
+				&& curve->getSubDerivative(t,subvec)
+				&& curve->getSubSecondDerivative(t,subacc) ){
+				t0 = t;
+				calculated = true;
+				return true;
+			}else{
+				calculated = false;
+				return false;
+			}
+		}
+	public:
+		double f(double t){
+			if( !calc(t) ){
+				return DBL_MAX;
+			}
+			kmb::Vector3D d(pt,target);
+			return d*subvec;
+		}
+		double df(double t){
+			if( !calc(t) ){
+				return DBL_MAX;
+			}
+			kmb::Vector3D d(pt,target);
+			return (subvec*subvec) / (weight*weight) + (d*subacc);
+		}
+		opt_local(const kmb::NurbsCurve3D* c,const kmb::Point3D p)
+		: curve(c), target(p), t0(0.0), calculated(false), weight(0.0){}
+	};
+
+	dist_local distObj( this, point );
+	opt_local optObj( this, point );
+	kmb::Optimization opt;
+	double min_t, max_t;
+	getDomain(min_t,max_t);
+	double t0 = 0.0;
+
+	opt.calcMinOnGrid( distObj, t0, min_t, max_t, 10 );
+
+	double t1 = opt.calcZero_DN( optObj, t0 );
+	if( min_t <= t1 && t1 <= max_t ){
+		t = t1;
 		return true;
+	}else{
+
+		t1 = opt.calcMin_GS( distObj, min_t, max_t );
+		if( min_t <= t1 && t1 <= max_t ){
+			t = t1;
+			return true;
+		}
 	}
 	return false;
 }
+

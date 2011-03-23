@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Circle                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -37,39 +37,39 @@ kmb::Circle::~Circle(void)
 {
 }
 
-void kmb::Circle::
-setCenter(kmb::Point2D &pt)
+void
+kmb::Circle::setCenter(const kmb::Point2D &pt)
 {
 	this->setCenter(pt.x(),pt.y());
 }
 
-void kmb::Circle::
-setCenter(double x,double y)
+void
+kmb::Circle::setCenter(double x,double y)
 {
 	this->center.setCoordinate(x,y);
 }
 
-void kmb::Circle::
-setRadius(double r)
+void
+kmb::Circle::setRadius(double r)
 {
 	this->radius = r;
 }
 
-double kmb::Circle::
-getRadius(void)
+double
+kmb::Circle::getRadius(void) const
 {
 	return this->radius;
 }
 
-kmb::Point2D kmb::Circle::
-getCenter(void)
+kmb::Point2D
+kmb::Circle::getCenter(void) const
 {
 	return kmb::Point2D(this->center);
 }
 
 
-kmb::Circle* kmb::Circle::
-createInscribedCircle(Point2D &a,Point2D &b,Point2D &c)
+kmb::Circle*
+kmb::Circle::createInscribedCircle(const Point2D &a,const Point2D &b,const Point2D &c)
 {
 	kmb::Circle* circle = NULL;
 	circle = new kmb::Circle();
@@ -83,8 +83,8 @@ createInscribedCircle(Point2D &a,Point2D &b,Point2D &c)
 }
 
 
-double kmb::Circle::
-getInscribedRadius(Point2D &a,Point2D &b,Point2D &c)
+double
+kmb::Circle::getInscribedRadius(const Point2D &a,const Point2D &b,const Point2D &c)
 {
 
 
@@ -101,8 +101,8 @@ getInscribedRadius(Point2D &a,Point2D &b,Point2D &c)
 	}
 }
 
-kmb::Point2D kmb::Circle::
-getInscribedCenter(Point2D &a,Point2D &b,Point2D &c)
+kmb::Point2D
+kmb::Circle::getInscribedCenter(const Point2D &a,const Point2D &b,const Point2D &c)
 {
 
 	double ab = a.distance(b);
@@ -120,8 +120,8 @@ getInscribedCenter(Point2D &a,Point2D &b,Point2D &c)
 }
 
 
-kmb::Circle* kmb::Circle::
-createCircumscribedCircle(Point2D &a,Point2D &b,Point2D &c)
+kmb::Circle*
+kmb::Circle::createCircumscribedCircle(const Point2D &a,const Point2D &b,const Point2D &c)
 {
 	kmb::Circle* circle = NULL;
 	circle = new kmb::Circle();
@@ -134,8 +134,8 @@ createCircumscribedCircle(Point2D &a,Point2D &b,Point2D &c)
 	return circle;
 }
 
-double kmb::Circle::
-getCircumscribedRadius(Point2D &a,Point2D &b,Point2D &c)
+double
+kmb::Circle::getCircumscribedRadius(const Point2D &a,const Point2D &b,const Point2D &c)
 {
 
 
@@ -162,8 +162,8 @@ getCircumscribedRadius(Point2D &a,Point2D &b,Point2D &c)
 	}
 }
 
-kmb::Point2D kmb::Circle::
-getCircumscribedCenter(Point2D &a,Point2D &b,Point2D &c)
+kmb::Point2D
+kmb::Circle::getCircumscribedCenter(const Point2D &a,const Point2D &b,const Point2D &c)
 {
 	kmb::Matrix2x2 mat(
 		a.x()-c.x(), a.y()-c.y(),
@@ -191,48 +191,57 @@ kmb::Circle3D::~Circle3D(void)
 {
 }
 
-void kmb::Circle3D::setCenter(const Point3D& pt)
+void
+kmb::Circle3D::setCenter(const Point3D& pt)
 {
 	this->center.setCoordinate( pt.x(), pt.y(), pt.z() );
 }
 
-void kmb::Circle3D::setCenter(const double x,const double y,const double z)
+void
+kmb::Circle3D::setCenter(const double x,const double y,const double z)
 {
 	this->center.setCoordinate( x, y, z );
 }
 
-void kmb::Circle3D::setNormal(const Vector3D& pt)
+void
+kmb::Circle3D::setNormal(const Vector3D& pt)
 {
 	this->normal.setCoordinate( pt.x(), pt.y(), pt.z() );
 }
 
-void kmb::Circle3D::setNormal(const double x,const double y,const double z)
+void
+kmb::Circle3D::setNormal(const double x,const double y,const double z)
 {
 	this->normal.setCoordinate( x, y, z );
 }
 
-void kmb::Circle3D::setRadius(const double r)
+void
+kmb::Circle3D::setRadius(const double r)
 {
 	this->radius = r;
 }
 
-kmb::Point3D kmb::Circle3D::getCenter(void) const
+kmb::Point3D
+kmb::Circle3D::getCenter(void) const
 {
 	return kmb::Point3D( this->center );
 }
 
-kmb::Vector3D kmb::Circle3D::getNormal(void) const
+kmb::Vector3D
+kmb::Circle3D::getNormal(void) const
 {
 	return kmb::Vector3D( this->normal );
 }
 
-double kmb::Circle3D::getRadius(void) const
+double
+kmb::Circle3D::getRadius(void) const
 {
 	return this->radius;
 }
 
 
-kmb::Circle3D* kmb::Circle3D::createInscribedCircle(Point3D &a,Point3D &b,Point3D &c)
+kmb::Circle3D*
+kmb::Circle3D::createInscribedCircle(const Point3D &a,const Point3D &b,const Point3D &c)
 {
 	kmb::Circle3D* circle = NULL;
 	circle = new kmb::Circle3D();
@@ -247,7 +256,8 @@ kmb::Circle3D* kmb::Circle3D::createInscribedCircle(Point3D &a,Point3D &b,Point3
 	return circle;
 }
 
-kmb::Point3D kmb::Circle3D::getInscribedCenter(Point3D &a,Point3D &b,Point3D &c)
+kmb::Point3D
+kmb::Circle3D::getInscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c)
 {
 
 	double ab = a.distance(b);
@@ -259,7 +269,8 @@ kmb::Point3D kmb::Circle3D::getInscribedCenter(Point3D &a,Point3D &b,Point3D &c)
 	return kmb::Point3D(x,y,z);
 }
 
-double kmb::Circle3D::getInscribedRadius(Point3D &a,Point3D &b,Point3D &c)
+double
+kmb::Circle3D::getInscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c)
 {
 
 
@@ -277,7 +288,8 @@ double kmb::Circle3D::getInscribedRadius(Point3D &a,Point3D &b,Point3D &c)
 }
 
 
-kmb::Circle3D* kmb::Circle3D::createCircumscribedCircle(Point3D &a,Point3D &b,Point3D &c)
+kmb::Circle3D*
+kmb::Circle3D::createCircumscribedCircle(const Point3D &a,const Point3D &b,const Point3D &c)
 {
 	kmb::Circle3D* circle = NULL;
 	circle = new kmb::Circle3D();
@@ -292,7 +304,8 @@ kmb::Circle3D* kmb::Circle3D::createCircumscribedCircle(Point3D &a,Point3D &b,Po
 	return circle;
 }
 
-kmb::Point3D kmb::Circle3D::getCircumscribedCenter(Point3D &a,Point3D &b,Point3D &c)
+kmb::Point3D
+kmb::Circle3D::getCircumscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c)
 {
 	Vector3D ab(b,a);
 	Vector3D ac(c,a);
@@ -312,7 +325,8 @@ kmb::Point3D kmb::Circle3D::getCircumscribedCenter(Point3D &a,Point3D &b,Point3D
 	}
 }
 
-double kmb::Circle3D::getCircumscribedRadius(Point3D &a,Point3D &b,Point3D &c)
+double
+kmb::Circle3D::getCircumscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c)
 {
 
 

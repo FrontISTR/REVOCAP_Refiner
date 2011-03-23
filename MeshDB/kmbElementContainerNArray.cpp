@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ElementContainerNArray                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,7 +16,14 @@
 #include "MeshDB/kmbElement.h"
 
 #ifdef _MSC_VER
+#pragma warning(push)
 #pragma warning(disable:4100)
+#pragma warning(disable:4996)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 const char* kmb::ElementContainerNArray::CONTAINER_TYPE = "node_array";
@@ -56,6 +63,9 @@ kmb::ElementContainerNArray::ElementContainerNArray( kmb::elementType etype, siz
 	if( !writable ){
 		this->typeCounter[ etype ] = size;
 		this->index = size;
+	}else{
+		std::fill_n( nodeTable, ncount*size, kmb::nullNodeId );
+
 	}
 }
 
@@ -85,9 +95,8 @@ kmb::ElementContainerNArray::initialize(size_t size)
 	if( nodeTableDeletable && nodeTable == NULL ){
 		this->size = size;
 		nodeTable = new kmb::nodeIdType[ ncount*size ];
-		for(size_t i=0;i<ncount*size;++i){
-			nodeTable[i] = kmb::nullNodeId;
-		}
+		std::fill_n( nodeTable, ncount*size, kmb::nullNodeId );
+
 	}
 }
 

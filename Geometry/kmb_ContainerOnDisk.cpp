@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : ContainerOnDisk                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -43,11 +43,18 @@ kmb::ContainerOnDisk::~ContainerOnDisk(void)
 bool
 kmb::ContainerOnDisk::initialize(const char* filename, const char headerString[80],unsigned int dataUnitSize,unsigned long dataSize)
 {
-#ifdef WIN32
+#if defined(WIN32)
+ #if _MSC_VER > 1300
 	char buf[256];
 	char* temp = _tempnam( "tmp", filename );
 	strncpy_s( buf, temp, strlen(temp)+1 );
 	if( strlen(buf) > 0 ){
+ #else
+	char buf[256];
+	char* temp = _tempnam( "tmp", filename );
+	strncpy( buf, temp, strlen(temp)+1 );
+	if( strlen(buf) > 0 ){
+ #endif
 #else
 	char buf[256];
 	strncpy( buf, "tmp/", 4 );
@@ -135,14 +142,14 @@ kmb::ContainerOnDisk::getMaxIndex(void) const
 void
 kmb::ContainerOnDisk::debug(void)
 {
-	printf("header size = %d\n", headerSize);
-	printf("data unit size = %d\n", dataUnitSize);
+	printf("header size = %u\n", headerSize);
+	printf("data unit size = %u\n", dataUnitSize);
 	printf("data size = %lu\n", dataSize);
 	printf("filebindings status : good %d\n", fileBindings.good());
 	printf("filebindings status : fail %d\n", fileBindings.fail());
 	printf("filebindings status : eof %d\n", fileBindings.eof());
 	long tg = static_cast<long>( fileBindings.tellg() );
 	printf("filebindings status : tellg %ld\n", tg);
-	printf("filebindings status : indexCounter %ld\n", indexCounter);
+	printf("filebindings status : indexCounter %lu\n", indexCounter);
 	printf("filebindings status : maxIndex %ld\n", maxIndex);
 }

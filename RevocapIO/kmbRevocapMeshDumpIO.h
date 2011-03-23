@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : RevocapMeshDumpIO                                       #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -31,8 +31,6 @@ namespace kmb{
 
 class MeshData;
 class DataBindings;
-template<typename T>
-class DataBindingsEach;
 
 class RevocapMeshDumpIO
 {
@@ -85,9 +83,9 @@ protected:
 	int loadValue(kmb::DataBindings* data);
 	int saveValue(kmb::DataBindings* data);
 	template<typename T>
-	int loadValueAtId(kmb::DataBindingsEach<T>* data,T t);
+	int loadValueAtId(kmb::DataBindings* data,T t);
 	template<typename T>
-	int saveValueAtId(kmb::DataBindingsEach<T>* data,T t);
+	int saveValueAtId(kmb::DataBindings* data,T t);
 };
 
 }

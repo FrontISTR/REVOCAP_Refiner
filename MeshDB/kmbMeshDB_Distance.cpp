@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -100,7 +100,7 @@ kmb::MeshDB::getNearestNodeInBody(const kmb::Point3D& point, kmb::bodyIdType bod
 
 
 double
-kmb::MeshDB::getNearestNode(const kmb::nodeIdType id,kmb::nodeIdType& nearestId)
+kmb::MeshDB::getNearestNode(const kmb::nodeIdType id,kmb::nodeIdType& nearestId) const
 {
 	kmb::Minimizer minimizer;
 	kmb::Node node,target;
@@ -145,3 +145,9 @@ kmb::MeshDB::getNearestNodeInBody(const kmb::nodeIdType id,kmb::bodyIdType bodyI
 	return sqrt( minimizer.getMin() );
 }
 
+double
+kmb::MeshDB::getDistanceToElement(double x,double y,double z,kmb::elementIdType elementId,kmb::bodyIdType bodyId) const
+{
+	kmb::ElementContainer::const_iterator eIter = this->findElement(elementId,bodyId);
+	return sqrt( this->evaluator->getDistanceSq(eIter,x,y,z) );
+}

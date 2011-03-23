@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Collision                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -198,7 +198,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 
 
 	else if( rel == kmb::ElementRelation::COMMONEDGE ){
-		REVOCAP_Debug_3("%d %d %d (%d) : %d %d %d %d (%d)\n", tri[0], tri[1], tri[2], i0, tetra[0], tetra[1], tetra[2], tetra[3], i1);
 		kmb::Point3D n[3];
 		kmb::Point3D t[4];
 		if( this->points &&
@@ -217,7 +216,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 			double minor[4] = {0.0, 0.0, 0.0, 0.0};
 			kmb::Point3D::calcMinorCoordinate( t[0], t[1], t[2], t[3], n[i0], minor );
 			if( 0.0 < minor[0] && 0.0 < minor[1] && 0.0 < minor[2] && 0.0 < minor[3] ){
-				REVOCAP_Debug_3("poiint inner detect %f %f %f %f\n", minor[0], minor[1], minor[2], minor[3]);
 				return kmb::Collision::DETECT;
 			}
 
@@ -240,10 +238,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 				t[ kmb::Tetrahedron::faceTable[f0][1] ],
 				t[ kmb::Tetrahedron::faceTable[f0][2] ]) ){
 			case kmb::Collision::DETECT:
-				REVOCAP_Debug_3("tri tri detect %d %d %d\n",
-					tetra[ kmb::Tetrahedron::faceTable[f0][0] ],
-					tetra[ kmb::Tetrahedron::faceTable[f0][1] ],
-					tetra[ kmb::Tetrahedron::faceTable[f0][2] ]);
 				return kmb::Collision::DETECT;
 			case kmb::Collision::GEOMETRICAL_CONTACT:
 				colType = kmb::Collision::GEOMETRICAL_CONTACT;
@@ -256,10 +250,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 				t[ kmb::Tetrahedron::faceTable[f1][1] ],
 				t[ kmb::Tetrahedron::faceTable[f1][2] ]) ){
 			case kmb::Collision::DETECT:
-				REVOCAP_Debug_3("tri tri detect %d %d %d\n",
-					tetra[ kmb::Tetrahedron::faceTable[f1][0] ],
-					tetra[ kmb::Tetrahedron::faceTable[f1][1] ],
-					tetra[ kmb::Tetrahedron::faceTable[f1][2] ]);
 				return kmb::Collision::DETECT;
 			case kmb::Collision::GEOMETRICAL_CONTACT:
 				colType = kmb::Collision::GEOMETRICAL_CONTACT;
@@ -294,7 +284,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 				if( i != i0 ){
 					kmb::Point3D::calcMinorCoordinate( t[0], t[1], t[2], t[3], n[i], minor );
 					if( 0.0 < minor[0] && 0.0 < minor[1] && 0.0 < minor[2] && 0.0 < minor[3] ){
-						REVOCAP_Debug_3("poiint inner detect %d : %f %f %f %f\n", tri[i], minor[0], minor[1], minor[2], minor[3]);
 						return kmb::Collision::DETECT;
 					}
 				}
@@ -306,11 +295,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 					t[ kmb::Tetrahedron::faceTable[i][1] ],
 					t[ kmb::Tetrahedron::faceTable[i][2] ] ) ){
 				case kmb::Collision::DETECT:
-					REVOCAP_Debug_3("seg tri detect %d %d : %d %d %d\n",
-						tri[(i0+1)%3], tri[(i0+2)%3],
-						tetra[ kmb::Tetrahedron::faceTable[i][0] ],
-						tetra[ kmb::Tetrahedron::faceTable[i][1] ],
-						tetra[ kmb::Tetrahedron::faceTable[i][2] ]);
 					return kmb::Collision::DETECT;
 				case kmb::Collision::GEOMETRICAL_CONTACT:
 					colType = kmb::Collision::GEOMETRICAL_CONTACT;
@@ -325,11 +309,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 				t[ kmb::Tetrahedron::faceTable[i1][1] ],
 				t[ kmb::Tetrahedron::faceTable[i1][2] ] ) ){
 			case kmb::Collision::DETECT:
-				REVOCAP_Debug_3("seg tri detect %d %d : %d %d %d\n",
-					tri[i0], tri[(i0+1)%3],
-					tetra[ kmb::Tetrahedron::faceTable[i1][0] ],
-					tetra[ kmb::Tetrahedron::faceTable[i1][1] ],
-					tetra[ kmb::Tetrahedron::faceTable[i1][2] ]);
 				return kmb::Collision::DETECT;
 			case kmb::Collision::GEOMETRICAL_CONTACT:
 				colType = kmb::Collision::GEOMETRICAL_CONTACT;
@@ -342,11 +321,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 				t[ kmb::Tetrahedron::faceTable[i1][1] ],
 				t[ kmb::Tetrahedron::faceTable[i1][2] ] ) ){
 			case kmb::Collision::DETECT:
-				REVOCAP_Debug_3("seg tri detect %d %d : %d %d %d\n",
-					tri[i0], tri[(i0+2)%3],
-					tetra[ kmb::Tetrahedron::faceTable[i1][0] ],
-					tetra[ kmb::Tetrahedron::faceTable[i1][1] ],
-					tetra[ kmb::Tetrahedron::faceTable[i1][2] ]);
 				return kmb::Collision::DETECT;
 			case kmb::Collision::GEOMETRICAL_CONTACT:
 				colType = kmb::Collision::GEOMETRICAL_CONTACT;

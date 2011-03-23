@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Triangle2                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -36,34 +36,20 @@ public:
 	Triangle2(kmb::nodeIdType *ary);
 	virtual ~Triangle2(void);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public:
-	static const int	connectionTable[6][6];
-	static const int	faceTable[3][3];
+	static const int connectionTable[6][6];
+	static const int faceTable[3][3];
 
 	static void shapeFunction(double s,double t,double* coeff);
+	static void shapeFunction_ds(double s,double t,double* coeff);
+	static void shapeFunction_dt(double s,double t,double* coeff);
+	static void shapeFunction_dsds(double s,double t,double* coeff);
+	static void shapeFunction_dsdt(double s,double t,double* coeff);
+	static void shapeFunction_dtdt(double s,double t,double* coeff);
+	static bool getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* nodes,double naturalCoords[2]);
+	static bool getPhysicalCoordinates(const double naturalCoords[2],const kmb::Point3D* nodes,kmb::Point3D &target);
+
+	static double checkShapeFunctionDomain(double s,double t);
 };
 
 }

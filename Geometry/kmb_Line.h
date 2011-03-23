@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Line                                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -39,23 +39,24 @@ namespace kmb{
 class Line2D
 {
 private:
-	Line2D(double a,double b,double c);
-public:
-	virtual ~Line2D(void);
-	static Line2D* createFromPoints(kmb::Point2D &p,kmb::Point2D &q);
-	static Line2D* createFromBaseDirection(kmb::Point2D &base,kmb::Vector2D &direction);
-	double evaluate(kmb::Point2D &pt);
-	double evaluate(double x,double y);
-	double distance(kmb::Point2D &pt);
-	double getXIntercept(void);
-	double getYIntercept(void);
-
-	static double getXIntercept(kmb::Point2D &p,kmb::Point2D &q);
-	static double getYIntercept(kmb::Point2D &p,kmb::Point2D &q);
-private:
 	double a;
 	double b;
 	double c;
+private:
+
+	Line2D(double a,double b,double c);
+public:
+	virtual ~Line2D(void);
+	static Line2D* createFromPoints(const kmb::Point2D &p,const kmb::Point2D &q);
+	static Line2D* createFromBaseDirection(const kmb::Point2D &base,const kmb::Vector2D &direction);
+	double evaluate(const kmb::Point2D &pt) const;
+	double evaluate(double x,double y) const;
+	double distance(const kmb::Point2D &pt) const;
+	double getXIntercept(void) const;
+	double getYIntercept(void) const;
+
+	static double getXIntercept(const kmb::Point2D &p,const kmb::Point2D &q);
+	static double getYIntercept(const kmb::Point2D &p,const kmb::Point2D &q);
 };
 
 /**
@@ -66,15 +67,15 @@ private:
 class Line3D
 {
 private:
-	Line3D(kmb::Point3D &b,kmb::Vector3D &v);
+	kmb::Point3D base;
+	kmb::Vector3D direction;
+private:
+	Line3D(const kmb::Point3D &b,const kmb::Vector3D &v);
 public:
 	virtual ~Line3D(void);
-	static Line3D* createFromPoints(kmb::Point3D &p,kmb::Point3D &q);
-	static Line3D* createFromBaseDirection(kmb::Point3D &base,kmb::Vector3D &direction);
-	kmb::Vector3D	getDirection(void);
-private:
-	kmb::Point3D	base;
-	kmb::Vector3D	direction;
+	static Line3D* createFromPoints(const kmb::Point3D &p,const kmb::Point3D &q);
+	static Line3D* createFromBaseDirection(const kmb::Point3D &base,const kmb::Vector3D &direction);
+	kmb::Vector3D getDirection(void) const;
 };
 
 }

@@ -1,34 +1,35 @@
 Refiner: force
 	OPENCASCADE=
-	$(MAKE) static -C Matrix
-	$(MAKE) static -C Geometry
-	$(MAKE) static -C MeshDB
-	$(MAKE) static -C MeshGen
-	$(MAKE) static -C RevocapIO
-	$(MAKE) static -C Shape
-	$(MAKE) static -C Refiner
+	cd Matrix && $(MAKE) static
+	cd Geometry && $(MAKE) static
+	cd MeshDB && $(MAKE) static
+	cd MeshGen && $(MAKE) static
+	cd RevocapIO && $(MAKE) static
+	cd Shape && $(MAKE) static
+	cd Refiner && $(MAKE) static
 
 RefinerSampleC: force
-	$(MAKE) sampleC -C Refiner
-	$(MAKE) sampleMultiStage -C Refiner
-	$(MAKE) sampleNodeVariable -C Refiner
-	$(MAKE) sampleHexa -C Refiner
-	$(MAKE) sampleHexa2 -C Refiner
-	$(MAKE) sampleMultiByType -C Refiner
-	$(MAKE) sampleMultiType -C Refiner
-	$(MAKE) sampleRefineGF -C Refiner
+	cd Refiner && $(MAKE) sampleC
+	cd Refiner && $(MAKE) sampleMultiStage
+	cd Refiner && $(MAKE) sampleNodeVariable
+	cd Refiner && $(MAKE) sampleTetra
+	cd Refiner && $(MAKE) sampleHexa
+	cd Refiner && $(MAKE) sampleHexa2
+	cd Refiner && $(MAKE) sampleMultiByType
+	cd Refiner && $(MAKE) sampleMultiType
+	cd Refiner && $(MAKE) sampleFitting
 
 RefinerSampleF: force
-	$(MAKE) sampleF -C Refiner
+	cd Refiner && $(MAKE) sampleF
 
 RefinerDoc: force
-	$(MAKE) doc -C Refiner
+	cd Refiner && $(MAKE) doc
 
 RefinerClean:
-	$(MAKE) clean -C Matrix
-	$(MAKE) clean -C Geometry
-	$(MAKE) clean -C MeshDB
-	$(MAKE) clean -C MeshGen
-	$(MAKE) clean -C RevocapIO
-	$(MAKE) clean -C Shape
-	$(MAKE) clean -C Refiner
+	cd Matrix && $(MAKE) clean
+	cd Geomety && $(MAKE) clean
+	cd MeshDB && $(MAKE) clean
+	cd MeshGen && $(MAKE) clean
+	cd RevocapIO && $(MAKE) clean
+	cd Shape && $(MAKE) clean
+	cd Refiner && $(MAKE) clean

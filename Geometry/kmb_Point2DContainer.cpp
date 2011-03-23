@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Point2DContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,6 +30,11 @@
 
 #ifdef _MSC_VER
 #pragma warning(disable:4100)
+#endif
+
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
 #endif
 
 bool
@@ -240,6 +245,19 @@ kmb::Point2DContainer::iterator::getPoint(kmb::Point2D &point) const
 		return false;
 }
 
+
+double
+kmb::Point2DContainer::iterator::x(void) const
+{
+	return _it->x();
+}
+
+double
+kmb::Point2DContainer::iterator::y(void) const
+{
+	return _it->y();
+}
+
 bool
 kmb::Point2DContainer::iterator::setXY(double x,double y) const
 {
@@ -335,7 +353,7 @@ kmb::Point2DContainer::const_iterator::const_iterator(const kmb::Point2DContaine
 	}
 }
 
-const kmb::nodeIdType
+kmb::nodeIdType
 kmb::Point2DContainer::const_iterator::getId(void) const
 {
 	if( _it != NULL )
@@ -360,6 +378,19 @@ kmb::Point2DContainer::const_iterator::getPoint(kmb::Point2D &point) const
 		return _it->getPoint( point );
 	else
 		return false;
+}
+
+
+double
+kmb::Point2DContainer::const_iterator::x(void) const
+{
+	return _it->x();
+}
+
+double
+kmb::Point2DContainer::const_iterator::y(void) const
+{
+	return _it->y();
 }
 
 kmb::Point2DContainer::const_iterator&
@@ -765,6 +796,18 @@ kmb::Point2DContainerVect::_iteratorVect::getPoint(kmb::Point2D &point) const
 	}else{
 		return false;
 	}
+}
+
+double
+kmb::Point2DContainerVect::_iteratorVect::x(void) const
+{
+	return this->vect->points[index]->x();
+}
+
+double
+kmb::Point2DContainerVect::_iteratorVect::y(void) const
+{
+	return this->vect->points[index]->y();
 }
 
 bool

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Circle                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -40,24 +40,24 @@ private:
 	double radius;
 public:
 
-	void setCenter(Point2D &pt);
+	void setCenter(const Point2D &pt);
 	void setCenter(double x,double y);
 	void setRadius(double r);
-	double getRadius(void);
-	Point2D getCenter(void);
+	double getRadius(void) const;
+	Point2D getCenter(void) const;
 
 
-	static Circle* createInscribedCircle(Point2D &a,Point2D &b,Point2D &c);
+	static Circle* createInscribedCircle(const Point2D &a,const Point2D &b,const Point2D &c);
 
-	static double getInscribedRadius(Point2D &a,Point2D &b,Point2D &c);
+	static double getInscribedRadius(const Point2D &a,const Point2D &b,const Point2D &c);
 
-	static Point2D getInscribedCenter(Point2D &a,Point2D &b,Point2D &c);
+	static Point2D getInscribedCenter(const Point2D &a,const Point2D &b,const Point2D &c);
 
-	static Circle* createCircumscribedCircle(Point2D &a,Point2D &b,Point2D &c);
+	static Circle* createCircumscribedCircle(const Point2D &a,const Point2D &b,const Point2D &c);
 
-	static double getCircumscribedRadius(Point2D &a,Point2D &b,Point2D &c);
+	static double getCircumscribedRadius(const Point2D &a,const Point2D &b,const Point2D &c);
 
-	static Point2D getCircumscribedCenter(Point2D &a,Point2D &b,Point2D &c);
+	static Point2D getCircumscribedCenter(const Point2D &a,const Point2D &b,const Point2D &c);
 };
 
 class Circle3D
@@ -81,13 +81,13 @@ public:
 	double getRadius(void) const;
 
 
-	static Circle3D* createInscribedCircle(Point3D &a,Point3D &b,Point3D &c);
-	static Point3D getInscribedCenter(Point3D &a,Point3D &b,Point3D &c);
-	static double getInscribedRadius(Point3D &a,Point3D &b,Point3D &c);
+	static Circle3D* createInscribedCircle(const Point3D &a,const Point3D &b,const Point3D &c);
+	static Point3D getInscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c);
+	static double getInscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c);
 
-	static Circle3D* createCircumscribedCircle(Point3D &a,Point3D &b,Point3D &c);
-	static Point3D getCircumscribedCenter(Point3D &a,Point3D &b,Point3D &c);
-	static double getCircumscribedRadius(Point3D &a,Point3D &b,Point3D &c);
+	static Circle3D* createCircumscribedCircle(const Point3D &a,const Point3D &b,const Point3D &c);
+	static Point3D getCircumscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c);
+	static double getCircumscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c);
 };
 
 }

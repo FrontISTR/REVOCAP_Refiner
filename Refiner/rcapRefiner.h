@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 0.4                          #
+# Software Name : REVOCAP_Refiner version 1.0                          #
 # Program Name : rcapRefiner                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -12,92 +12,6 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-/**
- * \page program_in_out REVOCAP Refiner プログラム説明書３（入出力仕様システム）
- *
- * \section function_contract REVOCAP Refiner の関数呼び出し規約
- *
- * \subsection howto_call_function 関数の呼び出し方
- *
- *  REVOCAP Refiner はソルバまたはカップラに組み込まれてそのプロセスの中で実行される（フォークしない）。
- *  新たなプロセスを起動してプロセス間通信でデータのやり取りをするのではなく、
- *  ソルバやカップラのプロセスの中で、関数を通じてデータのやり取りをする。
- *  関数への入力や出力となる変数のメモリ管理は呼び出し側が責任を持つ。
- *  ソルバやカップラへ受け渡さない REVOCAP Refiner の内部データは
- *  REVOCAP Refiner がメモリ管理について責任を持つ。
- *
- *  REVOCAP Refiner のメモリ空間は呼び出されるプロセスの中で一意である。
- *  同じプロセスの中で複数の REVOCAP Refiner の処理を行う場合は、現バージョンでは未対応である。
- *  初期化と終了を正しく使わない場合はデータが破壊される場合があるので注意が必要である。
- *
- * \subsection name_of_function 関数の名前
- *
- *  名前は rcapXXX(...) とする\n
- *  fortran77 fortran90 の呼び出しのための関数名の変換はマクロではなく、ラッパ関数を経由することで行う。
- *  ビルドする場合には、呼び出す Fortran のコンパイラの種類によってライブラリのコンパイル時に
- *  異なるマクロ定数を与えなければならない。
- *  \li gfortran コンパイラ：gfortran, Intel Fortran, PGI Fortran
- *
- * \subsection howto_allocate_arrays 配列のメモリ確保の方法
- *
- *  配列の受け渡しは呼び出し側で allocate して、このモジュールでは allocate も free もせず、要素に代入するだけとする。\n
- *  配列があふれた場合はエラーコードを返す。
- *
- * \subsection constants REVOCAP Refiner における定数
- *
- *  要素の型を表す RCAP_TETRAHEDRON, RCAP_TETRAHEDRON2, RCAP_HEXAHEDRON など\n
- *  C 言語で使う場合は、この rcapRefiner.h を include する。\n
- *  Fortran 言語で使う場合は rcapRefiner.inc を include する。
- *
- * \subsection variable_types REVOCAP Refiner における変数の型
- *
- *  UNIX 標準 C の stdint.h および、浮動小数点についても同様の定義をする。
- *  unsigned 型は Fortran で定義できない場合があるため使わない。
- *  C 言語の size_t 型はコンテナの大きさをあらわす数として使うが、
- *  Fortran ではラッパーで符号付きに変換して使う。
- *  実行環境に依存する可能性のある型はプリプロセッサで吸収する。
- *  \code
- *  #ifdef LINUX64
- *    integer(kind=8) :: nodeCount
- *    integer(kind=8) :: refineNodeCount
- *    integer(kind=8) :: appendNodeCount
- *    integer(kind=8) :: elementCount
- *  #else
- *    integer(kind=4) :: nodeCount
- *    integer(kind=4) :: refineNodeCount
- *    integer(kind=4) :: appendNodeCount
- *    integer(kind=4) :: elementCount
- *  #endif
- *  \endcode
- *  のように定数値でコンパイル時に切り替えることが必要。
- *
- * \subsection in_out_variables REVOCAP Refiner の関数の入出力引数
- *
- *  \li 引数は入力系を前に、出力系を後ろにする
- *  \li 配列の入力を与える時は、配列の大きさと先頭アドレスを与える
- *  \li 要素の型など、他の情報で配列の大きさが決まる場合は、配列の大きさは省略する
- *  \li 出力で配列を用いる場合は、あらかじめ allocate された配列に値を代入することで行う
- *  \li 戻り値はエラー処理、出力で配列を用いた場合の値を代入した個数のために使う
- *
- * \subsection element_node_order REVOCAP Refiner の要素の節点配列の順番
- *
- *  細分する要素の節点配列の順番はソルバ、カップラごとに異なる可能性があるが、
- *  ここでは革新プロジェクトにおける REVOCAP で用いた順番に従うことにする。
- *
- *  また節点配列の順番や、面番号の付け方については定数配列として、
- *  ソルバ、カップラ、および Refiner で共有し、適宜参照できるものとする。
- *
- */
-/*
- * http:
- * 仕様の書き方 (doxgen に準拠)
- *  引数の説明   @param[in] @param[out]
- *  戻り値の説明 @return
- *  処理の概要   @brief
- *  注意項目     @remarks
- *  \section 等の第１引数は html にしたときの name tag に使われる
- */
-
 #ifndef REVOCAP_REFINER_HEADER
 #define REVOCAP_REFINER_HEADER
 
@@ -108,15 +22,58 @@
 /* for size_t */
 #include <stddef.h>
 
-#ifdef WIN32
-typedef signed char    int8_t;
-typedef unsigned char uint8_t;
-typedef short          int16_t;
-typedef unsigned short uint16_t;
-typedef long          int32_t;
-typedef unsigned long uint32_t;
-typedef long long     int64_t;
-typedef unsigned long long uint64_t;
+#ifdef _MSC_VER
+ #if (_MSC_VER >= 1300 )
+  #ifndef HAVE_INT8_T
+   typedef signed __int8 int8_t;
+  #endif
+  #ifndef HAVE_UINT8_T
+   typedef unsigned __int8 uint8_t;
+  #endif
+  #ifndef HAVE_INT16_T
+   typedef signed __int16 int16_t;
+  #endif
+  #ifndef HAVE_UINT16_T
+   typedef unsigned __int16 uint16_t;
+  #endif
+  #ifndef HAVE_INT32_T
+   typedef signed __int32 int32_t;
+  #endif
+  #ifndef HAVE_UINT32_T
+   typedef unsigned __int32 uint32_t;
+  #endif
+  #ifndef HAVE_INT64_T
+   typedef signed __int64 int64_t;
+  #endif
+  #ifndef HAVE_UINT64_T
+   typedef unsigned __int64 uint64_t;
+  #endif
+ #else
+  #ifndef HAVE_INT8_T
+   typedef signed char int8_t;
+  #endif
+  #ifndef HAVE_UINT8_T
+   typedef unsigned char uint8_t;
+  #endif
+  #ifndef HAVE_INT16_T
+   typedef short int16_t;
+  #endif
+  #ifndef HAVE_UINT16_T
+   typedef unsigned short uint16_t;
+  #endif
+  #ifndef HAVE_INT32_T
+   typedef long int32_t;
+  #endif
+  #ifndef HAVE_UINT32_T
+   typedef unsigned long uint32_t;
+  #endif
+  #ifndef HAVE_INT64_T
+   typedef long long int64_t;
+  #endif
+  #ifndef HAVE_UINT64_T
+   typedef unsigned long long uint64_t;
+  #endif
+ #endif
 #else
 /* C99 から導入されている */
 #include <stdint.h>
@@ -191,6 +148,7 @@ extern "C" {
  * @brief Version 文字列を標準出力に出力する。
  */
 void rcapGetVersion( void );
+
 /**
  * @brief Refiner を初期化し、節点番号と要素番号のオフセット値を与える。
  * @param[in] nodeOffset 呼び出し側の節点番号の初期値（C言語なら0、Fortran言語なら1など）
@@ -198,6 +156,7 @@ void rcapGetVersion( void );
  * @note これらのオフセット値よりも小さい値を節点番号や要素番号で与えた場合は無効となる。
  */
 void rcapInitRefiner( int32_t nodeOffset, int32_t elementOffset );
+
 /**
  * @brief Refiner が内部で保持している中間節点データのキャッシュをクリアする。
  * @note 細分を複数回行う場合に、一旦内部で保持しているデータをクリアするために使う。
@@ -206,6 +165,7 @@ void rcapInitRefiner( int32_t nodeOffset, int32_t elementOffset );
  * 細分時に更新する節点グループの情報等はクリアされないので注意する。
  */
 void rcapClearRefiner( void );
+
 /**
  * @brief Refiner の終了処理を行う。これを呼び出した後はすべての処理が無効になる。
  * @note Refiner に登録した節点、要素、境界条件などのメモリを解放する前に
@@ -213,21 +173,34 @@ void rcapClearRefiner( void );
  * メモリを解放すると、不正なアドレスにアクセスする可能性があります。
  */
 void rcapTermRefiner( void );
+
 /**
- * 現在未実装です
- *
  * @brief 形状補正に用いる CAD ファイルを指定する。\n
  * 細分前のメッシュはこの CAD ファイルから生成されているものとする。
  * この関数を呼んで CAD ファイルを指定しなかった場合は、形状補正は行わない。
  * メッシュ生成時の節点の globalID と CAD の形状データの対応が与えられているとする。
  * 領域分割後のメッシュに対して細分を行う場合は、setPartitionFilename などで
  * globalID と localID の対応付けを与える必要がある。
+ *
+ * @remark この関数で与える CAD ファイルには、形状データだけではなく、
+ * 初期メッシュの節点と CAD の面の間の対応関係も記述されているため、
+ * 初期メッシュが異なる場合には、CAD ファイルも置き換えなければならない。
+ * CAD ファイルの節点番号は 0 始まりの番号を用いている。
+ * rcapSetNode32 rcapSetNode64 または rcapSetPartitionFilename で与える場合には
+ * rcapInitRefiner で与える nodeOffset だけずれるので注意する。
+ *
  * @param[in] filename ファイル名
  */
 void rcapSetCADFilename( const char* filename );
+
 /**
- * 現在仮実装です。CAD で形状補正する場合には必須。
+ * @brief 中間節点の生成に2次要素の形状関数を使うかどうかを設定する。
+ * @param[in] flag 非零の時に有効にし、零の時に無効にします
  *
+ */
+void rcapSetSecondFitting( int32_t flag );
+
+/**
  * @brief 節点の globalID と localID の対応関係を記述したファイルを指定する。\n
  * 指定しない場合は、globalID と localID は区別しない。
  * ファイルではなく、節点座標を登録するときに globalID と localID の関係を与えることもできる。
@@ -235,6 +208,7 @@ void rcapSetCADFilename( const char* filename );
  * @note ファイルフォーマットは革新プロジェクトでソルバとカプラの間で用いたものに準ずる。
  */
 void rcapSetPartitionFilename( const char* filename );
+
 /**
  * @brief 節点座標を Refiner に与える
  * @param[in] num 与える節点の個数
@@ -248,8 +222,6 @@ void rcapSetPartitionFilename( const char* filename );
  * globalIds を与えなくてもよい。この関数で与えた場合には、setPartitionFilename で与えた対応を上書きする。
  * setPartitionFilename で与えない場合に、この関数でも globalIds を与えない場合は、localId をそのまま使う。
  *
- * 現在のバージョンでは globalIds は考慮していません。
- *
  * @li setNode64( num, coords, NULL, NULL ) => global と local は同じで nodeOffset から順に num 個
  * @li setNode64( num, coords, globalIds, NULL ) => local は nodeOffset から順に num 個、global は引数で与える
  * @li setNode64( num, coords, NULL, localIds ) => global と local は同じで local は与える
@@ -259,6 +231,7 @@ void rcapSetPartitionFilename( const char* filename );
  * @note Fortran から呼ぶ場合には NULL アドレスの代わりに最初の値が nodeOffset よりも小さい配列を与える。
  */
 void rcapSetNode64( size_t num, float64_t* coords, int32_t* globalIds, int32_t* localIds );
+
 /**
  * @brief 節点座標を Refiner に与える
  * @param[in] num 与える節点の個数
@@ -269,11 +242,13 @@ void rcapSetNode64( size_t num, float64_t* coords, int32_t* globalIds, int32_t* 
  * @note 詳細は rcapSetNode64 に準ずる
  */
 void rcapSetNode32( size_t num, float32_t* coords, int32_t* globalIds, int32_t* localIds );
+
 /**
  * @brief 現在 Refiner が保持している節点の個数を返す。細分したら増える。
  * @return 節点の個数
  */
 size_t rcapGetNodeCount( void );
+
 /**
  * @brief Refiner が管理している節点座標を取得する
  * @param[in] num 節点の個数
@@ -287,7 +262,16 @@ size_t rcapGetNodeCount( void );
  * localIds の節点番号は自動的に nodeOffset でずらして Refiner に問い合わせる
  */
 void rcapGetNode64( size_t num, int32_t* localIds, float64_t* coords );
+/**
+ * @brief Refiner が管理している節点座標を取得する
+ * @param[in] num 節点の個数
+ * @param[in] localIds 領域分割した領域内の局所節点ID の配列
+ * @param[out] coords 節点の座標、(x,y,z) の順番に 3*num 個並べたもの
+ *
+ * @note rcapGetNode64 の 32bit 版
+ */
 void rcapGetNode32( size_t num, int32_t* localIds, float32_t* coords );
+
 /**
  * @brief initId から連続して num 個の節点座標を取得する
  * @param[in] num 節点の個数
@@ -296,7 +280,11 @@ void rcapGetNode32( size_t num, int32_t* localIds, float32_t* coords );
  * @note coords の initId 番目から代入する
  */
 void rcapGetNodeSeq64( size_t num, size_t initId, float64_t* coords );
+/**
+ * @brief rcapGetNodeSeq64 の 32bit 版
+ */
 void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords );
+
 /**
  * @brief 要素をそれぞれ辺の２分割して細分する
  * @param[in] num 要素の個数
@@ -400,36 +388,56 @@ void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords );
  * 最後の1個は全ての面が埋め込まれている
  */
 size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t* resultNodeArray );
+
 /**
  * @brief 複数の種類の型が混在しているモデルを一度に細分する
  * @param[in] num 要素の個数
  * @param[in] etypeArray 入力要素の型の配列
  * @param[in] nodeArray 入力要素の節点配列
- * @param[in/out] refinedNum 細分後の要素の個数
- * @param[out] resultEtypeArray 細分結果の型の節点配列
+ * @param[in,out] refinedNum 細分結果の要素の個数
+ * @param[out] resultEtypeArray 細分結果の要素の型の配列
  * @param[out] resultNodeArray 細分結果の要素の節点配列
- * @return 細分した結果を格納するのに必要な節点配列の大きさ
- *
- * @note resultNodeArray を NULL または -1 として呼び出すと、
- * 細分した結果を格納するのに必要な節点配列の大きさを返す。\n
- * refinedNum に細分後の要素の個数を代入する。
- * 従って、resultNodeArray = NULL で呼び出した結果の戻り値の大きさで
- * 配列 resultNodeArray をメモリ上に確保する。
- * resultEtypeArray の配列の大きさは refinedNum に代入された値を使う。
- *
- * @note 実際に細分を行うときには、配列 resultNodeArray に値を入れて代入して呼び出す。
- * この場合の戻り値も細分の結果に必要な節点配列の大きさを返す。
- *
- * @note resultEtypeArray に NULL を入れても細分の実行は可能。
- * 配列を入れると、細分した要素の型を代入して返す。
- *
- * @note 要素の型ごとに節点配列をまとめれば rcapRefineElement で同等のことを実行できる
+ * @return 細分した結果を格納するのに[必要な/使用した]節点配列の大きさ
  *
  * @note rcapClearRefiner を呼ぶまでは etypeArray, nodeArray, resultETypeArray, resultNodeArray を解放しないでください。
+ *
+ * @note この関数は実際に細分する機能と、節点配列の大きさを調べるだけの機能とを兼ねています。
+ * resultNodeArray を NULL または -1 として呼び出すと、
+ * 細分した結果を格納するのに必要な節点配列の大きさを返し、
+ * refinedNum に細分後の要素の個数を代入します。
+ * resultEtypeArray は実際に細分する機能と、節点配列の大きさを調べるだけの機能の
+ * 切り替えのための情報としては利用しません。
+ * このモジュールを利用する場合にはこの戻り値の大きさの
+ * 配列 resultNodeArray を呼び出し側がメモリ上に確保し、
+ * 細分するためにこの関数を再度呼び出す必要があります。
+ *
+ * @note 実際に細分を行うときには、配列 resultEtypeArray と resultNodeArray をメモリ上に確保し、
+ * それぞれ初期化してからこの関数を呼び出します。
+ * このとき、refinedNum は resultEtypeArray / resultNodeArray で
+ * 格納可能な要素の個数を与えます。与えられた refinedNum よりも
+ * 細分された要素の個数が大きい場合は、超えた部分は格納しません。
+ * 戻り値は細分の結果を格納するのに使用した節点配列の大きさを返します。
+ *
+ * @note 細分後の要素の型が自明の場合は、resultNodeArray をメモリ上に確保して、
+ * resultEtypeArray に NULL を与えても細分の実行は可能です。
+ *
+ * @note
+ * result = rcapRefineElementMulti(num,etypeArray,nodeArray,[refinedNum],NULL,NULL)
+ * result = rcapRefineElementMulti(num,etypeArray,nodeArray,[refinedNum],[-1],[-1])
+ * refinedNum に細分で得られる要素の個数を代入し、result に細分結果を格納するのに必要な節点配列の大きさを返す
+ * 実際には細分は行わない。
+ *
+ * @note
+ * result = rcapRefineElementMulti(num,etypeArray,nodeArray,[refinedNum],resultEtypeArray,resultNodeArray)
+ * 実際に細分を行い、細分結果を resultEtypeArray と resultNodeArray に格納する。
+ * refinedNum で与えられた大きさの要素を格納する配列が確保されていることを仮定している。
+ *
+ * @note 要素の型ごとに節点配列をまとめれば rcapRefineElement で同等のことを実行できます。
  *
  * @remark *** 戻り値の仕様が 2010/2/9 バージョンから変更しています ***
  */
 size_t rcapRefineElementMulti( size_t num, int8_t* etypeArray, int32_t* nodeArray, size_t* refinedNum, int8_t* resultEtypeArray, int32_t* resultNodeArray );
+
 /**
  * @brief
  * rcapRefineElement により細分されたデータ（節点グループ、要素グループ、面グループ）をコミットする。
@@ -469,6 +477,7 @@ void rcapCommit(void);
  * @endcode
  */
 void rcapAppendNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
+
 /**
  * @brief Refiner に登録されている節点グループの節点の個数を返す
  * @param[in] dataname 節点グループの識別子
@@ -476,6 +485,7 @@ void rcapAppendNodeGroup( const char dataname[80], size_t num, int32_t* nodeArra
  * @note refineElement を呼ぶ前は、appendNodeGroup で登録した個数そのものを返す。
  */
 size_t rcapGetNodeGroupCount( const char dataname[80] );
+
 /**
  * @brief Refiner に登録されている節点グループを返す
  * @param[in] dataname 節点グループの識別子
@@ -487,7 +497,7 @@ size_t rcapGetNodeGroupCount( const char dataname[80] );
 void rcapGetNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
 
 /**
- * @brief BoundaryNodeGroup とは、境界面上にのみある節点グループのことで細分と同時に更新する。
+ * @brief BoundaryNodeGroup とは、境界面上にのみある節点グループのこと。この関数で登録する。
  * @param[in] dataname 境界節点グループの識別子
  * @param[in] num 取得する境界節点グループの個数
  * @param[out] nodeArray 境界節点グループの節点
@@ -496,7 +506,23 @@ void rcapGetNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray )
  * 使って境界条件を更新する。
  */
 void rcapAppendBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
+
+/**
+ * @brief Refiner に登録されている境界節点グループの節点の個数を返す
+ * @param[in] dataname 節点グループの識別子
+ * @return 節点グループの節点の個数
+ * @note refineElement を呼ぶ前は、appendBNodeGroup で登録した個数そのものを返す。
+ */
 size_t rcapGetBNodeGroupCount( const char dataname[80] );
+
+/**
+ * @brief Refiner に登録されている境界節点グループを返す
+ * @param[in] dataname 境界節点グループの識別子
+ * @param[in] num 取得する境界節点グループの個数
+ * @param[out] nodeArray 境界節点グループの節点
+ * @note 引数 num は getBNodeGroupCount で取得した値を与えて、nodeArray はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
+ */
 void rcapGetBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
 
 /**
@@ -504,7 +530,7 @@ void rcapGetBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray 
  * @param[in] dataname 境界節点変数の識別子
  * @param[in] num 取得する境界節点変数の（節点の）個数
  * @param[out] nodeArray 境界節点変数の節点
- * @param[out] nodeVars 境界節点変数の変数（nodeArrayと同じ大きさ）
+ * @param[out] nodeVars 境界節点変数の値（nodeArrayと同じ大きさ）
  * @note rcapGetBoundaryNodeVariableInt するときは、あらかじめ nodeArray と nodeVars を allocate しておくこと。
  * @note refineElement をするときに、このタイプの境界条件がある時は、表面抽出を行い、表面の三角形または四角形を
  * 使って境界条件を更新する。
@@ -514,8 +540,25 @@ void rcapGetBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray 
  * もとの節点に変数が与えられていて、変数の値が異なる時は、中間節点に最も小さい値を与える。
  */
 void rcapAppendBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray, int32_t* nodeVars );
+
+/**
+ * @brief Refiner に登録されている整数値境界節点変数の節点の個数を返す
+ * @param[in] dataname 境界節点変数の識別子
+ * @return 境界節点変数の節点の個数
+ * @note refineElement を呼ぶ前は、appendBNodeVarInt で登録した個数そのものを返す。
+ */
 size_t rcapGetBNodeVarIntCount( const char dataname[80] );
-void rcapGetBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray, int32_t* nodeVars  );
+
+/**
+ * @brief Refiner に登録されている整数値境界節点変数を返す
+ * @param[in] dataname 境界節点変数の識別子
+ * @param[in] num 取得する境界節点変数の個数
+ * @param[out] nodeArray 境界節点変数の節点
+ * @param[out] nodeVars 境界節点変数の値
+ * @note 引数 num は getBNodeVarIntCount で取得した値を与えて、nodeArray, nodeVars はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
+ */
+void rcapGetBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray, int32_t* nodeVars );
 
 /**
  * @brief ElementGroup とは、要素番号の集合のこと。
@@ -525,7 +568,23 @@ void rcapGetBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray
  * @note rcapGetElementGroup するときは、あらかじめ elementArray を allocate しておくこと。
  */
 void rcapAppendElementGroup( const char dataname[80], size_t num, int32_t* elementArray );
+
+/**
+ * @brief Refiner に登録されている要素グループの要素の個数を返す
+ * @param[in] dataname 要素グループの識別子
+ * @return 要素グループの要素の個数
+ * @note refineElement を呼ぶ前は、appendElementGroup で登録した個数そのものを返す。
+ */
 size_t rcapGetElementGroupCount( const char dataname[80] );
+
+/**
+ * @brief Refiner に登録されている要素グループを返す
+ * @param[in] dataname 要素グループの識別子
+ * @param[in] num 取得する要素グループの個数
+ * @param[out] elementArray 要素グループの節点
+ * @note 引数 num は getElementGroupCount で取得した値を与えて、elementArray はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
+ */
 void rcapGetElementGroup( const char dataname[80], size_t num, int32_t* elementArray );
 
 /**
@@ -536,7 +595,23 @@ void rcapGetElementGroup( const char dataname[80], size_t num, int32_t* elementA
  * @note faceArray は要素番号と面番号を交互に並べた 2*num 個の配列になる。
  */
 void rcapAppendFaceGroup( const char dataname[80], size_t num, int32_t* faceArray );
+
+/**
+ * @brief Refiner に登録されている面グループの個数を返す
+ * @param[in] dataname 面グループの識別子
+ * @return 面グループの面の個数
+ * @note refineElement を呼ぶ前は、appendFaceGroup で登録した個数そのものを返す。
+ */
 size_t rcapGetFaceGroupCount( const char dataname[80] );
+
+/**
+ * @brief Refiner に登録されている面グループを返す
+ * @param[in] dataname 面グループの識別子
+ * @param[in] num 取得する面グループの個数
+ * @param[out] faceArray 面グループの面
+ * @note 引数 num は getFaceGroupCount で取得した値を与えて、faceArray はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
+ */
 void rcapGetFaceGroup( const char dataname[80], size_t num, int32_t* faceArray );
 
 /**
@@ -547,10 +622,14 @@ void rcapGetFaceGroup( const char dataname[80], size_t num, int32_t* faceArray )
  * MIDDLE は中間節点を生成するのに用いた節点上の値の平均値を与えます。
  */
 void rcapSetInterpolateMode( const char mode[32] );
+
+/**
+ * @brief NodeVariable を登録したときに、中間節点に与える値の決め方を返します。
+ * 戻り値は "MIN" "MAX" "MIDDLE" という文字列のいずれかです。
+ */
 void rcapGetInterpolateMode( char mode[32] );
 
 /**
- *
  * @brief 中間節点から、それを生成するのに使った辺、面、要素の節点配列を返す
  * @param[in] localNodeId 細分された中間節点の局所節点番号
  * @param[out] originalNodeArray localNodeId を生成するのに使った要素の節点配列を返します
@@ -589,13 +668,22 @@ int8_t rcapGetOriginal( int32_t localNodeId, int32_t* originalNodeArray );
  * rcapRefineElement は細分をしてからその結果を返します。
  */
 int32_t rcapGetMiddle( int8_t etype, int32_t* originalNodeArray );
-/**
- * @brief 細分後の自然座標の変換
- */
-int32_t rcapGetRefinedNaturalCoord( int32_t* elementId, float32_t* coords, int32_t* refinedElementId, float32_t* refinedCoords );
 
 /**
- * @breif デバッグ用ファイル入出力ルーチン
+ * @brief 要素の品質に関する情報を出力します。
+ * @param[in] name 品質を測定する指標
+ * @param[in] filename ファイル名（指定しない場合は標準エラーに出力します）
+ */
+void rcapQualityReport( const char name[80], const char* filename );
+
+/**
+ * @brief 細分後の自然座標の変換
+ * 未実装
+ */
+
+
+/**
+ * @brief デバッグ用ファイル入出力ルーチン
  * @return 読み込んだ、または書き込んだ要素の個数
  *
  * File から File への細分例
@@ -609,20 +697,41 @@ int32_t rcapGetRefinedNaturalCoord( int32_t* elementId, float32_t* coords, int32
  * なので、細分後のメッシュを出力できるわけではない。
  */
 int32_t rcapLoadGFFile( const char* gffile, const char* bounfile );
+
+/**
+ * @brief FFbModel細分（デバッグ用）
+ */
 void rcapRefineFFbModel();
+
+/**
+ * @brief GFファイルへ書き込み（デバッグ用）
+ */
 int32_t rcapSaveGFFile( const char* gffile, const char* bounfile );
+
+/**
+ * @brief HECファイルの読み込み（デバッグ用）
+ */
 int32_t rcapLoadHECFile( const char* hecfile );
+
+/**
+ * @brief HECファイルへ書き込み（デバッグ用）
+ */
 int32_t rcapSaveHECFile( const char* hecfile );
+
+/**
+ * @brief RNFファイルへ書き込み（デバッグ用）
+ */
 int32_t rcapSaveRNFFile( const char* rnffile );
 
 /* rcapxxx_  すべて小文字 */
 /* gfortran, intel fortran, pgi fortran はこれでよい */
-#ifdef FORTRAN90
-void racpgetversion_( void );
+#if defined FORTRAN90 || defined FORTRAN_CALL_C_DOWNCASE_
+void rcapgetversion_( void );
 void rcapinitrefiner_( int32_t* nodeOffset, int32_t* elementOffset );
 void rcapclearrefiner_( void );
 void rcaptermrefiner_( void );
 void rcapsetcadfilename_( const char* filename );
+void rcapsetsecondfitting_( int32_t* flag );
 void rcapsetpartitionfilename_( const char* filename );
 
 void rcapsetnode64_( int32_t* num, float64_t* coords, int32_t* globalIds, int32_t* localIds );
@@ -663,6 +772,8 @@ int32_t rcapgetmiddle_( int8_t *etype, int32_t* originalNodeArray );
 void rcapsetinterpolatemode_( const char mode[32] );
 void rcapgetinterpolatemode_( char mode[32] );
 
+void rcapqualityreport_( const char mode[80], const char* filename );
+
 int32_t rcaploadgffile_( const char* gffile, const char* bounfile );
 int32_t rcaploadhecfile_( const char* hecfile );
 int32_t rcapsavegffile_( const char* gffile, const char* bounfile );
@@ -670,16 +781,139 @@ int32_t rcapsavehecfile_( const char* hecfile );
 int32_t rcapsavernffile_( const char* rnffile );
 #endif
 
-#ifdef FORTRAN77
+#if defined FORTRAN_CALL_C_DOWNCASE__
+#define rcapgetversion_ rcapgetversion__
+#define rcapinitrefiner_ rcapinitrefiner__
+#define rcapclearrefiner_ rcapclearrefiner__
+#define rcaptermrefiner_ rcaptermrefiner__
+#define rcapsetcadfilename_ rcapsetcadfilename__
+#define rcapsetsecondfitting_ rcapsetsecondfitting__
+#define rcapsetpartitionfilename_ rcapsetpartitionfilename__
+#define rcapsetnode64_ rcapsetnode64__
+#define rcapsetnode32_ rcapsetnode32__
+#define rcapgetnodecount_ rcapgetnodecount__
+#define rcapgetnode64_ rcapgetnode64__
+#define rcapgetnode32_ rcapgetnode32__
+#define rcapgetnodeseq64_ rcapgetnodeseq64__
+#define rcapgetnodeseq32_ rcapgetnodeseq32__
+#define rcaprefineelement_ rcaprefineelement__
+#define rcaprefineelementmulti_ rcaprefineelementmulti__
+#define rcapcommit_ rcapcommit__
+#define rcapappendnodegroup_ rcapappendnodegroup__
+#define rcapgetnodegroupcount_ rcapgetnodegroupcount__
+#define rcapgetnodegroup_ rcapgetnodegroup__
+#define rcapappendbnodegroup_ rcapappendbnodegroup__
+#define rcapgetbnodegroupcount_ rcapgetbnodegroupcount__
+#define rcapgetbnodegroup_ rcapgetbnodegroup__
+#define rcapappendbnodevarint_ rcapappendbnodevarint__
+#define rcapgetbnodevarintcount_ rcapgetbnodevarintcount__
+#define rcapgetbnodevarint_ rcapgetbnodevarint__
+#define rcapappendelementgroup_ rcapappendelementgroup__
+#define rcapgetelementgroupcount_ rcapgetelementgroupcount__
+#define rcapgetelementgroup_ rcapgetelementgroup__
+#define rcapappendfacegroup_ rcapappendfacegroup__
+#define rcapgetfacegroupcount_ rcapgetfacegroupcount__
+#define rcapgetfacegroup_ rcapgetfacegroup__
+#define rcapgetoriginal_ rcapgetoriginal__
+#define rcapgetmiddle_ rcapgetmiddle__
+#define rcapsetinterpolatemode_ rcapsetinterpolatemode__
+#define rcapgetinterpolatemode_ rcapgetinterpolatemode__
+#define rcapqualityreport_ rcapqualityreport__
+#define rcaploadgffile_ rcaploadgffile__
+#define rcaploadhecfile_ rcaploadhecfile__
+#define rcapsavegffile_ rcapsavegffile__
+#define rcapsavehecfile_ rcapsavehecfile__
+#define rcapsavernffile_ rcapsavernffile__
 #endif
 
-#ifdef G95
+#if defined FORTRAN_CALL_C_UPCASE
+#define rcapgetversion_ RCAPGETVERSION
+#define rcapinitrefiner_ RCAPINITREFINER
+#define rcapclearrefiner_ RCAPCLEARREFINER
+#define rcaptermrefiner_ RCAPTERMREFINER
+#define rcapsetcadfilename_ RCAPSETCADFILENAME
+#define rcapsetsecondfitting_ RCAPSETSECONDFITTING
+#define rcapsetpartitionfilename_ RCAPSETPARTITIONFILENAME
+#define rcapsetnode64_ RCAPSETNODE64
+#define rcapsetnode32_ RCAPSETNODE32
+#define rcapgetnodecount_ RCAPGETNODECOUNT
+#define rcapgetnode64_ RCAPGETNODE64
+#define rcapgetnode32_ RCAPGETNODE32
+#define rcapgetnodeseq64_ RCAPGETNODESEQ64
+#define rcapgetnodeseq32_ RCAPGETNODESEQ32
+#define rcaprefineelement_ RCAPREFINEELEMENT
+#define rcaprefineelementmulti_ RCAPREFINEELEMENTMULTI
+#define rcapcommit_ RCAPCOMMIT
+#define rcapappendnodegroup_ RCAPAPPENDNODEGROUP
+#define rcapgetnodegroupcount_ RCAPGETNODEGROUPCOUNT
+#define rcapgetnodegroup_ RCAPGETNODEGROUP
+#define rcapappendbnodegroup_ RCAPAPPENDBNODEGROUP
+#define rcapgetbnodegroupcount_ RCAPGETBNODEGROUPCOUNT
+#define rcapgetbnodegroup_ RCAPGETBNODEGROUP
+#define rcapappendbnodevarint_ RCAPAPPENDBNODEVARINT
+#define rcapgetbnodevarintcount_ RCAPGETBNODEVARINTCOUNT
+#define rcapgetbnodevarint_ RCAPGETBNODEVARINT
+#define rcapappendelementgroup_ RCAPAPPENDELEMENTGROUP
+#define rcapgetelementgroupcount_ RCAPGETELEMENTGROUPCOUNT
+#define rcapgetelementgroup_ RCAPGETELEMENTGROUP
+#define rcapappendfacegroup_ RCAPAPPENDFACEGROUP
+#define rcapgetfacegroupcount_ RCAPGETFACEGROUPCOUNT
+#define rcapgetfacegroup_ RCAPGETFACEGROUP
+#define rcapgetoriginal_ RCAPGETORIGINAL
+#define rcapgetmiddle_ RCAPGETMIDDLE
+#define rcapsetinterpolatemode_ RCAPSETINTERPOLATEMODE
+#define rcapgetinterpolatemode_ RCAPGETINTERPOLATEMODE
+#define rcapqualityreport_ RCAPQUALITYREPORT
+#define rcaploadgffile_ RCAPLOADGFFILE
+#define rcaploadhecfile_ RCAPLOADHECFILE
+#define rcapsavegffile_ RCAPSAVEGFFILE
+#define rcapsavehecfile_ RCAPSAVEHECFILE
+#define rcapsavernffile_ RCAPSAVERNFFILE
 #endif
 
-#ifdef INTEL_FORTRAN
-#endif
-
-#ifdef PG_FORTRAN
+#if defined FORTRAN_CALL_C_UPCASE_
+#define rcapgetversion_ RCAPGETVERSION_
+#define rcapinitrefiner_ RCAPINITREFINER_
+#define rcapclearrefiner_ RCAPCLEARREFINER_
+#define rcaptermrefiner_ RCAPTERMREFINER_
+#define rcapsetcadfilename_ RCAPSETCADFILENAME_
+#define rcapsetsecondfitting_ RCAPSETSECONDFITTING_
+#define rcapsetpartitionfilename_ RCAPSETPARTITIONFILENAME_
+#define rcapsetnode64_ RCAPSETNODE64_
+#define rcapsetnode32_ RCAPSETNODE32_
+#define rcapgetnodecount_ RCAPGETNODECOUNT_
+#define rcapgetnode64_ RCAPGETNODE64_
+#define rcapgetnode32_ RCAPGETNODE32_
+#define rcapgetnodeseq64_ RCAPGETNODESEQ64_
+#define rcapgetnodeseq32_ RCAPGETNODESEQ32_
+#define rcaprefineelement_ RCAPREFINEELEMENT_
+#define rcaprefineelementmulti_ RCAPREFINEELEMENTMULTI_
+#define rcapcommit_ RCAPCOMMIT_
+#define rcapappendnodegroup_ RCAPAPPENDNODEGROUP_
+#define rcapgetnodegroupcount_ RCAPGETNODEGROUPCOUNT_
+#define rcapgetnodegroup_ RCAPGETNODEGROUP_
+#define rcapappendbnodegroup_ RCAPAPPENDBNODEGROUP_
+#define rcapgetbnodegroupcount_ RCAPGETBNODEGROUPCOUNT_
+#define rcapgetbnodegroup_ RCAPGETBNODEGROUP_
+#define rcapappendbnodevarint_ RCAPAPPENDBNODEVARINT_
+#define rcapgetbnodevarintcount_ RCAPGETBNODEVARINTCOUNT_
+#define rcapgetbnodevarint_ RCAPGETBNODEVARINT_
+#define rcapappendelementgroup_ RCAPAPPENDELEMENTGROUP_
+#define rcapgetelementgroupcount_ RCAPGETELEMENTGROUPCOUNT_
+#define rcapgetelementgroup_ RCAPGETELEMENTGROUP_
+#define rcapappendfacegroup_ RCAPAPPENDFACEGROUP_
+#define rcapgetfacegroupcount_ RCAPGETFACEGROUPCOUNT_
+#define rcapgetfacegroup_ RCAPGETFACEGROUP_
+#define rcapgetoriginal_ RCAPGETORIGINAL_
+#define rcapgetmiddle_ RCAPGETMIDDLE_
+#define rcapsetinterpolatemode_ RCAPSETINTERPOLATEMODE_
+#define rcapgetinterpolatemode_ RCAPGETINTERPOLATEMODE_
+#define rcapqualityreport_ RCAPQUALITYREPORT_
+#define rcaploadgffile_ RCAPLOADGFFILE_
+#define rcaploadhecfile_ RCAPLOADHECFILE_
+#define rcapsavegffile_ RCAPSAVEGFFILE_
+#define rcapsavehecfile_ RCAPSAVEHECFILE_
+#define rcapsavernffile_ RCAPSAVERNFFILE_
 #endif
 
 #ifdef __cplusplus

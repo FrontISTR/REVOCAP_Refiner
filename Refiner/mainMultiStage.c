@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 0.4                          #
+# Software Name : REVOCAP_Refiner version 1.0                          #
 # Sample Program MultiStage                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,7 +13,6 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * gcc -D_CONSOLE mainMultiStage.c -L../lib/i486-linux/ -lstdc++ -lRcapRefiner
  *
  * ２段階実行サンプルプログラム
  *
@@ -22,8 +21,10 @@
 #ifdef _CONSOLE
 
 #include "rcapRefiner.h"
+#include "rcapRefinerMacros.h"
 #include <stdio.h>
 #include <stdlib.h>  /* for calloc, free */
+#include <assert.h>
 
 int main(void)
 {
@@ -73,93 +74,161 @@ int main(void)
 	size_t fgCount = 2;
 	int32_t* result_fg0 = NULL;
 
-	printf("---------------------- ORIGINAL DATA -----------------------------------------\n");
+	/* ループのカウンタ */
+	int32_t i = 0;
+	int32_t j = 0;
+
 	/* 節点番号のオフセット値を与える */
 	rcapInitRefiner( nodeOffset, elementOffset );
+
+	printf("----- Original Model -----\n");
 	/*
 	 * globalId と座標値を Refiner に教える
 	 * localIds は NULL をあたえると coords は nodeOffset から順番に並んでいるものと解釈する
 	 */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
+	/* 細分前の節点数 */
+	nodeCount = rcapGetNodeCount();
+	assert( nodeCount == 5 );
+	printf("Node : Count = %"PRIsz"\n", nodeCount );
+	for(i=0;(size_t)i<nodeCount;++i){
+		printf("%d : %f, %f, %f\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
+	}
 	/* 細分前の要素数 */
-	printf("Original Element Count = 2\n" );
+	assert( elementCount == 2 );
+	printf("Element : Count = %"PRIsz"\n", elementCount );
+	for(i=0;i<2;++i){
+		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
+	}
 	/* 節点グループの登録 */
 	rcapAppendNodeGroup("innovate",ngCount,ng0);
 	ngCount = rcapGetNodeGroupCount("innovate");
-	printf("Original Node Group Count %u\n", ngCount );
+	assert( ngCount == 3 );
+	printf("Node Group : Count = %"PRIsz"\n", ngCount );
+	for(i=0;i<3;++i){
+		printf("%d\n", ng0[i]);
+	}
 	/* 面グループの登録 */
 	rcapAppendFaceGroup("revolute",fgCount,fg0);
 	fgCount = rcapGetFaceGroupCount("revolute");
-	printf("Original Face Group Count %u\n", fgCount );
-	/* 細分前の節点数 */
-	nodeCount = rcapGetNodeCount();
-	printf("Original Node Count = %u\n", nodeCount );
+	assert( fgCount == 2 );
+	printf("Face Group : Count = %"PRIsz"\n", fgCount );
+	for(i=0;i<2;++i){
+		printf("%d, %d\n", fg0[2*i], fg0[2*i+1]);
+	}
 
-	printf("---------------------- REFINE STEP 1 -----------------------------------------\n");
+	/*---------------------- REFINE STEP 1 -----------------------------------------*/
+
 	/* 要素の細分 */
 	refineElementCount = rcapRefineElement( elementCount, etype, tetras, NULL );
+	assert( refineElementCount == 16 );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
-	elementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras );
-	printf("Refined Element Count = %u\n", elementCount );
+	refineElementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras );
+	assert( refineElementCount == 16 );
 	rcapCommit();
+
+	printf("----- Refined Model 1 -----\n");
+
+	/* 細分後の節点 */
+	refineNodeCount = rcapGetNodeCount();
+	printf("Node : Count = %"PRIsz"\n", refineNodeCount );
+
+	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
+	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
+	for(j=0;(size_t)j<refineNodeCount;++j){
+		printf("%d : %f, %f, %f\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
+	}
+
+	/* 細分後の要素 */
+	printf("Element : Count = %"PRIsz"\n", refineElementCount );
+	for(i=0;(size_t)i<refineElementCount;++i){
+		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
+	}
+
 	/* 細分後の節点グループの更新 */
 	ngCount = rcapGetNodeGroupCount("innovate");
-	printf("Refined Node Group Count %u\n", ngCount );
+	printf("Node Group : Count = %"PRIsz"\n", ngCount );
+	assert( ngCount > 0 );
 	result_ng0 = (int32_t*)calloc( ngCount, sizeof(int32_t) );
 	rcapGetNodeGroup("innovate",ngCount,result_ng0);
-	/* ここでチェック */
+	for(i=0;(size_t)i<ngCount;++i){
+		printf("%d\n", result_ng0[i]);
+	}
 	free( result_ng0 );
 	result_ng0 = NULL;
+
 	/* 細分後の面グループの更新 */
 	fgCount = rcapGetFaceGroupCount("revolute");
-	printf("Refined Face Group Count %u\n", fgCount );
-	result_fg0 = (int32_t*)calloc( 2*fgCount, sizeof(int32_t) );
+	printf("Face Group : Count = %"PRIsz"\n", fgCount );
+	assert( fgCount > 0 );
+	result_fg0 = (int32_t*)calloc( fgCount*2, sizeof(int32_t) );
 	rcapGetFaceGroup("revolute",fgCount,result_fg0);
-	/* ここでチェック */
+	assert( fgCount == 8 );
+	for(i=0;(size_t)i<fgCount;++i){
+		printf("%d, %d\n", result_fg0[2*i], result_fg0[2*i+1]);
+	}
 	free( result_fg0 );
 	result_fg0 = NULL;
-	/* 細分後の節点の個数 */
-	refineNodeCount = rcapGetNodeCount();
-	printf("Refined Node Count = %u\n", refineNodeCount );
-	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
-	rcapGetNodeSeq64( refineNodeCount, 0, resultCoords );
+
 	free( resultCoords );
 	resultCoords = NULL;
 
 	/* 第２段の細分の前にキャッシュをクリア */
 	rcapClearRefiner();
 
-	printf("---------------------- REFINE STEP 2 -----------------------------------------\n");
+	/*---------------------- REFINE STEP 2 -----------------------------------------*/
 
 	/* 要素の細分 */
+	elementCount = refineElementCount;
 	refineElementCount = rcapRefineElement( elementCount, etype, refineTetras, NULL );
 	refine2Tetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
-	elementCount = rcapRefineElement( elementCount, etype, refineTetras, refine2Tetras );
-	printf("Refined Element Count = %u\n", elementCount );
+	refineElementCount = rcapRefineElement( elementCount, etype, refineTetras, refine2Tetras );
 	rcapCommit();
+
+	printf("----- Refined Model 2 -----\n");
+
+	/* 細分後の節点 */
+	refineNodeCount = rcapGetNodeCount();
+	printf("Node : Count = %"PRIsz"\n", refineNodeCount );
+
+	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
+	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
+	for(j=0;(size_t)j<refineNodeCount;++j){
+		printf("%d : %f, %f, %f\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
+	}
+
+	/* 細分後の要素 */
+	printf("Element : Count = %"PRIsz"\n", refineElementCount );
+	for(i=0;(size_t)i<refineElementCount;++i){
+		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype,
+			refine2Tetras[4*i], refine2Tetras[4*i+1], refine2Tetras[4*i+2], refine2Tetras[4*i+3] );
+	}
 
 	/* 細分後の節点グループの更新 */
 	ngCount = rcapGetNodeGroupCount("innovate");
-	printf("Refined Node Group Count %u\n", ngCount );
+	printf("Node Group : Count = %"PRIsz"\n", ngCount );
+	assert( ngCount > 0 );
 	result_ng0 = (int32_t*)calloc( ngCount, sizeof(int32_t) );
 	rcapGetNodeGroup("innovate",ngCount,result_ng0);
+	for(i=0;(size_t)i<ngCount;++i){
+		printf("%d\n", result_ng0[i]);
+	}
 	free( result_ng0 );
 	result_ng0 = NULL;
 
 	/* 細分後の面グループの更新 */
 	fgCount = rcapGetFaceGroupCount("revolute");
-	printf("Refined Face Group Count %u\n", fgCount );
-	result_fg0 = (int32_t*)calloc( 2*fgCount, sizeof(int32_t) );
+	printf("Face Group : Count = %"PRIsz"\n", fgCount );
+	assert( fgCount > 0 );
+	result_fg0 = (int32_t*)calloc( fgCount*2, sizeof(int32_t) );
 	rcapGetFaceGroup("revolute",fgCount,result_fg0);
+	assert( fgCount == 8 );
+	for(i=0;(size_t)i<fgCount;++i){
+		printf("%d, %d\n", result_fg0[2*i], result_fg0[2*i+1]);
+	}
 	free( result_fg0 );
 	result_fg0 = NULL;
 
-	/* 細分後の節点の個数 */
-	refineNodeCount = rcapGetNodeCount();
-	printf("Refined Node Count = %u\n", refineNodeCount );
-
-	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
-	rcapGetNodeSeq64( refineNodeCount, 0, resultCoords );
 	free( resultCoords );
 	resultCoords = NULL;
 

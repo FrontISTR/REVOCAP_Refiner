@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -40,12 +40,17 @@
 #include "Geometry/kmb_Point3DContainerMArray.h"
 #include "MeshDB/kmbTypes.h"
 #include "MeshDB/kmbScalarValueBindings.h"
+#include "MeshDB/kmbScalarValueMArrayBindings.h"
 #include "MeshDB/kmbScalarValueFileBindings.h"
 #include "MeshDB/kmbVector2ValueBindings.h"
+#include "MeshDB/kmbVector2ValueMArrayBindings.h"
 #include "MeshDB/kmbVector2ValueFileBindings.h"
 #include "MeshDB/kmbVector3ValueBindings.h"
+#include "MeshDB/kmbVector3ValueMArrayBindings.h"
 #include "MeshDB/kmbVector3ValueFileBindings.h"
 #include "MeshDB/kmbTensor6ValueBindings.h"
+#include "MeshDB/kmbTensor6ValueMArrayBindings.h"
+#include "MeshDB/kmbTensor6ValueFileBindings.h"
 #include "MeshDB/kmbElementRelation.h"
 #include "MeshDB/kmbElementEvaluator.h"
 #include "MeshDB/kmbDataEvaluator.h"
@@ -66,7 +71,6 @@
 kmb::MeshDB::MeshDB(void)
 : MeshData()
 , node2Ds(NULL)
-
 , evaluator(NULL)
 , dataEvaluator(NULL)
 {
@@ -86,20 +90,26 @@ kmb::MeshDB::~MeshDB(void)
 void
 kmb::MeshDB::clearModel(void)
 {
+
 	kmb::MeshData::clearModel();
+
 	this->maxElementId = kmb::Element::nullElementId;
 	this->defaultSpecType.clear();
 	this->neighborInfo.clear();
+	this->elementBucket.clear();
 	this->elementOctree.clear();
 	this->nodeOctree.clear();
+
 	if( node2Ds ){
 		delete node2Ds;
 		node2Ds = NULL;
 	}
+
 	if( evaluator ){
 		delete evaluator;
 		evaluator = NULL;
 	}
+
 	if( dataEvaluator ){
 		delete dataEvaluator;
 		dataEvaluator = NULL;
@@ -146,8 +156,8 @@ void
 kmb::MeshDB::setDefaultContainerType(const char* containerType)
 {
 	if( strcmp(containerType,"Post") == 0 ){
-		this->defaultNodeContainerType = kmb::Point3DContainerMArray::CONTAINER_TYPE;
 
+		this->defaultNodeContainerType = kmb::Point3DContainerArray::CONTAINER_TYPE;
 		this->defaultElementContainerType = kmb::ElementContainerMArray::CONTAINER_TYPE;
 
 		this->defaultDataContainerType = "Post";
@@ -311,23 +321,6 @@ kmb::MeshDB::getNodeCount(void) const
 		return this->node2Ds->getCount();
 	else
 		return 0;
-}
-
-kmb::nodeIdType
-kmb::MeshDB::getMaxNodeId(void) const
-{
-	if( node3Ds ) return this->node3Ds->getMaxId();
-	else return 0;
-}
-
-kmb::nodeIdType
-kmb::MeshDB::getMinNodeId(void) const
-{
-	if( node3Ds ){
-		return this->node3Ds->getMinId();
-	}else{
-		return 0;
-	}
 }
 
 bool
@@ -733,6 +726,7 @@ kmb::MeshDB::removeAllBodies(void)
 	this->maxElementId = kmb::Element::nullElementId;
 	this->neighborInfo.clear();
 	this->elementOctree.clear();
+	this->elementBucket.clear();
 }
 
 
@@ -878,28 +872,32 @@ kmb::MeshDB::createDataBindings
 				if( bmode == kmb::DataBindings::NODEVARIABLE ){
 					data = new kmb::ScalarValueBindings( getMaxNodeId()+1, bmode );
 				}else if( bmode == kmb::DataBindings::ELEMENTVARIABLE ){
-					data = new kmb::ScalarValueBindings( getMaxElementId()+1, bmode );
+
+					data = new kmb::ScalarValueMArrayBindings( getMaxElementId()+1, bmode );
 				}
 				break;
 			case kmb::PhysicalValue::VECTOR2:
 				if( bmode == kmb::DataBindings::NODEVARIABLE ){
 					data = new kmb::Vector2ValueBindings( getMaxNodeId()+1, bmode );
 				}else if( bmode == kmb::DataBindings::ELEMENTVARIABLE ){
-					data = new kmb::Vector2ValueBindings( getMaxElementId()+1, bmode );
+
+					data = new kmb::Vector2ValueMArrayBindings( getMaxElementId()+1, bmode );
 				}
 				break;
 			case kmb::PhysicalValue::VECTOR3:
 				if( bmode == kmb::DataBindings::NODEVARIABLE ){
 					data = new kmb::Vector3ValueBindings( getMaxNodeId()+1, bmode );
 				}else if( bmode == kmb::DataBindings::ELEMENTVARIABLE ){
-					data = new kmb::Vector3ValueBindings( getMaxElementId()+1, bmode );
+
+					data = new kmb::Vector3ValueMArrayBindings( getMaxElementId()+1, bmode );
 				}
 				break;
 			case kmb::PhysicalValue::TENSOR6:
 				if( bmode == kmb::DataBindings::NODEVARIABLE ){
 					data = new kmb::Tensor6ValueBindings( getMaxNodeId()+1, bmode );
 				}else if( bmode == kmb::DataBindings::ELEMENTVARIABLE ){
-					data = new kmb::Tensor6ValueBindings( getMaxElementId()+1, bmode );
+
+					data = new kmb::Tensor6ValueMArrayBindings( getMaxElementId()+1, bmode );
 				}
 				break;
 			default:
@@ -945,9 +943,13 @@ kmb::MeshDB::createDataBindings
 				break;
 			case kmb::PhysicalValue::TENSOR6:
 				if( bmode == kmb::DataBindings::NODEVARIABLE ){
-					data = new kmb::Tensor6ValueBindings( getMaxNodeId()+1, bmode );
+					std::string tmpfile = "tmp_";
+					tmpfile.append(name);
+					data = new kmb::Tensor6ValueFileBindings( getMaxNodeId()+1, tmpfile.c_str(), bmode );
 				}else if( bmode == kmb::DataBindings::ELEMENTVARIABLE ){
-					data = new kmb::Tensor6ValueBindings( getMaxElementId()+1, bmode );
+					std::string tmpfile = "tmp_";
+					tmpfile.append(name);
+					data = new kmb::Tensor6ValueFileBindings( getMaxElementId()+1, tmpfile.c_str(), bmode );
 				}
 				break;
 			default:
@@ -963,14 +965,14 @@ kmb::MeshDB::createDataBindings
 		if( data == NULL ){
 			data = kmb::DataBindings::createDataBindings(bmode,vtype,stype,targetBodyId);
 		}
-		if( setDataBindingsPtr( name, data, stype ) ){
-			return data;
-		}else{
-			if( data != NULL ){
+		if( data ){
+			if( setDataBindingsPtr( name, data, stype ) ){
+				return data;
+			}else{
 				delete data;
 			}
-			return NULL;
 		}
+		return NULL;
 	}
 }
 
@@ -1049,9 +1051,9 @@ kmb::MeshDB::getElementCountOfData(const char* name,const char* stype) const
 }
 
 void
-kmb::MeshDB::getNearestValue(std::string key,kmb::PhysicalValue* value,kmb::idType& id)
+kmb::MeshDB::getNearestValue(std::string key,const kmb::PhysicalValue* value,kmb::idType& id) const
 {
-	kmb::DataBindings* data = this->getDataBindingsPtr(key.c_str());
+	const kmb::DataBindings* data = this->getDataBindingsPtr(key.c_str());
 	double minDist = DBL_MAX;
 	kmb::idType minId = -1;
 	if(data != NULL){
@@ -1060,11 +1062,10 @@ kmb::MeshDB::getNearestValue(std::string key,kmb::PhysicalValue* value,kmb::idTy
 			case kmb::DataBindings::ELEMENTVARIABLE:
 			case kmb::DataBindings::NODEVARIABLE:
 				{
-					kmb::DataBindings::iterator dIter = data->begin();
-					kmb::DataBindings::iterator dEnd = data->end();
-					while( dIter != dEnd )
+					kmb::DataBindings::const_iterator dIter = data->begin();
+					while( !dIter.isFinished() )
 					{
-						kmb::PhysicalValue* v = dIter.getValue();
+						const kmb::PhysicalValue* v = dIter.getValue();
 						if( v ){
 							double d = v->distanceSq(value);
 							if( d >= 0.0 && d < minDist ){
@@ -1084,9 +1085,9 @@ kmb::MeshDB::getNearestValue(std::string key,kmb::PhysicalValue* value,kmb::idTy
 }
 
 void
-kmb::MeshDB::getNearestValue(std::string key,kmb::PhysicalValue* value,kmb::Face& f)
+kmb::MeshDB::getNearestValue(std::string key,const kmb::PhysicalValue* value,kmb::Face& f) const
 {
-	kmb::DataBindings* data = this->getDataBindingsPtr(key.c_str());
+	const kmb::DataBindings* data = this->getDataBindingsPtr(key.c_str());
 	double minDist = DBL_MAX;
 	kmb::Face minFace(-1,-1);
 	if(data != NULL){
@@ -1094,9 +1095,8 @@ kmb::MeshDB::getNearestValue(std::string key,kmb::PhysicalValue* value,kmb::Face
 		{
 		case kmb::DataBindings::FACEVARIABLE:
 		{
-			kmb::DataBindings::iterator fIter = data->begin();
-			kmb::DataBindings::iterator fEnd = data->end();
-			while( fIter != fEnd ){
+			kmb::DataBindings::const_iterator fIter = data->begin();
+			while( !fIter.isFinished() ){
 				double d = fIter.getValue()->distanceSq(value);
 				if( d >= 0.0 && d < minDist ){
 					minDist = d;
@@ -1114,92 +1114,10 @@ kmb::MeshDB::getNearestValue(std::string key,kmb::PhysicalValue* value,kmb::Face
 }
 
 void
-kmb::MeshDB::getBoundingBox(kmb::BoundingBox &bbox,const kmb::DataBindings* data) const
+kmb::MeshDB::getBoundingBoxOfData(kmb::BoundingBox &bbox,const kmb::DataBindings* data) const
 {
-	if(data != NULL){
-		kmb::bodyIdType bodyId = data->getTargetBodyId();
-		switch( data->getBindingMode() ){
-			case kmb::DataBindings::BODYVARIABLE:
-			case kmb::DataBindings::BODYGROUP:
-				{
-					kmb::DataBindings::const_iterator bIter = data->begin();
-					while( !bIter.isFinished() ){
-						kmb::bodyIdType bId = static_cast< kmb::bodyIdType >( bIter.getId() );
-						const kmb::Body* body = this->getBodyPtr( bId );
-						if( body != NULL ){
-							kmb::Point3D maxPt;
-							kmb::Point3D minPt;
-							body->getMaxPoint( maxPt );
-							body->getMinPoint( minPt );
-							bbox.update( maxPt );
-							bbox.update( minPt );
-						}
-						++bIter;
-					}
-					break;
-				}
-			case kmb::DataBindings::ELEMENTVARIABLE:
-			case kmb::DataBindings::ELEMENTGROUP:
-				{
-					kmb::DataBindings::const_iterator eIter = data->begin();
-					kmb::Node node;
-					while( !eIter.isFinished() ){
-						kmb::elementIdType elementId = static_cast< kmb::elementIdType >( eIter.getId() );
-						kmb::ElementContainer::const_iterator elem = this->findElement( elementId, bodyId );
-						if( !elem.isFinished() ){
-							const int len = elem.getNodeCount();
-							for(int i=0;i<len;++i)
-							{
-								if( this->getNode( elem.getCellId(i), node ) ){
-									bbox.update( node );
-								}
-							}
-						}
-						++eIter;
-					}
-					break;
-				}
-			case kmb::DataBindings::NODEVARIABLE:
-			case kmb::DataBindings::NODEGROUP:
-				{
-					kmb::DataBindings::const_iterator nIter = data->begin();
-					kmb::Node node(0.0,0.0,0.0);
-					while( !nIter.isFinished() ){
-						kmb::nodeIdType nodeId = static_cast< kmb::nodeIdType >( nIter.getId() );
-						if( this->getNode( nodeId, node ) ){
-							bbox.update( node );
-						}
-						++nIter;
-					}
-					break;
-				}
-			case kmb::DataBindings::FACEVARIABLE:
-			case kmb::DataBindings::FACEGROUP:
-				{
-					kmb::DataBindings::const_iterator fIter = data->begin();
-					kmb::Node node;
-					kmb::Face f;
-					while( !fIter.isFinished() ){
-						if( fIter.getFace( f ) ){
-							kmb::ElementContainer::const_iterator elem = this->findElement( f.getElementId(), bodyId );
-							if( !elem.isFinished() ){
-								const int len = elem.getBoundaryNodeCount(f.getLocalFaceId());
-								for(int i=0;i<len;++i)
-								{
-									if( this->getNode( elem.getBoundaryCellId(f.getLocalFaceId(),i), node ) ){
-										bbox.update( node );
-									}
-								}
-							}
-						}
-						++fIter;
-					}
-					break;
-				}
-			default:
-				break;
-		}
-	}
+	kmb::MeshData::getBoundingBoxOfData(bbox,data);
+	return;
 }
 
 const kmb::BoundingBox
@@ -1208,7 +1126,7 @@ kmb::MeshDB::getBoundingBoxOfData(const char* key,const char* stype) const
 	kmb::BoundingBox bbox;
 	const kmb::DataBindings* data = this->getDataBindingsPtr(key,stype);
 	if(data != NULL){
-		getBoundingBox(bbox,data);
+		this->getBoundingBoxOfData(bbox,data);
 	}
 	return bbox;
 }
@@ -1253,14 +1171,23 @@ kmb::MeshDB::getMinMaxValueWithId(const kmb::DataBindings* data,kmb::MinMaxWithI
 int
 kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype,const char* convstype)
 {
-	int dataCount = 0;
 	kmb::DataBindings* orgData = this->getDataBindingsPtr(org,orgstype);
 	kmb::DataBindings* convData = this->getDataBindingsPtr(conv,convstype);
+	return convertData(orgData,convData);
+}
 
-	if( orgData != NULL && orgData->getBindingMode() == kmb::DataBindings::NODEGROUP &&
-		convData != NULL && convData->getBindingMode() == kmb::DataBindings::FACEGROUP )
+int
+kmb::MeshDB::convertData(const kmb::DataBindings* orgData, kmb::DataBindings* convData)
+{
+	int dataCount = 0;
+	if( orgData == NULL || convData == NULL ){
+		return -1;
+	}
+
+	if( orgData->getBindingMode() == kmb::DataBindings::NODEGROUP &&
+		convData->getBindingMode() == kmb::DataBindings::FACEGROUP )
 	{
-		kmb::DataBindings* nodeGroup = orgData;
+		const kmb::DataBindings* nodeGroup = orgData;
 		kmb::DataBindings* faceGroup = convData;
 		kmb::bodyIdType bodyId  = faceGroup->getTargetBodyId();
 		kmb::ElementContainer* elements = this->getBodyPtr( bodyId );
@@ -1271,7 +1198,7 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 			kmb::NodeNeighborInfo neighborInfo;
 			neighborInfo.appendCoboundary( elements );
 			std::vector< kmb::elementIdType > surrounding;
-			kmb::DataBindings::iterator nIter = nodeGroup->begin();
+			kmb::DataBindings::const_iterator nIter = nodeGroup->begin();
 			while( !nIter.isFinished() ){
 				kmb::nodeIdType nodeId = nIter.getId();
 				surrounding.clear();
@@ -1314,10 +1241,11 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 		}
 	}
 
-	else if( orgData != NULL && orgData->getBindingMode() == kmb::DataBindings::NODEGROUP &&
-		convData != NULL && convData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP )
+	else
+	if( orgData->getBindingMode() == kmb::DataBindings::NODEGROUP &&
+		convData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP )
 	{
-		kmb::DataBindings* nodeGroup = orgData;
+		const kmb::DataBindings* nodeGroup = orgData;
 		kmb::DataBindings* elementGroup = convData;
 		kmb::bodyIdType bodyId  = elementGroup->getTargetBodyId();
 		kmb::ElementContainer* elements = this->getBodyPtr( bodyId );
@@ -1328,7 +1256,7 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 			kmb::NodeNeighborInfo neighborInfo;
 			neighborInfo.appendCoboundary( elements );
 			std::vector< kmb::elementIdType > surrounding;
-			kmb::DataBindings::iterator nIter = nodeGroup->begin();
+			kmb::DataBindings::const_iterator nIter = nodeGroup->begin();
 			while( !nIter.isFinished() ){
 				kmb::nodeIdType nodeId = nIter.getId();
 				surrounding.clear();
@@ -1368,15 +1296,16 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 		}
 	}
 
-	else if( orgData != NULL && orgData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
-		convData != NULL && convData->getBindingMode() == kmb::DataBindings::NODEGROUP )
+	else
+	if( orgData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
+		convData->getBindingMode() == kmb::DataBindings::NODEGROUP )
 	{
-		kmb::DataBindings* faceGroup = orgData;
+		const kmb::DataBindings* faceGroup = orgData;
 		kmb::DataBindings* nodeGroup = convData;
 		kmb::bodyIdType bodyId  = faceGroup->getTargetBodyId();
 		kmb::ElementContainer* elements = this->getBodyPtr( bodyId );
 		if( elements ){
-			kmb::DataBindings::iterator fIter = faceGroup->begin();
+			kmb::DataBindings::const_iterator fIter = faceGroup->begin();
 			while( !fIter.isFinished() ){
 				kmb::Face f;
 				fIter.getFace( f );
@@ -1385,7 +1314,9 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 				if( !elem.isFinished() ){
 					int len = elem.getBoundaryNodeCount(localIndex);
 					for(int i=0;i<len;++i){
-						nodeGroup->addId( elem.getBoundaryCellId( localIndex, i ) );
+						if( nodeGroup->addId( elem.getBoundaryCellId( localIndex, i ) ) ){
+							++dataCount;
+						}
 					}
 				}
 				++fIter;
@@ -1398,16 +1329,18 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 		}
 	}
 
-	else if( orgData != NULL && orgData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
-		convData != NULL && convData->getBindingMode() == kmb::DataBindings::FACEGROUP )
+	else
+	if( orgData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
+		convData->getBindingMode() == kmb::DataBindings::FACEGROUP )
 	{
-		kmb::DataBindings* faceGroup0 = orgData;
+		const kmb::DataBindings* faceGroup0 = orgData;
 		kmb::DataBindings* faceGroup1 = convData;
-		kmb::DataBindings::iterator fIter = faceGroup0->begin();
+		kmb::DataBindings::const_iterator fIter = faceGroup0->begin();
 		while( !fIter.isFinished() ){
 			kmb::Face f;
 			fIter.getFace( f );
 			faceGroup1->addId( f );
+			++dataCount;
 			++fIter;
 		}
 		if( faceGroup0->getValueType() != kmb::PhysicalValue::NONE &&
@@ -1417,19 +1350,22 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 		}
 	}
 
-	else if( orgData != NULL && orgData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
-		convData != NULL && convData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP )
+	else
+	if( orgData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
+		convData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP )
 	{
-		kmb::DataBindings* faceGroup = orgData;
+		const kmb::DataBindings* faceGroup = orgData;
 		kmb::DataBindings* elementGroup = convData;
 		kmb::bodyIdType bodyId  = faceGroup->getTargetBodyId();
 		kmb::ElementContainer* elements = this->getBodyPtr( bodyId );
 		if( elements ){
-			kmb::DataBindings::iterator fIter = faceGroup->begin();
+			kmb::DataBindings::const_iterator fIter = faceGroup->begin();
 			while( !fIter.isFinished() ){
 				kmb::Face f;
 				fIter.getFace( f );
-				elementGroup->addId( f.getElementId() );
+				if( elementGroup->addId( f.getElementId() ) ){
+					++dataCount;
+				}
 				++fIter;
 			}
 		}
@@ -1440,22 +1376,25 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 		}
 	}
 
-	else if( orgData != NULL && orgData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP &&
-		convData != NULL && convData->getBindingMode() == kmb::DataBindings::NODEGROUP )
+	else
+	if( orgData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP &&
+		convData->getBindingMode() == kmb::DataBindings::NODEGROUP )
 	{
-		kmb::DataBindings* elementGroup = orgData;
+		const kmb::DataBindings* elementGroup = orgData;
 		kmb::DataBindings* nodeGroup = convData;
 		kmb::bodyIdType bodyId  = elementGroup->getTargetBodyId();
 		kmb::ElementContainer* elements = this->getBodyPtr( bodyId );
 		if( elements ){
-			kmb::DataBindings::iterator eIter = elementGroup->begin();
+			kmb::DataBindings::const_iterator eIter = elementGroup->begin();
 			while( !eIter.isFinished() ){
 				kmb::elementIdType elemId = eIter.getId();
 				kmb::ElementContainer::iterator elem = elements->find( elemId );
 				if( !elem.isFinished() ){
 					int len = elem.getNodeCount();
 					for(int i=0;i<len;++i){
-						nodeGroup->addId( elem.getCellId( i ) );
+						if( nodeGroup->addId( elem.getCellId( i ) ) ){
+							++dataCount;
+						}
 					}
 				}
 				++eIter;
@@ -1465,6 +1404,31 @@ kmb::MeshDB::convertData(const char* org, const char* conv, const char* orgstype
 			elementGroup->getValueType() == nodeGroup->getValueType() )
 		{
 			nodeGroup->setPhysicalValue( elementGroup->getPhysicalValue() );
+		}
+	}
+	return dataCount;
+}
+
+int
+kmb::MeshDB::convertBody2Data(kmb::bodyIdType bodyId, const char* name,const char* stype)
+{
+	int dataCount = 0;
+	kmb::DataBindings* data = this->getDataBindingsPtr(name,stype);
+
+	if( data != NULL && data->getBindingMode() == kmb::DataBindings::NODEGROUP )
+	{
+		kmb::ElementContainer* elements = this->getBodyPtr( bodyId );
+		if( elements ){
+			kmb::ElementContainer::const_iterator eIter = elements->begin();
+			while( !eIter.isFinished() ){
+				int len = eIter.getNodeCount();
+				for(int i=0;i<len;++i){
+					if( data->addId( eIter[i] ) ){
+						++dataCount;
+					}
+				}
+				++eIter;
+			}
 		}
 	}
 	return dataCount;

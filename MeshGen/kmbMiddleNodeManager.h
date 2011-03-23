@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : MiddleNodeManager                                       #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -12,12 +12,6 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
-
-
 
 
 
@@ -55,6 +49,21 @@ protected:
 protected:
 
 	void appendMiddleNode( kmb::nodeIdType middle, kmb::nodeIdType org0, kmb::nodeIdType org1, kmb::elementIdType elemId=kmb::Element::nullElementId);
+
+	virtual kmb::nodeIdType createMiddleNode(kmb::nodeIdType n0, kmb::nodeIdType n1);
+	virtual kmb::nodeIdType createMiddleNode4(kmb::nodeIdType n0, kmb::nodeIdType n1,kmb::nodeIdType n2, kmb::nodeIdType n3);
+
+	virtual kmb::nodeIdType createMiddleNode8
+		(kmb::nodeIdType n0, kmb::nodeIdType n1,kmb::nodeIdType n2, kmb::nodeIdType n3,
+		 kmb::nodeIdType n4, kmb::nodeIdType n5,kmb::nodeIdType n6, kmb::nodeIdType n7);
+
+	virtual kmb::nodeIdType createMiddleNode3(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2);
+
+	virtual kmb::nodeIdType createMiddleNode5(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, kmb::nodeIdType n3, kmb::nodeIdType n4);
+
+	virtual kmb::nodeIdType createMiddleNode8s
+		(kmb::nodeIdType n0, kmb::nodeIdType n1,kmb::nodeIdType n2, kmb::nodeIdType n3,
+		 kmb::nodeIdType n4, kmb::nodeIdType n5,kmb::nodeIdType n6, kmb::nodeIdType n7);
 public:
 	MiddleNodeManager(void);
 	virtual ~MiddleNodeManager(void);
@@ -63,11 +72,15 @@ public:
 	void setNodeContainer(Point3DContainer* points);
 
 
+
 	kmb::nodeIdType getDividedNode(kmb::nodeIdType a,kmb::nodeIdType b,kmb::elementIdType elemId=kmb::Element::nullElementId);
 
 
 	kmb::nodeIdType getCenterNode(kmb::ElementBase &elem,kmb::elementIdType elementId);
 	kmb::nodeIdType getCenterNode(kmb::ElementBase &elem,int faceIndex,kmb::elementIdType elementId);
+
+	kmb::nodeIdType getCenterNode2(kmb::ElementBase &elem,kmb::elementIdType elementId);
+	kmb::nodeIdType getCenterNode2(kmb::ElementBase &elem,int faceIndex,kmb::elementIdType elementId);
 
 
 	kmb::nodeIdType isDivided(kmb::nodeIdType a,kmb::nodeIdType b);
@@ -75,6 +88,20 @@ public:
 	void setDividedNode(kmb::nodeIdType middle, kmb::nodeIdType a,kmb::nodeIdType b);
 
 	kmb::elementIdType getOriginalNode(kmb::nodeIdType centerId,kmb::nodeIdType &a,kmb::nodeIdType &b) const;
+
+
+
+
+
+	kmb::nodeIdType getDividedNode3(kmb::nodeIdType a,kmb::nodeIdType b,kmb::nodeIdType c,kmb::elementIdType elemId=kmb::Element::nullElementId);
+
+
+
+	kmb::nodeIdType getDividedNode5(kmb::nodeIdType n0,kmb::nodeIdType n1,kmb::nodeIdType n2,kmb::nodeIdType n3,kmb::nodeIdType n4,kmb::elementIdType elemId=kmb::Element::nullElementId);
+
+
+
+	kmb::nodeIdType getDividedNodePyrmid2c(int index,kmb::nodeIdType center,kmb::ElementBase &elem,kmb::elementIdType elemId=kmb::Element::nullElementId);
 };
 
 }

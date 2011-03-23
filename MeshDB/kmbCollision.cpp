@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Collision                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,7 +24,6 @@
 #include "MeshDB/kmbDataBindings.h"
 #include "MeshDB/kmbElementOctree.h"
 #include "MeshDB/kmbSurfaceMatching.h"
-#include "Geometry/kmb_Debug.h"
 
 kmb::Collision::Collision(kmb::MeshData* mesh)
 : points(NULL)
@@ -41,7 +40,8 @@ kmb::Collision::~Collision(void)
 {
 }
 
-const char* kmb::Collision::collisionTypeString( collisionType ctype )
+const char*
+kmb::Collision::collisionTypeString( collisionType ctype )
 {
 	switch( ctype ){
 	case kmb::Collision::COLLISION_ERROR: return "COLLISION_ERROR";
@@ -749,7 +749,6 @@ kmb::Collision::detectSurfaceFaceGroupByNode(kmb::bodyIdType bodyId0,const char*
 	if( mesh == NULL || points == NULL ){
 		return 0;
 	}
-	REVOCAP_Debug("kmb::Collision::detectSurfaceFaceGroupByNode\n");
 	kmb::ElementContainer* surf0 = mesh->getBodyPtr( bodyId0 );
 	kmb::DataBindings* faceGroup1 = mesh->getDataBindingsPtr( fg1 );
 	kmb::DataBindings* resultGroup = mesh->getDataBindingsPtr( result );
@@ -758,27 +757,35 @@ kmb::Collision::detectSurfaceFaceGroupByNode(kmb::bodyIdType bodyId0,const char*
 		  faceGroup1->getBindingMode() == kmb::DataBindings::FACEVARIABLE ) &&
 		resultGroup &&( resultGroup->getBindingMode() == kmb::DataBindings::FACEGROUP ) )
 	{
-		kmb::ElementOctree octree;
-		octree.generateSearchCache( mesh, bodyId0 );
+		kmb::Element2DOctree octree;
+		const kmb::ElementContainer* body = mesh->getBodyPtr(bodyId0);
+		octree.setContainer( mesh->getNodes(), body );
+
+
+
+
 		size_t orgSize = resultGroup->getIdCount();
-		REVOCAP_Debug("resultGroup orgSize = %u\n",orgSize);
 		kmb::Face f1;
 		kmb::Triangle tri1;
 		kmb::Quad q1;
 		kmb::Node node;
-		double coeff[5] = {-1.0, -1.0, -1.0, -1.0, -1.0};
+
+
+
+		double dist = 0.0;
 		kmb::DataBindings::const_iterator f1Iter = faceGroup1->begin();
 		while( !f1Iter.isFinished() ){
 			if( f1Iter.getFace(f1) ){
-				REVOCAP_Debug_3("face [%d %d]\n", f1.getElementId(), f1.getLocalFaceId() );
 				kmb::ElementContainer::const_iterator eIter = mesh->findElement( f1.getElementId() );
 				int count = 0;
 				int len = eIter.getBoundaryNodeCount( f1.getLocalFaceId() );
 				for(int i=0;i<len;++i){
 					kmb::nodeIdType nodeId = eIter.getBoundaryCellId( f1.getLocalFaceId(), i );
 					mesh->getNode( nodeId, node );
-					kmb::elementIdType nearest = octree.searchElement( node.x(), node.y(), node.z(), mesh->getNodes(), surf0, coeff, thres );
-					if( nearest != kmb::Element::nullElementId && coeff[0] < thres ){
+
+					kmb::elementIdType nearest = kmb::Element::nullElementId;
+					dist = octree.getNearest( node.x(), node.y(), node.z(), nearest );
+					if( nearest != kmb::Element::nullElementId && dist < thres ){
 						++count;
 					}
 				}

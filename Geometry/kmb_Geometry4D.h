@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.4                          #
+# Software Name : REVOCAP_PrePost version 1.5                          #
 # Class Name : Geometry4D                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2010/03/23     #
+#                                           K. Tokunaga 2011/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,16 +26,16 @@ public:
 	Tuple4D(const double x, const double y, const double z,const double w);
 	Tuple4D(const Tuple4D &other);
 	virtual ~Tuple4D(void){};
-	double x() const{	return v[0];	}
-	double y() const{	return v[1];	}
-	double z() const{	return v[2];	}
-	double w() const{	return v[3];	}
-	void x(const double x){	v[0] = x;	}
-	void y(const double y){	v[1] = y;	}
-	void z(const double z){	v[2] = z;	}
-	void w(const double w){	v[3] = w;	}
-	double getCoordinate(const int i) const{	return v[i];	}
-	void setCoordinate(const int i,const double v){	this->v[i] = v;	}
+	double x() const{ return v[0]; }
+	double y() const{ return v[1]; }
+	double z() const{ return v[2]; }
+	double w() const{ return v[3]; }
+	void x(const double x){ v[0] = x; }
+	void y(const double y){ v[1] = y; }
+	void z(const double z){ v[2] = z; }
+	void w(const double w){ v[3] = w; }
+	double getCoordinate(const int i) const{ return v[i]; }
+	void setCoordinate(const int i,const double v){ this->v[i] = v; }
 	void setCoordinate(const double x,const double y,const double z,const double w){
 		this->v[0] = x;
 		this->v[1] = y;
@@ -79,6 +79,12 @@ public:
 	double distance(double x,double y,double z,double w) const;
 	double distanceSq(const Point4D& other) const;
 	double distanceSq(double x,double y,double z,double w) const;
+
+
+#ifndef SWIG_WRAPPER
+	static double distance(const Point4D& a,const Point4D& b);
+	static double distanceSq(const Point4D& a,const Point4D& b);
+#endif
 	static Point4D infinity;
 };
 
@@ -157,9 +163,14 @@ public:
 	Matrix4x4(const Matrix3x3 &other);
 
 	virtual ~Matrix4x4(void){};
+	virtual const char* getContainerType(void) const{
+		return "double_array_4x4";
+	}
+	int init(int rowSize, int colSize);
 	int getSize(void) const;
 	double get(int i,int j) const;
 	bool set(int i,int j,double val);
+	bool add(int i,int j,double val);
 
 	bool identity(void);
 	bool zero(void);
@@ -172,6 +183,7 @@ public:
 
 	Vector4D* solve(const Vector4D& b) const;
 	bool solve(const Vector4D& b,Vector4D& x) const;
+	bool solveSafely(const Vector4D& b,Vector4D& x,double thresh=1.0e-6) const;
 
 
 
@@ -190,8 +202,10 @@ public:
 
 
 	bool isAffineType(void) const;
+
 	static Matrix4x4 createRotation(const Vector3D& axis, double angle);
 	static Matrix4x4* createLookAt(const Vector3D& eye, const Vector3D& center, const Vector3D& up);
+	static Matrix4x4* createAffine(const Matrix3x3& transform, const Vector3D& displace);
 	bool getLookAt(Vector3D& eye, Vector3D& center, Vector3D& up) const;
 
 
