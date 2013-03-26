@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Element                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,12 +24,13 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * １次元要素 connectionTable
- * ２次元要素 connectionTable faceTable
- * ３次元要素 connectionTable faceTable edgeTable
+ * 1次元要素 connectionTable
+ * 2次元要素 connectionTable faceTable
+ * 3次元要素 connectionTable faceTable edgeTable
  *
- * ２次要素の faceTable の第３成分は index 順にソートされている
- * ３次要素の edgeTable の第３成分は index 順にソートされている
+ * 2次要素について面、辺の1次元要素は SEGMENT2
+ * 2次元要素の faceTable の第3成分は index 順にソートされている
+ * 3次元要素の edgeTable の第3成分は index 順にソートされている
  *
  */
 
@@ -39,35 +40,11 @@
 #include <string>
 
 #include "MeshDB/kmbTypes.h"
+#include "MeshDB/kmbElementType.h"
 
 namespace kmb{
 
-enum elementType{
-	UNKNOWNTYPE = -1,
-	SEGMENT,
-	SEGMENT2,
-	TRIANGLE,
-	TRIANGLE2,
-	QUAD,
-	QUAD2,
-	TETRAHEDRON,
-	TETRAHEDRON2,
-	WEDGE,
-	WEDGE2,
-	PYRAMID,
-	PYRAMID2,
-	HEXAHEDRON,
-	HEXAHEDRON2,
-	ELEMENT_TYPE_NUM,
-	VERTEX,
-	POLYGON,
-	TWO_DIM_ONLY,
-	THREE_DIM_ONLY,
-	MIXED,
-	OTHERTYPE
-};
-
-class MeshDB;
+class MeshData;
 class Tetrahedron;
 
 
@@ -205,6 +182,7 @@ public:
 	virtual bool setCellId(int index,kmb::nodeIdType nodeId);
 	virtual kmb::nodeIdType getCellId(int index) const;
 	virtual kmb::nodeIdType operator[](const int i) const;
+	virtual kmb::nodeIdType& operator[](const int i);
 protected:
 	elementType type;
 	nodeIdType *cell;

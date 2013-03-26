@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ScalarValueBindings                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,6 +13,7 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbScalarValueBindings.h"
+#include <algorithm>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -28,16 +29,30 @@ kmb::ScalarValueBindings::ScalarValueBindings(size_t count,kmb::DataBindings::bi
 : kmb::DataBindings()
 , size(0)
 , values(NULL)
+, deletable(true)
 {
-	this->type = kmb::PhysicalValue::SCALAR;
+	this->type = kmb::PhysicalValue::Scalar;
 	this->bMode = bmode;
 	this->size = static_cast<int>( count );
 	values = new double[this->size];
+	std::fill(values,values+this->size,0.0);
+}
+
+kmb::ScalarValueBindings::ScalarValueBindings(size_t count,double* values,kmb::DataBindings::bindingMode bmode)
+: kmb::DataBindings()
+, size(0)
+, values(NULL)
+, deletable(false)
+{
+	this->type = kmb::PhysicalValue::Scalar;
+	this->bMode = bmode;
+	this->size = static_cast<int>( count );
+	this->values = values;
 }
 
 kmb::ScalarValueBindings::~ScalarValueBindings(void)
 {
-	if( values ){
+	if( values && deletable ){
 		delete[] values;
 		values = NULL;
 	}
@@ -51,7 +66,7 @@ kmb::ScalarValueBindings::clear(void)
 bool
 kmb::ScalarValueBindings::setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val)
 {
-	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::SCALAR ){
+	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::Scalar ){
 		values[id] = reinterpret_cast< kmb::ScalarValue* >(val)->getValue();
 		delete val;
 		return true;
@@ -77,6 +92,15 @@ kmb::ScalarValueBindings::setValue(kmb::idType id, double value,int index)
 		return true;
 	}
 	return false;
+}
+
+bool
+kmb::ScalarValueBindings::scalar(double r)
+{
+	for(int i=0;i<size;++i){
+		values[i] *= r;
+	}
+	return true;
 }
 
 kmb::PhysicalValue*

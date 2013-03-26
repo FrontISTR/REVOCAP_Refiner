@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Polygon                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,8 +27,8 @@
 #include "MeshDB/kmbSegment.h"
 #include "MeshDB/kmbTypes.h"
 
-#include "Geometry/kmb_Polygon2D.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmbPolygon2D.h"
+#include "Common/kmbCalculator.h"
 
 kmb::Polygon::Polygon(void)
 : edges(NULL)
@@ -98,7 +98,7 @@ void
 kmb::Polygon::setEdgesByFaceGroup( const kmb::DataBindings* facegroup, const kmb::ElementContainer* patches )
 {
 	if( patches == NULL || !patches->isUniqueDim(2) ||
-		facegroup == NULL || facegroup->getBindingMode() != kmb::DataBindings::FACEGROUP )
+		facegroup == NULL || facegroup->getBindingMode() != kmb::DataBindings::FaceGroup )
 	{
 		return;
 	}

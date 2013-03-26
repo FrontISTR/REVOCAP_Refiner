@@ -1,0 +1,27 @@
+#
+# This is the configuration file for makefile of REVOCAP_Refiner depending on environments.
+# 
+# If Ruby is installed in your system, please give RUBY_PLATFORM to ARCH variable.
+# Otherwise ARCH variable should be a platform string (ex, i686-linux, etc)
+
+#####################################
+# for Kei Computer  (not confirmed) #
+#####################################
+
+ARCH = kei
+CC = mpifccpx
+CFLAGS = -Kfast -Kauto -Xg $(DEBUGFLAG)
+CXX = mpiFCCpx
+CXXFLAGS = -Kfast -Kauto -Xg $(DEBUGFLAG)
+F90 = mpifrtpx
+FFLAGS = -Kfast $(DEBUGFLAG)
+AR = ar
+ARFLAGS = rsv
+LD = mpiFCCpx
+LDFLAGS = $(FFLAGS) --linkfortran
+LIBPATH =
+LIBS = -lstd -lm
+EXTOBJS =
+RM = rm -f
+DOXYGEN = doxygen
+TAR = tar

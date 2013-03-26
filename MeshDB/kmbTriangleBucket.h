@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TriangleBucket                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,7 +14,7 @@
 ----------------------------------------------------------------------*/
 #pragma once
 
-#include "Geometry/kmb_Bucket.h"
+#include "Geometry/kmbBucket.h"
 #include "MeshDB/kmbTypes.h"
 
 namespace kmb{
@@ -25,7 +25,7 @@ class Matrix4x4;
 
 class TriangleBucket : public Bucket<kmb::elementIdType>
 {
-private:
+protected:
 	const kmb::Point3DContainer* points;
 	const kmb::ElementContainer* elements;
 	const kmb::Matrix4x4* coordMatrix;
@@ -37,11 +37,14 @@ public:
 
 	int append(kmb::elementIdType elementId);
 	int appendAll(void);
+
+	bool getNearest(double x,double y,double z,double &dist,kmb::elementIdType &tri) const;
 protected:
 
 
 
-	int appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::elementIdType elemId);
+
+	bool getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,double &dist,kmb::elementIdType &tri) const;
 };
 
 }

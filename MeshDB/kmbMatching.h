@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Matching                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -46,18 +46,14 @@ public:
 	Matching(void);
 	virtual ~Matching(void);
 
-	double getDistanceEdgeToNode
-		( kmb::MeshDB* mesh, kmb::bodyIdType bodyId, kmb::nodeIdType nodeId );
+	double getDistanceEdgeToNode( kmb::MeshDB* mesh, kmb::bodyIdType bodyId, kmb::nodeIdType nodeId ) const;
 
-	double getDistanceEdgeToEdge
-		( kmb::MeshDB* mesh, kmb::bodyIdType edgeId0, kmb::bodyIdType edgeId1 );
-	double getDistanceEdgeToEdge
-		( kmb::MeshDB* mesh0, kmb::bodyIdType edgeId0, kmb::MeshDB* mesh1, kmb::bodyIdType edgeId1 );
+	double getDistanceEdgeToEdge( kmb::MeshDB* mesh, kmb::bodyIdType edgeId0, kmb::bodyIdType edgeId1 ) const;
+	double getDistanceEdgeToEdge( kmb::MeshDB* mesh0, kmb::bodyIdType edgeId0, kmb::MeshDB* mesh1, kmb::bodyIdType edgeId1 ) const;
 
 
 
-	kmb::bodyIdType searchMatchingEdge
-		(kmb::MeshDB* mesh0,kmb::MeshDB* mesh1,kmb::bodyIdType edgeId,double tolerance);
+	kmb::bodyIdType searchMatchingEdge(kmb::MeshDB* mesh0,kmb::MeshDB* mesh1,kmb::bodyIdType edgeId,double tolerance);
 
 
 

@@ -32,7 +32,7 @@
 REVOCAP_Refiner のチュートリアルとマニュアルは Documents フォルダの中に入っています。
 
 ご使用の前に、使用許諾条件に関する文書
-Documents/CISS_lic_agree201005_ja.pdf (英語版Documents/CISS_lic_agree201005_en.pdf)
+Documents/CISS_lic_agree2011_ja.pdf (英語版Documents/CISS_lic_agree2011_en.pdf)
 の内容をご確認ください。
 
 REVOCAP_Refiner は幾何処理、メッシュ処理、メッシュ生成、メッシュ入出力ライブラリは

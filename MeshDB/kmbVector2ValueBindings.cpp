@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Vector2ValueBindings                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,6 +14,7 @@
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbVector2ValueBindings.h"
 #include "MeshDB/kmbPhysicalValue.h"
+#include <algorithm>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -29,16 +30,30 @@ kmb::Vector2ValueBindings::Vector2ValueBindings(size_t count,kmb::DataBindings::
 : kmb::DataBindings()
 , size(0)
 , values(NULL)
+, deletable(true)
 {
-	this->type = kmb::PhysicalValue::VECTOR2;
+	this->type = kmb::PhysicalValue::Vector2;
 	this->bMode = bmode;
 	this->size = static_cast<int>( count );
 	values = new double[2*this->size];
+	std::fill(values,values+(2*this->size),0.0);
+}
+
+kmb::Vector2ValueBindings::Vector2ValueBindings(size_t count,double* values,kmb::DataBindings::bindingMode bmode)
+: kmb::DataBindings()
+, size(0)
+, values(NULL)
+, deletable(false)
+{
+	this->type = kmb::PhysicalValue::Vector2;
+	this->bMode = bmode;
+	this->size = static_cast<int>( count );
+	this->values = values;
 }
 
 kmb::Vector2ValueBindings::~Vector2ValueBindings(void)
 {
-	if( values ){
+	if( values && deletable ){
 		delete[] values;
 		values = NULL;
 	}
@@ -52,7 +67,7 @@ kmb::Vector2ValueBindings::clear(void)
 bool
 kmb::Vector2ValueBindings::setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val)
 {
-	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::VECTOR2 ){
+	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::Vector2 ){
 		values[2*id  ] = reinterpret_cast< kmb::Vector2Value* >(val)->getValue(0);
 		values[2*id+1] = reinterpret_cast< kmb::Vector2Value* >(val)->getValue(1);
 		delete val;
@@ -80,6 +95,15 @@ kmb::Vector2ValueBindings::setValue(kmb::idType id, double value,int index)
 		return true;
 	}
 	return false;
+}
+
+bool
+kmb::Vector2ValueBindings::scalar(double r)
+{
+	for(int i=0;i<size*2;++i){
+		values[i] *= r;
+	}
+	return true;
 }
 
 kmb::PhysicalValue*

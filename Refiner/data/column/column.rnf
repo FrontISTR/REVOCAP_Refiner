@@ -3,6 +3,8 @@
 # radius 1.0
 # axis (1.0, 0.0, 0.0)
 # height 2.0
+# 2 surface
+# boudary on z = 0
 ---
 surface:
   - nurbs:

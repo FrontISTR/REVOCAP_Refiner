@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Wedge                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,12 +26,12 @@
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbWedge.h"
 #include "MeshDB/kmbTetrahedron.h"
-#include "MeshDB/kmbMeshDB.h"
+#include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbElementRelation.h"
 
 #include "Matrix/kmbMatrix.h"
 #include "Matrix/kmbVector.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Geometry/kmbOptimization.h"
 
 /********************************************************************************
 =begin

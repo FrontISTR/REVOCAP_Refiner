@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementBucket                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,9 +16,9 @@
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbElementEvaluator.h"
 #include "MeshDB/kmbDataBindings.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Geometry4D.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Geometry/kmbGeometry4D.h"
+#include "Common/kmbCalculator.h"
 
 kmb::ElementBucket::ElementBucket(void)
 : kmb::Bucket<kmb::elementIdType>()
@@ -259,7 +259,7 @@ kmb::elementIdType
 kmb::ElementBucket::searchElementInData(const kmb::DataBindings* data,const kmb::ElementContainer* body,double x,double y,double z,double tolerance) const
 {
 	if( body == NULL || data == NULL ||
-		( data->getBindingMode() != kmb::DataBindings::ELEMENTGROUP && data->getBindingMode() != kmb::DataBindings::FACEGROUP ) )
+		( data->getBindingMode() != kmb::DataBindings::ElementGroup && data->getBindingMode() != kmb::DataBindings::FaceGroup ) )
 	{
 		return kmb::Element::nullElementId;
 	}
@@ -272,7 +272,7 @@ kmb::ElementBucket::searchElementInData(const kmb::DataBindings* data,const kmb:
 	kmb::Minimizer minimizer;
 	kmb::ElementBucket::const_iterator eIter = begin(i0,j0,k0);
 	kmb::ElementBucket::const_iterator endIter = end(i0,j0,k0);
-	if( data->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+	if( data->getBindingMode() == kmb::DataBindings::ElementGroup ){
 		while( eIter != endIter ){
 			if( data->hasId( eIter.get() ) ){
 				kmb::ElementContainer::const_iterator elem = body->find( eIter.get() );
@@ -291,7 +291,7 @@ kmb::ElementBucket::searchElementInData(const kmb::DataBindings* data,const kmb:
 			}
 			++eIter;
 		}
-	}else if( data->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+	}else if( data->getBindingMode() == kmb::DataBindings::FaceGroup ){
 		while( eIter != endIter ){
 			kmb::ElementContainer::const_iterator elem = body->find( eIter.get() );
 			if( !elem.isFinished() ){

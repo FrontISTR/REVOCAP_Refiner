@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : BodyOperation                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,9 +27,7 @@ kmb::BodyOperation::~BodyOperation(void)
 }
 
 size_t
-kmb::BodyOperation::getEdgesOfBody
-( const kmb::ElementContainer* body,
-  kmb::ElementContainer* result)
+kmb::BodyOperation::getEdgesOfBody( const kmb::ElementContainer* body, kmb::ElementContainer* result) const
 {
 	if( body->getCount() == 0 || !body->isUniqueDim(2) ){
 		return 0;
@@ -64,10 +62,7 @@ kmb::BodyOperation::getEdgesOfBody
 }
 
 size_t
-kmb::BodyOperation::getEdgesIntersectPlane
-( const kmb::ElementContainer* body,
-  const kmb::Plane* plane,
-  kmb::ElementContainer* result)
+kmb::BodyOperation::getEdgesIntersectPlane(const kmb::ElementContainer* body,const kmb::Plane* plane,kmb::ElementContainer* result) const
 {
 	if( body && plane ){
 		return 0;

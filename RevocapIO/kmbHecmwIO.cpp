@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : HecmwIO                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,9 +29,9 @@
 
 
 
-
 #include "RevocapIO/kmbHecmwIO.h"
 #include "RevocapIO/kmbRevocapIOUtils.h"
+#include "RevocapIO/kmbFortranIO.h"
 #include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbFaceBucket.h"
@@ -48,6 +48,7 @@
 #include <map>
 #include <set>
 #include <iomanip>
+#include <algorithm>
 
 
 #ifdef WIN32
@@ -64,14 +65,23 @@ kmb::HecmwIO::HecmwIO(kmb::nodeIdType offsetNodeId,kmb::elementIdType offsetElem
 , dataFlag(false)
 , resElementFlag(true)
 , dummySectionFlag(false)
+, resHeader()
+, egrpInfo()
 {
 	this->offsetNodeId = offsetNodeId;
 	this->offsetElementId = offsetElementId;
-	this->resheader = "*fstrresult";
+	this->resHeader = "*fstrresult";
 }
 
 kmb::HecmwIO::~HecmwIO(void)
 {
+	clear();
+}
+
+void
+kmb::HecmwIO::clear(void)
+{
+	egrpInfo.clear();
 }
 
 void
@@ -119,7 +129,7 @@ kmb::HecmwIO::setDummySectionFlag(bool flag)
 void
 kmb::HecmwIO::setResHeader(const char* header)
 {
-	this->resheader = header;
+	this->resHeader = header;
 }
 
 kmb::HecmwIO::solutionType
@@ -127,6 +137,8 @@ kmb::HecmwIO::setSolutionType( const char* soltype )
 {
 	if( strcmp(soltype,"STATIC")==0 ){
 		this->soltype = kmb::HecmwIO::STATIC;
+	}else if( strcmp(soltype,"NLSTATIC")==0 ){
+		this->soltype = kmb::HecmwIO::NLSTATIC;
 	}else if( strcmp(soltype,"HEAT")==0 ){
 		this->soltype = kmb::HecmwIO::HEAT;
 	}else if( strcmp(soltype,"EIGEN")==0 ){
@@ -144,6 +156,8 @@ kmb::HecmwIO::getSolutionType( void ) const
 	{
 	case kmb::HecmwIO::STATIC:
 		return "STATIC";
+	case kmb::HecmwIO::NLSTATIC:
+		return "NLSTATIC";
 	case kmb::HecmwIO::HEAT:
 		return "HEAT";
 	case kmb::HecmwIO::EIGEN:
@@ -199,6 +213,10 @@ kmb::HecmwIO::getRevocapType( int etype )
 	case 362:	return kmb::HEXAHEDRON2;
 	case 371:	return kmb::PYRAMID;
 	case 372:	return kmb::PYRAMID2;
+	case 731:	return kmb::TRIANGLE;
+	case 732:	return kmb::TRIANGLE2;
+	case 741:	return kmb::QUAD;
+	case 742:	return kmb::QUAD2;
 	}
 	return kmb::UNKNOWNTYPE;
 }
@@ -214,9 +232,560 @@ enum loadStatus{
 	SGROUP
 };
 
+int
+kmb::HecmwIO::getEgrpInfoIndex( std::string name ) const
+{
+	int index = -1;
+	for(unsigned int i=0;i<egrpInfo.size();++i){
+		if( egrpInfo[i].egrpName == name ){
+			index = i;
+			break;
+		}
+	}
+	return index;
+}
+
+int
+kmb::HecmwIO::createEgrpInfo( std::string name, std::string matname )
+{
+	int index = static_cast<int>( egrpInfo.size() );
+	egrpData e = {name,matname,0,-1};
+	egrpInfo.push_back(e);
+	return index;
+}
+
+int
+kmb::HecmwIO::readHeader( std::ifstream &input, std::string &line ) const
+{
+	while( !input.eof() ){
+		std::getline( input, line );
+		if( line.find("!") == 0 ){
+			break;
+		}
+	}
+	return 0;
+}
+
+size_t
+kmb::HecmwIO::readNode( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const
+{
+	kmb::nodeIdType nodeId = kmb::nullNodeId;
+	size_t nodeCount = 0;
+	double x=0.0,y=0.0,z=0.0;
+	char comma;
+	if( mesh == NULL ){
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}else{
+				++nodeCount;
+			}
+		}
+	}else{
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}else{
+				std::istringstream tokenizer(line);
+				tokenizer >> nodeId >> comma >> x >> comma >> y >> comma >> z;
+				mesh->addNodeWithId( x,y,z, nodeId-offsetNodeId );
+				++nodeCount;
+			}
+		}
+	}
+	return nodeCount;
+}
+
+size_t
+kmb::HecmwIO::readElement( std::ifstream &input, std::string &line, kmb::ElementContainer* body ) const
+{
+	kmb::elementIdType elementId = kmb::Element::nullElementId;
+	int typeNum = atoi( kmb::RevocapIOUtils::getValue( line, "TYPE" ).c_str() );
+	kmb::elementType etype = kmb::HecmwIO::getRevocapType( typeNum );
+	size_t count = 0;
+	if( body && etype != kmb::UNKNOWNTYPE ){
+		int len = kmb::Element::getNodeCount( etype );
+		char comma;
+		kmb::nodeIdType *nodeTable = new kmb::nodeIdType[len];
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}
+			std::istringstream tokenizer(line);
+			tokenizer >> elementId >> comma;
+			for(int i=0;i<len;++i){
+				tokenizer >> nodeTable[i] >> comma;
+				nodeTable[i] -= offsetNodeId;
+			}
+			body->addElement( etype, nodeTable, elementId - this->offsetElementId );
+			++count;
+		}
+		delete[] nodeTable;
+	}else{
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}
+			++count;
+		}
+	}
+	return count;
+}
+
+kmb::bodyIdType
+kmb::HecmwIO::readSection( std::ifstream &input, std::string &line, kmb::MeshData* mesh )
+{
+	kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
+	if( mesh != NULL ){
+		kmb::DataBindings* sectionInfo = mesh->getDataBindingsPtr( "SECTION", "SECTION" );
+		if( sectionInfo == NULL ){
+			sectionInfo = mesh->createDataBindings( "SECTION",
+				kmb::DataBindings::BodyVariable,
+				kmb::PhysicalValue::Hash,
+				"SECTION");
+		}
+		std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
+		std::string matname = kmb::RevocapIOUtils::getValue( line, "MATERIAL" );
+
+		if( name.size() > 0 ){
+
+			int index = getEgrpInfoIndex( name );
+			if( index != -1 ){
+
+				egrpInfo[index].materialName = matname;
+			}else{
+
+				index = createEgrpInfo( name, matname );
+			}
+			std::cout << "section " << egrpInfo[index].bodyId << " " << egrpInfo[index].egrpName << " => " << egrpInfo[index].materialName << std::endl;
+
+			bodyId = mesh->beginElement( egrpInfo[index].egrpCount );
+			mesh->endElement();
+			mesh->setBodyName( bodyId, name.c_str() );
+			egrpInfo[index].bodyId = bodyId;
+
+			kmb::HashValue* hash = new kmb::HashValue();
+			std::string typestr = kmb::RevocapIOUtils::getValue( line, "TYPE" );
+			hash->setValue( "TYPE", new kmb::TextValue( typestr.c_str() ) );
+			hash->setValue( "EGRP", new kmb::TextValue( name.c_str() ) );
+			hash->setValue( "MATERIAL", new kmb::TextValue( matname.c_str() ) );
+			sectionInfo->setPhysicalValue( bodyId, hash );
+
+			std::getline( input, line );
+			if( line.find("!") == 0 || line.size() == 0 ){
+
+
+			}else{
+				std::istringstream tokenizer(line);
+				char comma;
+				if( typestr == "SOLID" ){
+					double thickness;
+					tokenizer >> thickness;
+					hash->setValue( "THICKNESS", new kmb::ScalarValue( thickness ) );
+				}else if( typestr == "SHELL" ){
+					double thickness;
+					int integpoints;
+					tokenizer >> thickness >> comma >> integpoints;
+					hash->setValue( "THICKNESS", new kmb::ScalarValue( thickness ) );
+					hash->setValue( "INTEGPOINTS", new kmb::IntegerValue( integpoints ) );
+				}else if( typestr == "INTERFACE" ){
+					double thickness;
+					double gapcon;
+					double gaprad1;
+					double gaprad2;
+					tokenizer >> thickness >> comma >> gapcon >> comma >> gaprad1 >> comma >> gaprad2;
+					hash->setValue( "THICKNESS", new kmb::ScalarValue( thickness ) );
+					hash->setValue( "GAPCON", new kmb::ScalarValue( gapcon ) );
+					hash->setValue( "GAPRAD1", new kmb::ScalarValue( gaprad1 ) );
+					hash->setValue( "GAPRAD2", new kmb::ScalarValue( gaprad2 ) );
+				}
+				std::getline( input, line );
+			}
+		}else{
+			while( !input.eof() ){
+				std::getline( input, line );
+				if( line.find("!") == 0 ){
+					break;
+				}
+			}
+		}
+	}else{
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}
+		}
+	}
+	return bodyId;
+}
+
+int
+kmb::HecmwIO::readMaterial( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const
+{
+	if( mesh == NULL ){
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 && line.find("!ITEM") != 0){
+				break;
+			}
+		}
+	}else{
+		double value;
+		char comma;
+		std::stringstream ss;
+		std::string matname = kmb::RevocapIOUtils::getValue(line,"NAME");
+		kmb::DataBindings* data = mesh->getDataBindingsPtr( matname.c_str(), "Material" );
+		if( data == NULL ){
+			data = mesh->createDataBindings( matname.c_str(),
+			kmb::DataBindings::BodyGroup,
+			kmb::PhysicalValue::Hash,
+			"Material");
+		}
+		std::cout << "material " << matname << std::endl;
+		kmb::HashValue* material = new kmb::HashValue();
+		data->setPhysicalValue( material );
+		int item = atoi( kmb::RevocapIOUtils::getValue( line, "ITEM" ).c_str() );
+		for(int i=0;i<item;++i){
+			kmb::RevocapIOUtils::readOneLine( input, line );
+			ss << kmb::RevocapIOUtils::getValue( line, "SUBITEM" );
+			int subitem = 0;
+			ss >> subitem;
+
+
+			if( subitem == 0 ){
+				subitem = 1;
+			}
+			std::getline( input, line );
+			std::istringstream tokenizer(line);
+			for(int j=0;j<subitem;++j){
+				if( !tokenizer.good() ){
+					continue;
+				}
+				value = 0.0;
+				tokenizer >> value;
+
+				tokenizer >> comma;
+
+				switch(this->soltype)
+				{
+					case kmb::HecmwIO::STATIC:
+					case kmb::HecmwIO::NLSTATIC:
+					case kmb::HecmwIO::EIGEN:
+					case kmb::HecmwIO::DYNAMIC:
+						if( i==0 ){
+							if( j==0 ){
+								std::cout << "youngs " << value << std::endl;
+								material->setValue("youngs", new kmb::ScalarValue( value ) );
+							}else if( j==1 ){
+								std::cout << "poisson " << value << std::endl;
+								material->setValue("poisson", new kmb::ScalarValue( value ) );
+							}
+						}else if( i==1 ){
+							if( j==0 ){
+								std::cout << "density " << value << std::endl;
+								material->setValue("density", new kmb::ScalarValue( value ) );
+							}
+						}else if( i==2 ){
+							if( j==0 ){
+								std::cout << "linearexp " << value << std::endl;
+								material->setValue("linearexp", new kmb::ScalarValue( value ) );
+							}
+						}
+						break;
+					case kmb::HecmwIO::HEAT:
+						if( i==0 ){
+							if( j==0 ){
+								std::cout << "density " << value << std::endl;
+								material->setValue("density", new kmb::ScalarValue( value ) );
+							}
+						}else if( i==1 ){
+							if( j==0 ){
+								std::cout << "specific_heat " << value << std::endl;
+								material->setValue("specific_heat", new kmb::ScalarValue( value ) );
+							}
+						}else if( i==2 ){
+							if( j==0 ){
+								std::cout << "thermal_conductivity " << value << std::endl;
+								material->setValue("thermal_conductivity", new kmb::ScalarValue( value ) );
+							}
+						}
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		std::getline( input, line );
+	}
+	return 0;
+}
+
+size_t
+kmb::HecmwIO::readEGroup( std::ifstream &input, std::string &line, kmb::MeshData* mesh, kmb::ElementContainer* parentBody )
+{
+	size_t count = 0;
+	if( mesh == NULL ){
+		std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
+
+		int index = getEgrpInfoIndex( name );
+		if( index == -1 ){
+
+			index = createEgrpInfo( name, "" );
+		}
+		int count = 0;
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}else{
+				++count;
+			}
+		}
+		egrpInfo[index].egrpCount += count;
+	}else{
+		std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
+		kmb::bodyIdType bodyId_eg = kmb::Body::nullBodyId;
+		size_t count = 0;
+		std::string matName;
+
+		int index = getEgrpInfoIndex( name );
+		if( index != -1 ){
+			bodyId_eg = egrpInfo[index].bodyId;
+			count = egrpInfo[index].egrpCount;
+			matName = egrpInfo[index].materialName;
+		}
+		if( bodyId_eg != kmb::Body::nullBodyId ){
+
+			if( parentBody != NULL ){
+				kmb::ElementContainer* body = mesh->getBodyPtr( bodyId_eg );
+				kmb::elementIdType elementId = kmb::Element::nullElementId;
+				kmb::nodeIdType* nodeTable = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
+				kmb::elementType etype = kmb::UNKNOWNTYPE;
+				while( !input.eof() ){
+					std::getline( input, line );
+					if( line.find("!") == 0 ){
+						break;
+					}else{
+						std::istringstream tokenizer(line);
+						while( !tokenizer.eof() ){
+							tokenizer >> elementId;
+
+							if( tokenizer.get() != ',' ){
+								tokenizer.unget();
+							}
+							kmb::ElementContainer::iterator eIter = parentBody->find( elementId - this->offsetElementId );
+							if( eIter.getElement( etype, nodeTable ) ){
+								body->addElement( etype, nodeTable, elementId - this->offsetElementId );
+							}
+						}
+						parentBody->deleteElement( elementId - this->offsetElementId );
+					}
+				}
+				delete[] nodeTable;
+			}
+		}else{
+
+			kmb::DataBindings* data = mesh->getDataBindingsPtr( name.c_str() );
+			if( data == NULL && dataFlag ){
+				data = mesh->createDataBindings( name.c_str(), kmb::DataBindings::ElementGroup, kmb::PhysicalValue::None );
+			}
+
+
+			if( data ){
+				kmb::elementIdType elementId = kmb::Element::nullElementId;
+				while( !input.eof() ){
+					std::getline( input, line );
+					if( line.find("!") == 0 ){
+						break;
+					}else{
+						std::istringstream tokenizer(line);
+						while( !tokenizer.eof() ){
+							tokenizer >> elementId;
+
+							if( tokenizer.get() != ',' ){
+								tokenizer.unget();
+							}
+							data->addId( elementId - this->offsetElementId );
+						}
+					}
+				}
+			}else{
+				while( !input.eof() ){
+					std::getline( input, line );
+					if( line.find("!") == 0 ){
+						break;
+					}
+				}
+			}
+		}
+	}
+	return count;
+}
+
+size_t
+kmb::HecmwIO::readNGroup( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const
+{
+	size_t count = 0;
+	if( mesh == NULL ){
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}
+		}
+	}else{
+		std::string name = kmb::RevocapIOUtils::getValue( line, "NGRP" );
+		bool generateFlag = kmb::RevocapIOUtils::hasKey( line, "GENERATE" );
+		kmb::DataBindings* data = mesh->getDataBindingsPtr( name.c_str() );
+		if( data == NULL && dataFlag ){
+			data = mesh->createDataBindings( name.c_str(), kmb::DataBindings::NodeGroup, kmb::PhysicalValue::None );
+		}
+
+
+		if( data ){
+			kmb::nodeIdType nodeId = kmb::nullNodeId;
+			kmb::nodeIdType nodeId0 = kmb::nullNodeId;
+			kmb::nodeIdType nodeId1 = kmb::nullNodeId;
+			int interval = 1;
+			while( !input.eof() ){
+				std::getline( input, line );
+				if( line.find("!") == 0 ){
+					break;
+				}else{
+					std::istringstream tokenizer(line);
+					if( generateFlag ){
+						tokenizer >> nodeId0;
+						if( tokenizer.get() != ',' ){
+							tokenizer.unget();
+						}
+						tokenizer >> nodeId1;
+						if( tokenizer.get() != ',' ){
+							tokenizer.unget();
+						}
+						tokenizer >> interval;
+						for( nodeId = nodeId0; nodeId <= nodeId1; nodeId += interval ){
+							data->addId( nodeId - this->offsetNodeId );
+							++count;
+						}
+					}else{
+						while( !tokenizer.eof() ){
+							tokenizer >> nodeId;
+
+							if( tokenizer.get() != ',' ){
+								tokenizer.unget();
+							}
+							data->addId( nodeId - this->offsetNodeId );
+							++count;
+						}
+					}
+				}
+			}
+		}else{
+			while( !input.eof() ){
+				std::getline( input, line );
+				if( line.find("!") == 0 ){
+					break;
+				}
+			}
+		}
+	}
+	return count;
+}
+
+size_t
+kmb::HecmwIO::readSGroup( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const
+{
+	size_t count = 0;
+	if( mesh == NULL ){
+		while( !input.eof() ){
+			std::getline( input, line );
+			if( line.find("!") == 0 ){
+				break;
+			}
+		}
+	}else{
+		int tetFmap[] = {3,2,0,1};
+		int wedFmap[] = {0,1,2,3,4};
+		int hexFmap[] = {0,1,2,3,4,5};
+		std::string name = kmb::RevocapIOUtils::getValue( line, "SGRP" );
+		kmb::DataBindings* data = mesh->getDataBindingsPtr( name.c_str() );
+		if( data == NULL && dataFlag ){
+			data = mesh->createDataBindings( name.c_str(), kmb::DataBindings::FaceGroup, kmb::PhysicalValue::None );
+		}
+		if( data ){
+			kmb::elementIdType elementId = kmb::Element::nullElementId;
+			kmb::idType localId = kmb::nullId;
+			char comma;
+			kmb::Face f;
+			while( !input.eof() ){
+				std::getline( input, line );
+				if( line.find("!") == 0 ){
+					break;
+				}else{
+					std::istringstream tokenizer(line);
+					while( !tokenizer.eof() ){
+						tokenizer >> elementId >> comma >> localId;
+
+						if( tokenizer.get() != ',' ){
+							tokenizer.unget();
+						}
+						tokenizer >> localId;
+
+						if( tokenizer.get() != ',' ){
+							tokenizer.unget();
+						}
+						kmb::ElementContainer::const_iterator eIter = mesh->findElement( elementId - this->offsetElementId );
+						if( eIter.isFinished() ){
+							eIter = mesh->findElement( elementId - this->offsetElementId );
+						}
+						switch( eIter.getType() )
+						{
+						case kmb::TETRAHEDRON:
+						case kmb::TETRAHEDRON2:
+							f.setId( elementId - this->offsetElementId, tetFmap[ localId-1 ] );
+							data->addId( f );
+							++count;
+							break;
+						case kmb::WEDGE:
+						case kmb::WEDGE2:
+							f.setId( elementId - this->offsetElementId, wedFmap[ localId-1 ] );
+							data->addId( f );
+							++count;
+							break;
+						case kmb::HEXAHEDRON:
+						case kmb::HEXAHEDRON2:
+							f.setId( elementId - this->offsetElementId, hexFmap[ localId-1 ] );
+							data->addId( f );
+							++count;
+							break;
+						default:
+							break;
+						}
+					}
+				}
+			}
+		}else{
+			while( !input.eof() ){
+				std::getline( input, line );
+				if( line.find("!") == 0 ){
+					break;
+				}
+			}
+		}
+	}
+	return count;
+}
+
 /*
  * (1) elementCount と nodeCount を調べる
  * (2) element がどの body に属するかを調べる
+ *     !EGROUP で定義されている場合
+ *     !ELEMENT, EGRP=XXX で定義されている場合
  * (3) body 毎の material との対応を調べる
  * 空読み時の構造体
  * egrpName
@@ -226,7 +795,7 @@ enum loadStatus{
  * egrpName = ALL で materialName が与えられているときは、暗黙の全ての要素
  */
 int
-kmb::HecmwIO::loadFromFile(const char* filename,MeshData* mesh) const
+kmb::HecmwIO::loadFromFile(const char* filename,MeshData* mesh)
 {
 	if( mesh == NULL ){
 		return -1;
@@ -236,15 +805,13 @@ kmb::HecmwIO::loadFromFile(const char* filename,MeshData* mesh) const
 			return -1;
 		}
 
-		kmb::DataBindings* sectionInfo =
-			mesh->createDataBindings( "SECTION",
-			kmb::DataBindings::BODYVARIABLE,
-			kmb::PhysicalValue::HASH,
+		mesh->createDataBindings(
+			"SECTION",
+			kmb::DataBindings::BodyVariable,
+			kmb::PhysicalValue::Hash,
 			"SECTION");
-		std::vector< kmb::HecmwIO::egrpData > egrpInfo;
 
 		kmb::ElementContainerMap elements;
-		std::multimap< kmb::elementIdType, int > elementIdMapper;
 
 		size_t nodeCount = 0;
 		kmb::bodyIdType bodyId = 0;
@@ -255,231 +822,49 @@ kmb::HecmwIO::loadFromFile(const char* filename,MeshData* mesh) const
 		while( !input.eof() ){
 
 			if( line.find("!HEADER") == 0 ){
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}
-				}
+				readHeader( input, line );
 			}else if( line.find("!NODE") == 0 ){
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}else{
-						++nodeCount;
-					}
-				}
+				nodeCount = readNode( input, line, NULL );
 			}else if( line.find("!ELEMENT") == 0 ){
 				std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
-				int count = 0;
-				int index = -1;
+				size_t count = 0;
 				if( name != "" ){
 
 
-					for(unsigned int i=0;i<egrpInfo.size();++i){
-						if( egrpInfo[i].egrpName == name ){
-							index = static_cast<int>(i);
-							break;
-						}
-					}
+
+					int index = getEgrpInfoIndex( name );
 					if( index == -1 ){
-						egrpData e = {name,"",0,-1};
-						index = static_cast<int>(egrpInfo.size());
-						egrpInfo.push_back(e);
+
+						index = createEgrpInfo( name, "" );
 					}
-				}
-				kmb::elementIdType elementId = kmb::Element::nullElementId;
-				int typeNum = atoi( kmb::RevocapIOUtils::getValue( line, "TYPE" ).c_str() );
-				kmb::elementType etype = kmb::HecmwIO::getRevocapType( typeNum );
-				int len = kmb::Element::getNodeCount( etype );
-				char comma;
-				kmb::nodeIdType *nodeTable = new kmb::nodeIdType[len];
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
+
+
+					count = readElement( input, line, NULL );
+					egrpInfo[index].egrpCount += count;
+				}else{
+
+
+
+					int index = getEgrpInfoIndex( "ALL" );
+					if( index == -1 ){
+
+						index = createEgrpInfo( "ALL", "" );
 					}
-					std::istringstream tokenizer(line);
-					tokenizer >> elementId >> comma;
-					for(int i=0;i<len;++i){
-						tokenizer >> nodeTable[i] >> comma;
-						nodeTable[i] -= offsetNodeId;
-					}
-					elements.addElement( etype, nodeTable, elementId - this->offsetElementId );
-					++count;
-				}
-				delete[] nodeTable;
-				if( index != -1 ){
+
+					count = readElement( input, line, &elements );
 					egrpInfo[index].egrpCount += count;
 				}
 			}else if( line.find("!SECTION") == 0 ){
-				std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
-				std::string mat = kmb::RevocapIOUtils::getValue( line, "MATERIAL" );
-				int index = -1;
-				for(unsigned int i=0;i<egrpInfo.size();++i){
-					if( egrpInfo[i].egrpName == name ){
-						egrpInfo[i].materialName = mat;
-						egrpInfo[i].bodyId = bodyId;
-						index = i;
-						break;
-					}
-				}
-				if( index == -1 ){
-					egrpData e = {name,mat,0,bodyId};
-					egrpInfo.push_back(e);
-				}
 
-				kmb::HashValue* hash = new kmb::HashValue();
-				std::string typestr = kmb::RevocapIOUtils::getValue( line, "TYPE" );
-				hash->setValue( "TYPE", new kmb::TextValue( typestr.c_str() ) );
-
-				std::string matname = kmb::RevocapIOUtils::getValue(line,"MATERIAL");
-				kmb::DataBindings* data = mesh->getDataBindingsPtr( matname.c_str(), "Material" );
-				if( data == NULL ){
-					data = mesh->createDataBindings( matname.c_str(),
-					kmb::DataBindings::BODYGROUP,
-					kmb::PhysicalValue::HASH,
-					"Material");
-				}
-				data->addId( bodyId );
-				sectionInfo->setPhysicalValue( bodyId, hash );
-
-				std::getline( input, line );
-				if( line.find("!") == 0 || line.size() == 0 ){
-
-
-				}else{
-					std::istringstream tokenizer(line);
-					char comma;
-					if( typestr == "SOLID" ){
-						double thickness;
-						tokenizer >> thickness;
-						hash->setValue( "THICKNESS", new kmb::ScalarValue( thickness ) );
-					}else if( typestr == "SHELL" ){
-						double thickness;
-						int integpoints;
-						tokenizer >> thickness >> comma >> integpoints;
-						hash->setValue( "THICKNESS", new kmb::ScalarValue( thickness ) );
-						hash->setValue( "INTEGPOINTS", new kmb::IntegerValue( integpoints ) );
-					}else if( typestr == "INTERFACE" ){
-						double thickness;
-						double gapcon;
-						double gaprad1;
-						double gaprad2;
-						tokenizer >> thickness >> comma >> gapcon >> comma >> gaprad1 >> comma >> gaprad2;
-						hash->setValue( "THICKNESS", new kmb::ScalarValue( thickness ) );
-						hash->setValue( "GAPCON", new kmb::ScalarValue( gapcon ) );
-						hash->setValue( "GAPRAD1", new kmb::ScalarValue( gaprad1 ) );
-						hash->setValue( "GAPRAD2", new kmb::ScalarValue( gaprad2 ) );
-					}
-					std::getline( input, line );
-				}
-				++bodyId;
+				bodyId = readSection( input, line, mesh );
 			}else if( line.find("!MATERIAL") == 0 ){
-				double value;
-				char comma;
-				std::string matname = kmb::RevocapIOUtils::getValue(line,"NAME");
-				kmb::DataBindings* data = mesh->getDataBindingsPtr( matname.c_str(), "Material" );
-				if( data == NULL ){
-					data = mesh->createDataBindings( matname.c_str(),
-					kmb::DataBindings::BODYGROUP,
-					kmb::PhysicalValue::HASH,
-					"Material");
-				}
-				kmb::HashValue* material = new kmb::HashValue();
-				data->setPhysicalValue( material );
-				int item = atoi( kmb::RevocapIOUtils::getValue( line, "ITEM" ).c_str() );
-				for(int i=0;i<item;++i){
-					std::getline( input, line );
-					int subitem = atoi( kmb::RevocapIOUtils::getValue( line, "SUBITEM" ).c_str() );
-					std::getline( input, line );
-					std::istringstream tokenizer(line);
-					for(int j=0;j<subitem;++j){
-						tokenizer >> value;
-						tokenizer >> comma;
-						switch(this->soltype)
-						{
-							case kmb::HecmwIO::STATIC:
-							case kmb::HecmwIO::EIGEN:
-							case kmb::HecmwIO::DYNAMIC:
-								if( i==0 ){
-									if( j==0 ){
-										material->setValue("young", new kmb::ScalarValue( value ) );
-									}else if( j==1 ){
-										material->setValue("poisson", new kmb::ScalarValue( value ) );
-									}
-								}else if( i==1 ){
-									if( j==0 ){
-										material->setValue("density", new kmb::ScalarValue( value ) );
-									}
-								}else if( i==2 ){
-									if( j==0 ){
-										material->setValue("linearexp", new kmb::ScalarValue( value ) );
-									}
-								}
-								break;
-							case kmb::HecmwIO::HEAT:
-								if( i==0 ){
-									if( j==0 ){
-										material->setValue("density", new kmb::ScalarValue( value ) );
-									}
-								}else if( i==1 ){
-									if( j==0 ){
-										material->setValue("specific_heat", new kmb::ScalarValue( value ) );
-									}
-								}else if( i==2 ){
-									if( j==0 ){
-										material->setValue("thermal_conductivity", new kmb::ScalarValue( value ) );
-									}
-								}
-								break;
-							default:
-								break;
-						}
-					}
-				}
-				std::getline( input, line );
+				readMaterial( input, line, mesh );
 			}else if( line.find("!EGROUP") == 0 ){
-				std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
-				int index = -1;
-				for(unsigned int i=0;i<egrpInfo.size();++i){
-					if( egrpInfo[i].egrpName == name ){
-						index = static_cast<int>(i);
-						break;
-					}
-				}
-				if( index == -1 ){
-					egrpData e = {name,"",0,-1};
-					index = static_cast<int>(egrpInfo.size());
-					egrpInfo.push_back(e);
-				}
-				int count = 0;
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}else{
-						++count;
-					}
-				}
-				egrpInfo[index].egrpCount += count;
+				readEGroup( input, line, NULL );
 			}else if( line.find("!NGROUP") == 0 ){
-
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}
-				}
+				readNGroup( input, line, NULL );
 			}else if( line.find("!SGROUP") == 0 ){
-
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}
-				}
+				readSGroup( input, line, NULL );
 			}else{
 				std::getline( input, line );
 			}
@@ -489,33 +874,38 @@ kmb::HecmwIO::loadFromFile(const char* filename,MeshData* mesh) const
 
 
 
+
 		{
 			std::string matName;
 			std::vector< kmb::HecmwIO::egrpData >::iterator egrpIter = egrpInfo.begin();
 			while( egrpIter != egrpInfo.end() ){
-				if( egrpIter->egrpName == "ALL" && egrpIter->bodyId != kmb::Body::nullBodyId ){
-					kmb::bodyIdType bodyId_all = mesh->beginElement( elements.getCount() );
-					kmb::ElementContainer::iterator eIter = elements.begin();
-					kmb::nodeIdType* nodeTable = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
-					kmb::elementType etype = kmb::UNKNOWNTYPE;
-					while( !eIter.isFinished() ){
-						eIter.getElement( etype, nodeTable );
-						mesh->addElementWithId( etype, nodeTable, eIter.getId() );
-						++eIter;
-					}
-					mesh->endElement();
-					mesh->setBodyName( bodyId_all, egrpIter->egrpName.c_str() );
+
+				std::cout << "material binding " << egrpIter->bodyId << " " << egrpIter->egrpName << " => " << egrpIter->materialName << std::endl;
+				if( egrpIter->bodyId != kmb::Body::nullBodyId ){
+
 					matName = egrpIter->materialName;
 					if( matName.size() > 0 && mesh->hasData( matName.c_str() ) ){
-						mesh->addId( matName.c_str(), bodyId );
+						mesh->addId( matName.c_str(), egrpIter->bodyId );
 					}
-					delete[] nodeTable;
-					elements.clear();
-					break;
+					if( egrpIter->egrpName == "ALL" ){
+						kmb::ElementContainer* body = mesh->getBodyPtr( egrpIter->bodyId );
+						kmb::ElementContainer::iterator eIter = elements.begin();
+						kmb::nodeIdType* nodeTable = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
+						kmb::elementType etype = kmb::UNKNOWNTYPE;
+						while( !eIter.isFinished() ){
+							eIter.getElement( etype, nodeTable );
+							body->addElement( etype, nodeTable, eIter.getId() );
+							++eIter;
+						}
+						delete[] nodeTable;
+						elements.clear();
+						break;
+					}
 				}
 				++egrpIter;
 			}
 		}
+
 
 
 		mesh->beginNode( nodeCount );
@@ -525,275 +915,51 @@ kmb::HecmwIO::loadFromFile(const char* filename,MeshData* mesh) const
 		while( !input.eof() ){
 
 			if( line.find("!HEADER") == 0 ){
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}
-				}
+				readHeader( input, line );
 			}else if( line.find("!NODE") == 0 ){
-				kmb::nodeIdType nodeId = kmb::nullNodeId;
-				double x=0.0,y=0.0,z=0.0;
-				char comma;
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}else{
-						std::istringstream tokenizer(line);
-						tokenizer >> nodeId >> comma >> x >> comma >> y >> comma >> z;
-						mesh->addNodeWithId( x,y,z, nodeId-offsetNodeId );
-					}
-				}
+				readNode( input, line, mesh );
 			}else if( line.find("!ELEMENT") == 0 ){
 				std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
 				if( name == "" ){
 
-					while( !input.eof() ){
-						std::getline( input, line );
-						if( line.find("!") == 0 ){
-							break;
-						}
-					}
+					readElement( input, line, NULL );
 				}else{
 
 					kmb::bodyIdType bodyId_eg = kmb::Body::nullBodyId;
-					size_t count = 0;
 					std::string matName_eg;
 
-					std::vector< kmb::HecmwIO::egrpData >::iterator egrpIter = egrpInfo.begin();
-					while( egrpIter != egrpInfo.end() ){
-						if( egrpIter->egrpName == name ){
-							bodyId_eg = egrpIter->bodyId;
-							count = egrpIter->egrpCount;
-							matName_eg = egrpIter->materialName;
-							break;
-						}
-						++egrpIter;
+
+
+					int index = getEgrpInfoIndex( name );
+					if( index != -1 ){
+						bodyId_eg = egrpInfo[index].bodyId;
+						matName_eg = egrpInfo[index].materialName;
+					}else{
+						std::cout << "Warning (HecmwIO) : not find section of egrp " << name << std::endl;
 					}
 					if( bodyId_eg != kmb::Body::nullBodyId ){
-						bodyId_eg = mesh->beginElement( count );
-						kmb::elementIdType elementId = kmb::Element::nullElementId;
-						kmb::nodeIdType* nodeTable = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
-						kmb::elementType etype = kmb::UNKNOWNTYPE;
-						while( !input.eof() ){
-							std::getline( input, line );
-							if( line.find("!") == 0 ){
-								break;
-							}else{
 
-								std::istringstream tokenizer(line);
-								tokenizer >> elementId;
-								kmb::ElementContainer::iterator eIter = elements.find( elementId - this->offsetElementId );
-								if( eIter.getElement( etype, nodeTable ) ){
-									mesh->addElementWithId( etype, nodeTable, elementId - this->offsetElementId );
-								}
-								elements.deleteElement( elementId - this->offsetElementId );
-							}
-						}
-						mesh->endElement();
-						mesh->setBodyName( bodyId_eg, egrpIter->egrpName.c_str() );
-						if( matName_eg.size() > 0 && mesh->hasData( matName_eg.c_str() ) ){
-							mesh->addId( matName_eg.c_str(), bodyId_eg );
-						}
-						delete[] nodeTable;
+						kmb::ElementContainer* body = mesh->getBodyPtr( bodyId_eg );
+						readElement( input, line, body );
+
+
+
+
+					}else{
+
+						readElement( input, line, NULL );
 					}
 				}
 			}else if( line.find("!SECTION") == 0 ){
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 ){
-						break;
-					}
-				}
+				readSection( input, line, NULL );
 			}else if( line.find("!MATERIAL") == 0 ){
-				while( !input.eof() ){
-					std::getline( input, line );
-					if( line.find("!") == 0 && line.find("!ITEM") == 0){
-						break;
-					}
-				}
+				readMaterial( input, line, NULL );
 			}else if( line.find("!EGROUP") == 0 ){
-				std::string name = kmb::RevocapIOUtils::getValue( line, "EGRP" );
-				kmb::bodyIdType bodyId_eg = kmb::Body::nullBodyId;
-				size_t count = 0;
-				std::string matName;
-
-				std::vector< kmb::HecmwIO::egrpData >::iterator egrpIter = egrpInfo.begin();
-				while( egrpIter != egrpInfo.end() ){
-					if( egrpIter->egrpName == name ){
-						bodyId_eg = egrpIter->bodyId;
-						count = egrpIter->egrpCount;
-						matName = egrpIter->materialName;
-						break;
-					}
-					++egrpIter;
-				}
-				if( bodyId_eg != kmb::Body::nullBodyId ){
-					bodyId_eg = mesh->beginElement( count );
-					kmb::elementIdType elementId = kmb::Element::nullElementId;
-					kmb::nodeIdType* nodeTable = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
-					kmb::elementType etype = kmb::UNKNOWNTYPE;
-					while( !input.eof() ){
-						std::getline( input, line );
-						if( line.find("!") == 0 ){
-							break;
-						}else{
-							std::istringstream tokenizer(line);
-							while( !tokenizer.eof() ){
-								tokenizer >> elementId;
-
-								if( tokenizer.get() != ',' ){
-									tokenizer.unget();
-								}
-								kmb::ElementContainer::iterator eIter = elements.find( elementId - this->offsetElementId );
-								if( eIter.getElement( etype, nodeTable ) ){
-									mesh->addElementWithId( etype, nodeTable, elementId - this->offsetElementId );
-								}
-							}
-							elements.deleteElement( elementId - this->offsetElementId );
-						}
-					}
-					mesh->endElement();
-					mesh->setBodyName( bodyId_eg, egrpIter->egrpName.c_str() );
-					if( matName.size() > 0 && mesh->hasData( matName.c_str() ) ){
-						mesh->addId( matName.c_str(), bodyId_eg );
-					}
-					delete[] nodeTable;
-				}else{
-					kmb::DataBindings* data = mesh->getDataBindingsPtr( name.c_str() );
-					if( data == NULL && dataFlag ){
-						data = mesh->createDataBindings( name.c_str(), kmb::DataBindings::ELEMENTGROUP, kmb::PhysicalValue::NONE );
-					}
-
-
-					if( data ){
-						kmb::elementIdType elementId = kmb::Element::nullElementId;
-						while( !input.eof() ){
-							std::getline( input, line );
-							if( line.find("!") == 0 ){
-								break;
-							}else{
-								std::istringstream tokenizer(line);
-								while( !tokenizer.eof() ){
-									tokenizer >> elementId;
-
-									if( tokenizer.get() != ',' ){
-										tokenizer.unget();
-									}
-									data->addId( elementId - this->offsetElementId );
-								}
-							}
-						}
-					}else{
-						while( !input.eof() ){
-							std::getline( input, line );
-							if( line.find("!") == 0 ){
-								break;
-							}
-						}
-					}
-				}
+				readEGroup( input, line, mesh, &elements );
 			}else if( line.find("!NGROUP") == 0 ){
-				std::string name = kmb::RevocapIOUtils::getValue( line, "NGRP" );
-				kmb::DataBindings* data = mesh->getDataBindingsPtr( name.c_str() );
-				if( data == NULL && dataFlag ){
-					data = mesh->createDataBindings( name.c_str(), kmb::DataBindings::NODEGROUP, kmb::PhysicalValue::NONE );
-				}
-
-
-				if( data ){
-					kmb::nodeIdType nodeId = kmb::nullNodeId;
-					while( !input.eof() ){
-						std::getline( input, line );
-						if( line.find("!") == 0 ){
-							break;
-						}else{
-							std::istringstream tokenizer(line);
-							while( !tokenizer.eof() ){
-								tokenizer >> nodeId;
-
-								if( tokenizer.get() != ',' ){
-									tokenizer.unget();
-								}
-								data->addId( nodeId - this->offsetNodeId );
-							}
-						}
-					}
-				}else{
-					while( !input.eof() ){
-						std::getline( input, line );
-						if( line.find("!") == 0 ){
-							break;
-						}
-					}
-				}
+				readNGroup( input, line, mesh );
 			}else if( line.find("!SGROUP") == 0 ){
-				int tetFmap[] = {3,2,0,1};
-				int wedFmap[] = {0,1,2,3,4};
-				int hexFmap[] = {0,1,2,3,4,5};
-				std::string name = kmb::RevocapIOUtils::getValue( line, "SGRP" );
-				kmb::DataBindings* data = mesh->getDataBindingsPtr( name.c_str() );
-				if( data == NULL && dataFlag ){
-					data = mesh->createDataBindings( name.c_str(), kmb::DataBindings::FACEGROUP, kmb::PhysicalValue::NONE );
-				}
-				if( data ){
-					kmb::elementIdType elementId = kmb::Element::nullElementId;
-					kmb::idType localId = kmb::nullId;
-					char comma;
-					kmb::Face f;
-					while( !input.eof() ){
-						std::getline( input, line );
-						if( line.find("!") == 0 ){
-							break;
-						}else{
-							std::istringstream tokenizer(line);
-							while( !tokenizer.eof() ){
-								tokenizer >> elementId >> comma >> localId;
-
-								if( tokenizer.get() != ',' ){
-									tokenizer.unget();
-								}
-								tokenizer >> localId;
-
-								if( tokenizer.get() != ',' ){
-									tokenizer.unget();
-								}
-								kmb::ElementContainer::const_iterator eIter = mesh->findElement( elementId - this->offsetElementId );
-								if( eIter.isFinished() ){
-									eIter = elements.find( elementId - this->offsetElementId );
-								}
-								switch( eIter.getType() )
-								{
-								case kmb::TETRAHEDRON:
-								case kmb::TETRAHEDRON2:
-									f.setId( elementId - this->offsetElementId, tetFmap[ localId-1 ] );
-									data->addId( f );
-									break;
-								case kmb::WEDGE:
-								case kmb::WEDGE2:
-									f.setId( elementId - this->offsetElementId, wedFmap[ localId-1 ] );
-									data->addId( f );
-									break;
-								case kmb::HEXAHEDRON:
-								case kmb::HEXAHEDRON2:
-									f.setId( elementId - this->offsetElementId, hexFmap[ localId-1 ] );
-									data->addId( f );
-									break;
-								default:
-									break;
-								}
-							}
-						}
-					}
-				}else{
-					while( !input.eof() ){
-						std::getline( input, line );
-						if( line.find("!") == 0 ){
-							break;
-						}
-					}
-				}
+				readSGroup( input, line, mesh );
 			}else{
 				std::getline( input, line );
 			}
@@ -836,19 +1002,19 @@ kmb::HecmwIO::loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const
 				dimCount += dims[i];
 			}
 			for(int i=0;i<paramNum;++i){
-				std::getline( input, line );
+				kmb::RevocapIOUtils::readOneLine( input, line );
 				switch( dims[i] )
 				{
 				case 1:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::GLOBAL, kmb::PhysicalValue::SCALAR, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::Global, kmb::PhysicalValue::Scalar, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				case 3:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::GLOBAL, kmb::PhysicalValue::VECTOR3, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::Global, kmb::PhysicalValue::Vector3, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				case 6:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::GLOBAL, kmb::PhysicalValue::TENSOR6, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::Global, kmb::PhysicalValue::Tensor6, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				default:
@@ -856,6 +1022,7 @@ kmb::HecmwIO::loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const
 				}
 			}
 			double* values = new double[dimCount];
+			std::fill(values,values+dimCount,0.0);
 			{
 				std::getline( input, line );
 				tokenizer.str(line);
@@ -885,19 +1052,19 @@ kmb::HecmwIO::loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const
 				dimCount += dims[i];
 			}
 			for(int i=0;i<ndataNum;++i){
-				std::getline( input, line );
+				kmb::RevocapIOUtils::readOneLine( input, line );
 				switch( dims[i] )
 				{
 				case 1:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				case 3:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector3, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				case 6:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				default:
@@ -905,6 +1072,7 @@ kmb::HecmwIO::loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const
 				}
 			}
 			double* values = new double[dimCount];
+			std::fill_n(values,dimCount,0.0);
 			for(int i=0;i<nodeCount;++i){
 				kmb::nodeIdType nodeId = kmb::nullNodeId;
 				std::getline( input, line );
@@ -936,19 +1104,19 @@ kmb::HecmwIO::loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const
 				dimCount += dims[i];
 			}
 			for(int i=0;i<edataNum;++i){
-				std::getline( input, line );
+				kmb::RevocapIOUtils::readOneLine( input, line );
 				switch( dims[i] )
 				{
 				case 1:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				case 3:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector3, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				case 6:
-					mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+					mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
 					mesh->appendTargetData( line.c_str() );
 					break;
 				default:
@@ -956,6 +1124,7 @@ kmb::HecmwIO::loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const
 				}
 			}
 			double* values = new double[dimCount];
+			std::fill_n(values,dimCount,0.0);
 			for(int i=0;i<elementCount;++i){
 				kmb::elementIdType elementId = kmb::Element::nullElementId;
 				std::getline( input, line );
@@ -987,6 +1156,175 @@ kmb::HecmwIO::loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const
 int
 kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 {
+	std::ifstream input( filename, std::ios_base::in|std::ios_base::binary );
+	if( input.fail() ){
+		return -1;
+	}
+
+	char buf[64];
+	input.read( buf, 19 );
+	buf[19] = '\0';
+	if( strncmp( "HECMW_BINARY_RESULT", buf, 19 ) == 0 ){
+		input.close();
+		return loadFromResBinFile(filename,mesh);
+	}
+	input.clear();
+	input.seekg(0, std::ios::beg);
+
+	input.get( buf, 64, '\0' );
+	if( strncmp( resHeader.c_str(), buf, resHeader.size() ) == 0 ){
+		std::cout << "HECMW ASCII RESULT READING..." << std::endl;
+		input.close();
+		return loadFromResAsciiFile(filename,mesh);
+	}
+	input.close();
+	return -2;
+}
+
+int
+kmb::HecmwIO::loadFromResFileItem(const char* filename,kmb::DataBindings* data,const char* name) const
+{
+	if( data == NULL ){
+		return -1;
+	}
+
+	std::ifstream input( filename, std::ios_base::in );
+	if( input.fail() ){
+		return -1;
+	}
+	int nodeCount = 0;
+	int elementCount = 0;
+	int nodeValueCount = 0;
+	int elementValueCount = 0;
+
+	int nodeValueOffset = -1;
+	int elementValueOffset = -1;
+
+	int dataDim = 0;
+	std::vector<int> nodeValDims;
+	std::vector<int> elementValDims;
+	std::string line;
+
+	if( std::getline( input, line ) ){
+		if( line.find( resHeader) != 0 ){
+			return -1;
+		}
+	}else{
+		return -1;
+	}
+
+	if( std::getline( input, line ) ){
+		std::istringstream tokenizer(line);
+		tokenizer >> nodeCount;
+		tokenizer >> elementCount;
+	}
+
+	if( std::getline( input, line ) ){
+		std::istringstream tokenizer(line);
+		tokenizer >> nodeValueCount;
+		tokenizer >> elementValueCount;
+	}
+	if( nodeValueCount > 0 ){
+
+		if( std::getline( input, line ) ){
+			std::istringstream tokenizer(line);
+			for(int i=0;i<nodeValueCount;++i){
+				int d = 0;
+				tokenizer >> d;
+				nodeValDims.push_back(d);
+			}
+		}
+
+		int dim = 0;
+		for(int i=0;i<nodeValueCount;++i){
+			kmb::RevocapIOUtils::readOneLine( input, line );
+			if( line == name &&
+				data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+				data->getDimension() == nodeValDims[i] ){
+				nodeValueOffset = dim;
+				dataDim = nodeValDims[i];
+			}
+			dim += nodeValDims[i];
+		}
+
+		kmb::nodeIdType nodeId = kmb::nullNodeId;
+		std::istringstream tokenizer;
+		double* v = new double[dim];
+		for(int i=0;i<nodeCount;++i){
+			kmb::RevocapIOUtils::readOneLine( input, line );
+			tokenizer.str(line);
+			tokenizer >> nodeId;
+			kmb::RevocapIOUtils::readOneLine( input, line );
+			tokenizer.str(line);
+			tokenizer.clear();
+			for(int j=0;j<dim;++j){
+				if( tokenizer.eof() ){
+					kmb::RevocapIOUtils::readOneLine( input, line );
+					tokenizer.str(line);
+					tokenizer.clear();
+				}
+				tokenizer >> v[j];
+			}
+			if( nodeValueOffset >= 0 ){
+				data->setPhysicalValue( nodeId, &v[nodeValueOffset] );
+			}
+		}
+		delete[] v;
+	}
+	if( elementValueCount > 0 ){
+
+		if( std::getline( input, line ) ){
+			std::istringstream tokenizer(line);
+			for(int i=0;i<elementValueCount;++i){
+				int d = 0;
+				tokenizer >> d;
+				elementValDims.push_back(d);
+			}
+		}
+
+		int dim = 0;
+		for(int i=0;i<elementValueCount;++i){
+			kmb::RevocapIOUtils::readOneLine( input, line );
+			if( line == name &&
+				data->getBindingMode() == kmb::DataBindings::ElementVariable &&
+				data->getDimension() == elementValDims[i] ){
+				elementValueOffset = dim;
+				dataDim = elementValDims[i];
+			}
+			dim += elementValDims[i];
+		}
+
+		kmb::elementIdType elementId = kmb::Element::nullElementId;
+		std::istringstream tokenizer;
+		double* v = new double[dim];
+		for(int i=0;i<elementCount;++i){
+			kmb::RevocapIOUtils::readOneLine( input, line );
+			tokenizer.str(line);
+			tokenizer >> elementId;
+			kmb::RevocapIOUtils::readOneLine( input, line );
+			tokenizer.str(line);
+			tokenizer.clear();
+			for(int j=0;j<dim;++j){
+				if( tokenizer.eof() ){
+					kmb::RevocapIOUtils::readOneLine( input, line );
+					tokenizer.str(line);
+					tokenizer.clear();
+				}
+				tokenizer >> v[j];
+			}
+			if( elementValueOffset >= 0 ){
+				data->setPhysicalValue( elementId, &v[elementValueOffset] );
+			}
+		}
+		delete[] v;
+	}
+	input.close();
+	return 0;
+}
+
+int
+kmb::HecmwIO::loadFromResAsciiFile(const char* filename,kmb::MeshData* mesh) const
+{
 	if( mesh == NULL ){
 		return -1;
 	}
@@ -1003,7 +1341,9 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 	std::string line;
 
 	if( std::getline( input, line ) ){
-		if( line.find( resheader) != 0 ){
+		if( line.find( resHeader) != 0 ){
+			std::cout << "Warning Hecmw Result file format error." << std::endl;
+			input.close();
 			return -1;
 		}
 	}else{
@@ -1022,6 +1362,7 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 		tokenizer >> elementValueCount;
 	}
 	mesh->clearTargetData();
+	std::cout << "nodeValueCount " << nodeValueCount << std::endl;
 	if( nodeValueCount > 0 ){
 
 		if( std::getline( input, line ) ){
@@ -1035,43 +1376,43 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 
 		int dim = 0;
 		for(int i=0;i<nodeValueCount;++i){
-			std::getline( input, line );
+			kmb::RevocapIOUtils::readOneLine( input, line );
 			switch( nodeValDims[i] ){
 				case 1:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 1;
 					break;
 				case 2:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector2, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 2;
 					break;
 				case 3:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector3, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 3;
 					break;
 				case 6:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 6;
 					break;
 				case 7:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					if( !mesh->hasData( "MISES" ) ){
-						mesh->createDataBindings( "MISES", kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+						mesh->createDataBindings( "MISES", kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
 					}
 					mesh->appendTargetData( "MISES" );
 					dim += 7;
@@ -1081,19 +1422,21 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 			}
 		}
 
+		std::cout << "nodeCount " << nodeCount << " dim " << dim << std::endl;
 		kmb::nodeIdType nodeId = kmb::nullNodeId;
 		std::istringstream tokenizer;
 		double* v = new double[dim];
 		for(int i=0;i<nodeCount;++i){
-			std::getline( input, line );
+			kmb::RevocapIOUtils::readOneLine( input, line );
 			tokenizer.str(line);
+			tokenizer.clear();
 			tokenizer >> nodeId;
-			std::getline( input, line );
+			kmb::RevocapIOUtils::readOneLine( input, line );
 			tokenizer.str(line);
 			tokenizer.clear();
 			for(int j=0;j<dim;++j){
 				if( tokenizer.eof() ){
-					std::getline( input, line );
+					kmb::RevocapIOUtils::readOneLine( input, line );
 					tokenizer.str(line);
 					tokenizer.clear();
 				}
@@ -1104,6 +1447,7 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 		delete[] v;
 	}
 	mesh->clearTargetData();
+	std::cout << "elementValueCount " << elementValueCount << std::endl;
 	if( elementValueCount > 0 && this->resElementFlag ){
 
 		if( std::getline( input, line ) ){
@@ -1117,43 +1461,43 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 
 		int dim = 0;
 		for(int i=0;i<elementValueCount;++i){
-			std::getline( input, line );
+			kmb::RevocapIOUtils::readOneLine( input, line );
 			switch( elementValDims[i] ){
 				case 1:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 1;
 					break;
 				case 2:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector2, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 2;
 					break;
 				case 3:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector3, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 3;
 					break;
 				case 6:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					dim += 6;
 					break;
 				case 7:
 					if( !mesh->hasData( line.c_str() ) ){
-						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+						mesh->createDataBindings( line.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
 					}
 					mesh->appendTargetData( line.c_str() );
 					if( !mesh->hasData( "EMISES" ) ){
-						mesh->createDataBindings( "EMISES", kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+						mesh->createDataBindings( "EMISES", kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
 					}
 					mesh->appendTargetData( "EMISES" );
 					dim += 7;
@@ -1167,15 +1511,16 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 		std::istringstream tokenizer;
 		double* v = new double[dim];
 		for(int i=0;i<elementCount;++i){
-			std::getline( input, line );
+			kmb::RevocapIOUtils::readOneLine( input, line );
 			tokenizer.str(line);
+			tokenizer.clear();
 			tokenizer >> elementId;
-			std::getline( input, line );
+			kmb::RevocapIOUtils::readOneLine( input, line );
 			tokenizer.str(line);
 			tokenizer.clear();
 			for(int j=0;j<dim;++j){
 				if( tokenizer.eof() ){
-					std::getline( input, line );
+					kmb::RevocapIOUtils::readOneLine( input, line );
 					tokenizer.str(line);
 					tokenizer.clear();
 				}
@@ -1185,6 +1530,193 @@ kmb::HecmwIO::loadFromResFile(const char* filename,kmb::MeshData* mesh) const
 		}
 		delete[] v;
 	}
+	input.close();
+
+	return 0;
+}
+
+int
+kmb::HecmwIO::loadFromResBinFile(const char* filename,kmb::MeshData* mesh) const
+{
+	if( mesh == NULL ){
+		return -1;
+	}
+	std::ifstream input( filename, std::ios_base::in|std::ios_base::binary );
+	if( input.fail() ){
+		return -1;
+	}
+	long nodeCount = 0;
+	long elementCount = 0;
+	long nodeValueCount = 0;
+	long elementValueCount = 0;
+	int dim = 0;
+	std::vector<int> nodeValDims;
+	std::vector<int> elementValDims;
+
+	char buf[64];
+	input.read( buf, 19 );
+	buf[19] = '\0';
+	if( strncmp( "HECMW_BINARY_RESULT", buf, 19 ) != 0 ){
+		input.close();
+		return -1;
+	}
+
+	input.read( buf, 2 );
+	buf[2] = '\0';
+	std::cout << "HECMW BINARY RESULT INTEGERSIZE : " << buf << std::endl;
+
+	input.get( buf, 64, '\0' );
+	if( resHeader != buf ){
+		input.close();
+		return -2;
+	}
+
+	input.read( buf, 1 );
+
+	input.read(reinterpret_cast<char*>(&nodeCount),sizeof(long));
+	input.read(reinterpret_cast<char*>(&elementCount),sizeof(long));
+	input.read(reinterpret_cast<char*>(&nodeValueCount),sizeof(long));
+	input.read(reinterpret_cast<char*>(&elementValueCount),sizeof(long));
+
+
+
+	mesh->clearTargetData();
+	for(int i=0;i<nodeValueCount;++i){
+		long dl = 0;
+		input.read(reinterpret_cast<char*>(&dl),sizeof(long));
+		int d = static_cast<int>(dl);
+		nodeValDims.push_back(d);
+	}
+	dim = 0;
+	for(int i=0;i<nodeValueCount;++i){
+		input.get( buf, 64, '\0' );
+		switch( nodeValDims[i] ){
+			case 1:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 1;
+				break;
+			case 2:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector2, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 2;
+				break;
+			case 3:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector3, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 3;
+				break;
+			case 6:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 6;
+				break;
+			case 7:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
+				}
+				mesh->appendTargetData( buf );
+				if( !mesh->hasData( "MISES" ) ){
+					mesh->createDataBindings( "MISES", kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
+				}
+				mesh->appendTargetData( "MISES" );
+				dim += 7;
+				break;
+			default:
+				break;
+		}
+		input.read( buf, 1 );
+	}
+	if( nodeValueCount > 0 ){
+		kmb::nodeIdType nodeId = kmb::nullNodeId;
+		double* v = new double[dim];
+		for(int i=0;i<nodeCount;++i){
+			long il = 0;
+			input.read(reinterpret_cast<char*>(&il),sizeof(long));
+			nodeId = static_cast<kmb::nodeIdType>(il);
+			input.read(reinterpret_cast<char*>(v),sizeof(double)*dim);
+			mesh->setMultiPhysicalValues( nodeId - this->offsetNodeId, v );
+		}
+		delete[] v;
+	}
+
+
+	mesh->clearTargetData();
+	for(int i=0;i<elementValueCount;++i){
+		long dl = 0;
+		input.read(reinterpret_cast<char*>(&dl),sizeof(long));
+		int d = static_cast<int>(dl);
+		elementValDims.push_back(d);
+	}
+	dim = 0;
+	for(int i=0;i<elementValueCount;++i){
+		input.get( buf, 64, '\0' );
+		switch( elementValDims[i] ){
+			case 1:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 1;
+				break;
+			case 2:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector2, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 2;
+				break;
+			case 3:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector3, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 3;
+				break;
+			case 6:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
+				}
+				mesh->appendTargetData( buf );
+				dim += 6;
+				break;
+			case 7:
+				if( !mesh->hasData( buf ) ){
+					mesh->createDataBindings( buf, kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
+				}
+				mesh->appendTargetData( buf );
+				if( !mesh->hasData( "EMISES" ) ){
+					mesh->createDataBindings( "EMISES", kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
+				}
+				mesh->appendTargetData( "EMISES" );
+				dim += 7;
+				break;
+			default:
+				break;
+		}
+		input.read( buf, 1 );
+	}
+	if( elementValueCount > 0 ){
+		kmb::elementIdType elementId = kmb::Element::nullElementId;
+		double* v = new double[dim];
+		for(int i=0;i<elementCount;++i){
+			long il = 0;
+			input.read(reinterpret_cast<char*>(&il),sizeof(long));
+			elementId = static_cast<kmb::elementIdType>(il);
+			input.read(reinterpret_cast<char*>(v),sizeof(double)*dim);
+			mesh->setMultiPhysicalValues( elementId - this->offsetElementId, v );
+		}
+		delete[] v;
+	}
+
 	input.close();
 
 	return 0;
@@ -1207,196 +1739,208 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 		double x,y,z;
 		kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
 		kmb::Point3DContainer::const_iterator nIterEnd = mesh->getNodes()->end();
-		output.setf( std::ios::fixed );
 		while( nIter != nIterEnd ){
 			if( nIter.getXYZ(x,y,z) ){
-				output << std::setw(9) << nIter.getId()+offsetNodeId << ","
-					<< std::setw(15) << x << ","
-					<< std::setw(15) << y << ","
-					<< std::setw(15) << z << std::endl;
+				output << std::setw(9) << nIter.getId()+offsetNodeId << ", "
+					<< std::scientific
+					<< std::setprecision(8)
+					<< x << ", " << y << ", " << z << std::endl;
 			}
 			++nIter;
 		}
+
 		kmb::bodyIdType bodyCount = mesh->getBodyCount();
-		size_t *etypeCount = new size_t[kmb::ELEMENT_TYPE_NUM];
-		for(int i=0;i<kmb::ELEMENT_TYPE_NUM;++i){
-			etypeCount[i]=0;
-		}
+
+
+
 		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body ){
-				for(int i=0;i<kmb::ELEMENT_TYPE_NUM;++i){
-					etypeCount[i] += body->getCountByType( static_cast<kmb::elementType>(i) );
+			if( body && body->getDimension() == 3 && body->getCountByType( kmb::TETRAHEDRON ) > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON );
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
 				}
-			}
-		}
-
-
-		if( etypeCount[ kmb::TETRAHEDRON ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON ) << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::TETRAHEDRON ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << std::endl;
-						}
-						++eIter;
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::TETRAHEDRON ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << std::endl;
 					}
+					++eIter;
 				}
 			}
 		}
 
-		if( etypeCount[ kmb::TETRAHEDRON2 ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON2 ) << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::TETRAHEDRON2 ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << "," <<
-								eIter.getCellId(8)+offsetNodeId << "," <<
-								eIter.getCellId(9)+offsetNodeId << std::endl;
-						}
-						++eIter;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			if( body && body->getDimension() == 3 && body->getCountByType( kmb::TETRAHEDRON2 ) > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON2 );
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::TETRAHEDRON2 ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << "," <<
+							eIter[8]+offsetNodeId << "," <<
+							eIter[9]+offsetNodeId << std::endl;
 					}
+					++eIter;
 				}
 			}
 		}
 
-		if( etypeCount[ kmb::HEXAHEDRON ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON ) << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::HEXAHEDRON ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << std::endl;
-						}
-						++eIter;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			if( body && body->getDimension() == 3 && body->getCountByType( kmb::HEXAHEDRON ) > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON );
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::HEXAHEDRON ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << std::endl;
 					}
+					++eIter;
 				}
 			}
 		}
 
-		if( etypeCount[ kmb::HEXAHEDRON2 ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON2 ) << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::HEXAHEDRON2 ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << "," <<
-								eIter.getCellId(8)+offsetNodeId << "," <<
-								eIter.getCellId(9)+offsetNodeId << "," <<
-								eIter.getCellId(10)+offsetNodeId << "," <<
-								eIter.getCellId(11)+offsetNodeId << "," <<
-								eIter.getCellId(12)+offsetNodeId << "," <<
-								eIter.getCellId(13)+offsetNodeId << "," <<
-								eIter.getCellId(14)+offsetNodeId << "," <<
-								eIter.getCellId(15)+offsetNodeId << "," <<
-								eIter.getCellId(16)+offsetNodeId << "," <<
-								eIter.getCellId(17)+offsetNodeId << "," <<
-								eIter.getCellId(18)+offsetNodeId << "," <<
-								eIter.getCellId(19)+offsetNodeId << std::endl;
-						}
-						++eIter;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			if( body && body->getDimension() == 3 && body->getCountByType( kmb::HEXAHEDRON2 ) > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON2 );
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::HEXAHEDRON2 ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << "," <<
+							eIter[8]+offsetNodeId << "," <<
+							eIter[9]+offsetNodeId << "," <<
+							eIter[10]+offsetNodeId << "," <<
+							eIter[11]+offsetNodeId << "," <<
+							eIter[12]+offsetNodeId << "," <<
+							eIter[13]+offsetNodeId << "," <<
+							eIter[14]+offsetNodeId << "," <<
+							eIter[15]+offsetNodeId << "," <<
+							eIter[16]+offsetNodeId << "," <<
+							eIter[17]+offsetNodeId << "," <<
+							eIter[18]+offsetNodeId << "," <<
+							eIter[19]+offsetNodeId << std::endl;
 					}
+					++eIter;
 				}
 			}
 		}
 
-		if( etypeCount[ kmb::WEDGE ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE ) << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::WEDGE ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << std::endl;
-						}
-						++eIter;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			if( body && body->getDimension() == 3 && body->getCountByType( kmb::WEDGE ) > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE );
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::WEDGE ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << std::endl;
 					}
+					++eIter;
 				}
 			}
 		}
 
-		if( etypeCount[ kmb::WEDGE2 ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE2 ) << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::WEDGE2 ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << "," <<
-								eIter.getCellId(8)+offsetNodeId << "," <<
-								eIter.getCellId(9)+offsetNodeId << "," <<
-								eIter.getCellId(10)+offsetNodeId << "," <<
-								eIter.getCellId(11)+offsetNodeId << "," <<
-								eIter.getCellId(12)+offsetNodeId << "," <<
-								eIter.getCellId(13)+offsetNodeId << "," <<
-								eIter.getCellId(14)+offsetNodeId << std::endl;
-						}
-						++eIter;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			if( body && body->getDimension() == 3 && body->getCountByType( kmb::WEDGE2 ) > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE2 );
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::WEDGE2 ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << "," <<
+							eIter[8]+offsetNodeId << "," <<
+							eIter[9]+offsetNodeId << "," <<
+							eIter[10]+offsetNodeId << "," <<
+							eIter[11]+offsetNodeId << "," <<
+							eIter[12]+offsetNodeId << "," <<
+							eIter[13]+offsetNodeId << "," <<
+							eIter[14]+offsetNodeId << std::endl;
 					}
+					++eIter;
 				}
 			}
 		}
-		delete[] etypeCount;
 
 		output.setf( std::ios::showpoint );
 		output.unsetf( std::ios::fixed );
@@ -1405,16 +1949,21 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 		std::multimap< std::string, kmb::DataBindings*>::const_iterator dEnd = dataBindings.end();
 		bool matflag = false;
 		while( dIter != dEnd ){
-			if( dIter->second && dIter->second->getSpecType() == "Material" && dIter->second->getValueType() == kmb::PhysicalValue::HASH && dIter->second->getIdCount() > 0 ){
-				kmb::HashValue* mat = reinterpret_cast<kmb::HashValue*>( dIter->second->getPhysicalValue() );
+			kmb::HashValue* mat = NULL;
+			if( dIter->second && dIter->second->getSpecType() == "Material" &&
+				dIter->second->getValueType() == kmb::PhysicalValue::Hash &&
+				dIter->second->getIdCount() > 0 &&
+				(mat = dynamic_cast<kmb::HashValue*>( dIter->second->getPhysicalValue() )) != NULL )
+			{
 				switch( this->soltype )
 				{
 				case kmb::HecmwIO::STATIC:
+				case kmb::HecmwIO::NLSTATIC:
 				case kmb::HecmwIO::EIGEN:
 				case kmb::HecmwIO::DYNAMIC:
 					{
 						int item = 0;
-						if( mat->getValue("young") && mat->getValue("poisson") ){
+						if( mat->getValue("youngs") && mat->getValue("poisson") ){
 							++item;
 						}
 						if( mat->getValue("density") ){
@@ -1426,11 +1975,11 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 						if( item > 0 ){
 							output << "!MATERIAL, NAME=" << dIter->first << ", ITEM=" << item << std::endl;
 							int index=0;
-							if( mat->getValue("young") && mat->getValue("poisson") ){
+							if( mat->getValue("youngs") && mat->getValue("poisson") ){
 								++index;
 								output << "!ITEM=" << index << ", SUBITEM=2" << std::endl;
 								double young=0.0, poisson=0.0;
-								mat->getValue("young")->getValue(&young);
+								mat->getValue("youngs")->getValue(&young);
 								mat->getValue("poisson")->getValue(&poisson);
 								output << std::setw(8) << young << ", " << std::setw(8) << poisson << std::endl;
 							}
@@ -1543,11 +2092,11 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 			}
 			if( matName.size() != 0 ){
 				const kmb::PhysicalValue* v = mesh->getPhysicalValueAtId( "SECTION", bodyId, "SECTION" );
-				if( v && v->getType() == kmb::PhysicalValue::HASH ){
+				if( v && v->getType() == kmb::PhysicalValue::Hash ){
 					const kmb::HashValue* h = reinterpret_cast< const kmb::HashValue* >(v);
 					kmb::PhysicalValue* u = NULL;
 					u = h->getValue("TYPE");
-					if( u != NULL && u->getType() == kmb::PhysicalValue::STRING ){
+					if( u != NULL && u->getType() == kmb::PhysicalValue::String ){
 						output << "!SECTION, TYPE=" << reinterpret_cast<kmb::TextValue*>(u)->getValue() << ", ";
 						if( strlen( mesh->getBodyName(bodyId) ) == 0 ){
 							output << "EGRP=Body_" << bodyId << ", MATERIAL=" << matName << std::endl;
@@ -1555,27 +2104,27 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 							output << "EGRP=" << mesh->getBodyName(bodyId) << ", MATERIAL=" << matName << std::endl;
 						}
 						u = h->getValue("THICKNESS");
-						if( u != NULL && u->getType() == kmb::PhysicalValue::SCALAR ){
+						if( u != NULL && u->getType() == kmb::PhysicalValue::Scalar ){
 							x=0.0;
 							u->getValue(&x);
 							output << x;
 							u = h->getValue("INTEGPOINTS");
-							if( u != NULL && u->getType() == kmb::PhysicalValue::SCALAR ){
+							if( u != NULL && u->getType() == kmb::PhysicalValue::Scalar ){
 								u->getValue(&x);
 								output << ", " << x;
 							}
 							u = h->getValue("GAPCON");
-							if( u != NULL && u->getType() == kmb::PhysicalValue::SCALAR ){
+							if( u != NULL && u->getType() == kmb::PhysicalValue::Scalar ){
 								u->getValue(&x);
 								output << ", " << x;
 							}
 							u = h->getValue("GAPRAD1");
-							if( u != NULL && u->getType() == kmb::PhysicalValue::SCALAR ){
+							if( u != NULL && u->getType() == kmb::PhysicalValue::Scalar ){
 								u->getValue(&x);
 								output << ", " << x;
 							}
 							u = h->getValue("GAPRAD2");
-							if( u != NULL && u->getType() == kmb::PhysicalValue::SCALAR ){
+							if( u != NULL && u->getType() == kmb::PhysicalValue::Scalar ){
 								u->getValue(&x);
 								output << ", " << x;
 							}
@@ -1590,7 +2139,7 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 						output << "EGRP=" << mesh->getBodyName(bodyId) << ", MATERIAL=" << matName << std::endl;
 					}
 				}
-			}else if(dummySectionFlag){
+			}else if( dummySectionFlag && mesh->getDimension(bodyId) == 3 ){
 
 				output << "!SECTION, TYPE=SOLID, ";
 				if( strlen( mesh->getBodyName(bodyId) ) == 0 ){
@@ -1601,31 +2150,13 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 			}
 		}
 
-
-		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body && body->getDimension() == 3 && strcmp( body->getBodyName(), "ALL" ) != 0 )
-			{
-				if( strlen( body->getBodyName() ) == 0 ){
-					output << "!EGROUP, EGRP=Body_" << bodyId << std::endl;
-				}else{
-					output << "!EGROUP, EGRP=" << body->getBodyName() << std::endl;
-				}
-				kmb::ElementContainer::const_iterator eIter = body->begin();
-				while( eIter != body->end() ){
-					output << eIter.getId()+offsetElementId << std::endl;
-					++eIter;
-				}
-			}
-		}
-
 		{
 			std::multimap< std::string, kmb::DataBindings*>::const_iterator egIter = dataBindings.begin();
 			std::multimap< std::string, kmb::DataBindings*>::const_iterator egEnd = dataBindings.end();
 			while( egIter != egEnd ){
 				if( dataFlag )
 				{
-					if( egIter->second->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+					if( egIter->second->getBindingMode() == kmb::DataBindings::ElementGroup ){
 						output << "!EGROUP, EGRP=" << egIter->first << std::endl;
 						kmb::DataBindings::const_iterator eIter = egIter->second->begin();
 						while( !eIter.isFinished() ){
@@ -1649,7 +2180,7 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 					ngIter->second->getSpecType() == "CFLUX" ||
 					ngIter->second->getSpecType() == "TEMPERATURE" )
 				{
-					if( ngIter->second->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+					if( ngIter->second->getBindingMode() == kmb::DataBindings::NodeGroup ){
 						output << "!NGROUP, NGRP=" << ngIter->first << std::endl;
 						kmb::DataBindings::const_iterator ndIter = ngIter->second->begin();
 						while( !ndIter.isFinished() ){
@@ -1677,7 +2208,7 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 
 					sgIter->second->getSpecType() == "COUPLING" )
 				{
-					if( sgIter->second->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+					if( sgIter->second->getBindingMode() == kmb::DataBindings::FaceGroup ){
 						output << "!SGROUP, SGRP=" << sgIter->first << std::endl;
 						kmb::DataBindings::const_iterator fIter = sgIter->second->begin();
 						while( !fIter.isFinished() ){
@@ -1714,29 +2245,29 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 			while( aIter != aEnd ){
 				if( aIter->second->getSpecType() == "AMPLITUDE" )
 				{
-					if( aIter->second->getValueType() == kmb::PhysicalValue::HASH ){
+					if( aIter->second->getValueType() == kmb::PhysicalValue::Hash ){
 						const kmb::HashValue* h = reinterpret_cast< const kmb::HashValue* >( aIter->second );
 						output << "!AMPLITUDE, NAME=" << aIter->first;
 						const kmb::PhysicalValue* d = NULL;
 						d = h->getValue("definition");
-						if( d != NULL && d->getType() == kmb::PhysicalValue::STRING ){
+						if( d != NULL && d->getType() == kmb::PhysicalValue::String ){
 							output << ", DEFINITION=" << reinterpret_cast< const kmb::TextValue* >(d)->getValue();
 						}
 						d = h->getValue("time");
-						if( d != NULL && d->getType() == kmb::PhysicalValue::STRING ){
+						if( d != NULL && d->getType() == kmb::PhysicalValue::String ){
 							output << ", TIME=" << reinterpret_cast< const kmb::TextValue* >(d)->getValue();
 						}
 						d = h->getValue("value");
-						if( d != NULL && d->getType() == kmb::PhysicalValue::STRING ){
+						if( d != NULL && d->getType() == kmb::PhysicalValue::String ){
 							output << ", VALUE=" << reinterpret_cast< const kmb::TextValue* >(d)->getValue();
 						}
 						d = h->getValue("input");
-						if( d != NULL && d->getType() == kmb::PhysicalValue::STRING ){
+						if( d != NULL && d->getType() == kmb::PhysicalValue::String ){
 							output << ", INPUT=" << reinterpret_cast< const kmb::TextValue* >(d)->getValue();
 						}
 						output << std::endl;
 						d = h->getValue("table");
-						if( d != NULL && d->getType() == kmb::PhysicalValue::ARRAY ){
+						if( d != NULL && d->getType() == kmb::PhysicalValue::Array ){
 							const kmb::ArrayValue* a = reinterpret_cast< const kmb::ArrayValue* >(d);
 							size_t num = a->getSize();
 							for(unsigned int i=0;i<num/2;++i){
@@ -1761,15 +2292,15 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 				if( dataFlag ||
 					cIter->second->getSpecType() == "CONTPAIR" )
 				{
-					if( cIter->second->getValueType() == kmb::PhysicalValue::ARRAY &&
+					if( cIter->second->getValueType() == kmb::PhysicalValue::Array &&
 						(ary = reinterpret_cast<kmb::ArrayValue*>(cIter->second->getPhysicalValue())) != NULL )
 					{
 						std::string masterName = reinterpret_cast<kmb::TextValue*>( ary->getValue(0) )->getValue();
 						std::string slaveName = reinterpret_cast<kmb::TextValue*>( ary->getValue(1) )->getValue();
 						kmb::DataBindings* masterData = dataBindings.find( masterName )->second;
 						kmb::DataBindings* slaveData = dataBindings.find( slaveName )->second;
-						if( masterData && masterData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
-							slaveData && slaveData->getBindingMode() == kmb::DataBindings::FACEGROUP )
+						if( masterData && masterData->getBindingMode() == kmb::DataBindings::FaceGroup &&
+							slaveData && slaveData->getBindingMode() == kmb::DataBindings::FaceGroup )
 						{
 							output << "!SGROUP, SGRP=" << masterName << "_CONT_MASTER" << std::endl;
 							kmb::DataBindings::const_iterator fIter = masterData->begin();
@@ -1819,8 +2350,208 @@ kmb::HecmwIO::saveToFile(const char* filename, const kmb::MeshData* mesh) const
 }
 
 int
-kmb::HecmwIO::saveToResFile(const char* filename,const kmb::MeshData* mesh) const
+kmb::HecmwIO::saveToResFile(const char* filename,kmb::MeshData* mesh) const
 {
+	if( mesh == NULL ){
+		return -1;
+	}
+	std::ofstream output( filename, std::ios_base::out|std::ios_base::binary );
+	if( output.fail() ){
+		return -1;
+	}
+	output << "HECMW_BINARY_RESULT";
+	char buf[64];
+	long n;
+	sprintf(buf,"%2lu",sizeof(long));
+	output.write(buf,2);
+	output << this->resHeader << '\0';
+	n = static_cast<long>( mesh->getNodeCount() );
+	output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+	n = static_cast<long>( mesh->getElementCountOfDim(3) );
+	output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+
+	long nodeValueCount = 0;
+	long elementValueCount = 0;
+	std::vector< std::string > nodeValues;
+	std::vector< std::string > elementValues;
+	std::multimap< std::string, kmb::DataBindings* >::const_iterator dIter = mesh->getDataBindingsMap().begin();
+	std::multimap< std::string, kmb::DataBindings* >::const_iterator endIter = mesh->getDataBindingsMap().end();
+	while( dIter != endIter ){
+		kmb::DataBindings* data = dIter->second;
+		if( data ){
+			switch( data->getBindingMode() )
+			{
+			case kmb::DataBindings::NodeVariable:
+				nodeValues.push_back( dIter->first );
+				++nodeValueCount;
+				break;
+			case kmb::DataBindings::ElementVariable:
+				elementValues.push_back( dIter->first );
+				++elementValueCount;
+				break;
+			default:
+				break;
+			}
+		}
+		++dIter;
+	}
+	int dim = 0;
+	mesh->clearTargetData();
+	output.write( reinterpret_cast<char*>(&nodeValueCount), sizeof(long) );
+	output.write( reinterpret_cast<char*>(&elementValueCount), sizeof(long) );
+
+	{
+		std::vector< std::string >::iterator vIter = nodeValues.begin();
+		std::vector< std::string >::iterator endIter = nodeValues.end();
+		while( vIter != endIter ){
+			const kmb::DataBindings* data = mesh->getDataBindingsPtr( vIter->c_str() );
+			if( data ){
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+					n = 1;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				case kmb::PhysicalValue::Vector2:
+					n = 2;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				case kmb::PhysicalValue::Vector3:
+					n = 3;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					n = 6;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				default:
+					break;
+				}
+			}
+			++vIter;
+		}
+	}
+	{
+		std::vector< std::string >::iterator vIter = nodeValues.begin();
+		std::vector< std::string >::iterator endIter = nodeValues.end();
+		while( vIter != endIter ){
+			const kmb::DataBindings* data = mesh->getDataBindingsPtr( vIter->c_str() );
+			if( data ){
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+				case kmb::PhysicalValue::Vector2:
+				case kmb::PhysicalValue::Vector3:
+				case kmb::PhysicalValue::Tensor6:
+					output << *vIter << '\0';
+					mesh->appendTargetData( vIter->c_str() );
+					break;
+				default:
+					break;
+				}
+			}
+			++vIter;
+		}
+	}
+	if( nodeValueCount > 0 ){
+		kmb::nodeIdType nodeId = kmb::nullNodeId;
+		double* v = new double[dim];
+		kmb::Point3DContainer::const_iterator pIter = mesh->getNodes()->begin();
+		while( !pIter.isFinished() ){
+			nodeId = pIter.getId();
+			mesh->getMultiPhysicalValues( nodeId, v );
+			n = static_cast<long>(nodeId + this->offsetNodeId);
+			output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+			output.write( reinterpret_cast<char*>(v), sizeof(double)*dim );
+			++pIter;
+		}
+		delete[] v;
+	}
+	dim = 0;
+	mesh->clearTargetData();
+
+	{
+		std::vector< std::string >::iterator vIter = elementValues.begin();
+		std::vector< std::string >::iterator endIter = elementValues.end();
+		while( vIter != endIter ){
+			const kmb::DataBindings* data = mesh->getDataBindingsPtr( vIter->c_str() );
+			if( data ){
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+					n = 1;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				case kmb::PhysicalValue::Vector2:
+					n = 2;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				case kmb::PhysicalValue::Vector3:
+					n = 3;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					n = 6;
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					dim += n;
+					break;
+				default:
+					break;
+				}
+			}
+			++vIter;
+		}
+	}
+	{
+		std::vector< std::string >::iterator vIter = elementValues.begin();
+		std::vector< std::string >::iterator endIter = elementValues.end();
+		while( vIter != endIter ){
+			const kmb::DataBindings* data = mesh->getDataBindingsPtr( vIter->c_str() );
+			if( data ){
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+				case kmb::PhysicalValue::Vector2:
+				case kmb::PhysicalValue::Vector3:
+				case kmb::PhysicalValue::Tensor6:
+					output << *vIter << '\0';
+					mesh->appendTargetData( vIter->c_str() );
+					break;
+				default:
+					break;
+				}
+			}
+			++vIter;
+		}
+	}
+	if( elementValueCount > 0 ){
+		kmb::elementIdType elementId = kmb::Element::nullElementId;
+		double* v = new double[dim];
+		kmb::bodyIdType bodyCount = mesh->getBodyCount();
+		for(kmb::bodyIdType bodyId=0;bodyId<bodyCount;++bodyId){
+			if( mesh->getDimension(bodyId) == 3 ){
+				const kmb::ElementContainer* body = mesh->getBodyPtr(bodyId);
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( !eIter.isFinished() ){
+					elementId = eIter.getId();
+					mesh->getMultiPhysicalValues( elementId, v );
+					n = static_cast<long>(elementId + this->offsetElementId);
+					output.write( reinterpret_cast<char*>(&n), sizeof(long) );
+					output.write( reinterpret_cast<char*>(v), sizeof(double)*dim );
+					++eIter;
+				}
+			}
+		}
+		delete[] v;
+	}
+	output.close();
 	return 0;
 }
 
@@ -1835,7 +2566,7 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 		if( output.fail() ){
 			return -1;
 		}
-		output << "!HEADER, VER=30" << std::endl;
+		output << "!HEADER, VER=4" << std::endl;
 		output << " HECMW_MSH File generated by REVOCAP" << std::endl;
 		output << "!NODE, PARTNAME=" << partName << ", NUM=" << mesh->getNodeCount() << std::endl;
 		double x,y,z;
@@ -1845,221 +2576,242 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 			output.setf( std::ios::fixed );
 			while( nIter != nIterEnd ){
 				if( nIter.getXYZ(x,y,z) ){
-					output << std::setw(9) << nIter.getId()+offsetNodeId << ","
-						<< std::setw(15) << x << ","
-						<< std::setw(15) << y << ","
-						<< std::setw(15) << z << std::endl;
+					output << std::setw(9) << nIter.getId()+offsetNodeId << ", "
+						<< std::scientific
+						<< std::setprecision(8)
+						<< x << ", " << y << ", " << z << std::endl;
 				}
 				++nIter;
 			}
 		}
+
 		kmb::bodyIdType bodyCount = mesh->getBodyCount();
-		size_t *etypeCount = new size_t[kmb::ELEMENT_TYPE_NUM];
-		for(int i=0;i<kmb::ELEMENT_TYPE_NUM;++i){
-			etypeCount[i]=0;
-		}
-		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body ){
-				for(int i=0;i<kmb::ELEMENT_TYPE_NUM;++i){
-					etypeCount[i] += body->getCountByType( static_cast<kmb::elementType>(i) );
-				}
-			}
-		}
 
-
-		if( etypeCount[ kmb::TETRAHEDRON ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON ) <<
-				", PARTNAME=" << partName << ", NUM=" << etypeCount[ kmb::TETRAHEDRON ] << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::TETRAHEDRON ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << std::endl;
-						}
-						++eIter;
-					}
-				}
-			}
-		}
-
-		if( etypeCount[ kmb::TETRAHEDRON2 ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON2 ) <<
-				", PARTNAME=" << partName << ", NUM=" << etypeCount[ kmb::TETRAHEDRON2 ] << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::TETRAHEDRON2 ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << "," <<
-								eIter.getCellId(8)+offsetNodeId << "," <<
-								eIter.getCellId(9)+offsetNodeId << std::endl;
-						}
-						++eIter;
-					}
-				}
-			}
-		}
-
-		if( etypeCount[ kmb::HEXAHEDRON ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON ) <<
-				", PARTNAME=" << partName << ", NUM=" << etypeCount[ kmb::HEXAHEDRON ] << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::HEXAHEDRON ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << std::endl;
-						}
-						++eIter;
-					}
-				}
-			}
-		}
-
-		if( etypeCount[ kmb::HEXAHEDRON2 ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON2 ) <<
-				", PARTNAME=" << partName << ", NUM=" << etypeCount[ kmb::HEXAHEDRON2 ] << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::HEXAHEDRON2 ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << "," <<
-								eIter.getCellId(8)+offsetNodeId << "," <<
-								eIter.getCellId(9)+offsetNodeId << "," <<
-								eIter.getCellId(10)+offsetNodeId << "," <<
-								eIter.getCellId(11)+offsetNodeId << "," <<
-								eIter.getCellId(12)+offsetNodeId << "," <<
-								eIter.getCellId(13)+offsetNodeId << "," <<
-								eIter.getCellId(14)+offsetNodeId << "," <<
-								eIter.getCellId(15)+offsetNodeId << "," <<
-								eIter.getCellId(16)+offsetNodeId << "," <<
-								eIter.getCellId(17)+offsetNodeId << "," <<
-								eIter.getCellId(18)+offsetNodeId << "," <<
-								eIter.getCellId(19)+offsetNodeId << std::endl;
-						}
-						++eIter;
-					}
-				}
-			}
-		}
-
-		if( etypeCount[ kmb::WEDGE ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE ) <<
-				", PARTNAME=" << partName << ", NUM=" << etypeCount[ kmb::WEDGE ] << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::WEDGE ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << std::endl;
-						}
-						++eIter;
-					}
-				}
-			}
-		}
-
-		if( etypeCount[ kmb::WEDGE2 ] > 0 ){
-			output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE2 ) <<
-				", PARTNAME=" << partName << ", NUM=" << etypeCount[ kmb::WEDGE2 ] << std::endl;
-			for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-				const kmb::Body* body = mesh->getBodyPtr(bodyId);
-				if( body )
-				{
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					while( eIter != body->end() ){
-						if( eIter.getType() == kmb::WEDGE2 ){
-							output << eIter.getId()+offsetElementId << "," <<
-								eIter.getCellId(0)+offsetNodeId << "," <<
-								eIter.getCellId(1)+offsetNodeId << "," <<
-								eIter.getCellId(2)+offsetNodeId << "," <<
-								eIter.getCellId(3)+offsetNodeId << "," <<
-								eIter.getCellId(4)+offsetNodeId << "," <<
-								eIter.getCellId(5)+offsetNodeId << "," <<
-								eIter.getCellId(6)+offsetNodeId << "," <<
-								eIter.getCellId(7)+offsetNodeId << "," <<
-								eIter.getCellId(8)+offsetNodeId << "," <<
-								eIter.getCellId(9)+offsetNodeId << "," <<
-								eIter.getCellId(10)+offsetNodeId << "," <<
-								eIter.getCellId(11)+offsetNodeId << "," <<
-								eIter.getCellId(12)+offsetNodeId << "," <<
-								eIter.getCellId(13)+offsetNodeId << "," <<
-								eIter.getCellId(14)+offsetNodeId << std::endl;
-						}
-						++eIter;
-					}
-				}
-			}
-		}
-		delete[] etypeCount;
-		std::multimap< std::string, kmb::DataBindings*> dataBindings = mesh->getDataBindingsMap();
 
 
 		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body && body->getDimension() == 3 && strcmp( body->getBodyName(), "ALL" ) != 0 )
-			{
-				if( strlen( body->getBodyName() ) == 0 ){
-					output << "!EGROUP, EGRP=Body_" << bodyId <<
-						", PARTNAME=" << partName << ", NUM=" << body->getCount() << std::endl;
+			size_t elemNum = body->getCountByType( kmb::TETRAHEDRON );
+			if( body && body->getDimension() == 3 && elemNum > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON ) <<
+					", PARTNAME=" << partName << ", NUM=" << elemNum;
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
 				}else{
-					output << "!EGROUP, EGRP=" << body->getBodyName() <<
-						", PARTNAME=" << partName << ", NUM=" << body->getCount() << std::endl;
+					output << ", EGRP=" << body->getBodyName() << std::endl;
 				}
 				kmb::ElementContainer::const_iterator eIter = body->begin();
 				while( eIter != body->end() ){
-					output << eIter.getId()+offsetElementId << std::endl;
+					if( eIter.getType() == kmb::TETRAHEDRON ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << std::endl;
+					}
 					++eIter;
 				}
 			}
 		}
+
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			size_t elemNum = body->getCountByType( kmb::TETRAHEDRON2 );
+			if( body && body->getDimension() == 3 && elemNum > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::TETRAHEDRON2 ) <<
+					", PARTNAME=" << partName << ", NUM=" << elemNum;
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::TETRAHEDRON2 ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << "," <<
+							eIter[8]+offsetNodeId << "," <<
+							eIter[9]+offsetNodeId << std::endl;
+					}
+					++eIter;
+				}
+			}
+		}
+
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			size_t elemNum = body->getCountByType( kmb::HEXAHEDRON );
+			if( body && body->getDimension() == 3 && elemNum > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON ) <<
+					", PARTNAME=" << partName << ", NUM=" << elemNum;
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::HEXAHEDRON ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << std::endl;
+					}
+					++eIter;
+				}
+			}
+		}
+
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			size_t elemNum = body->getCountByType( kmb::HEXAHEDRON2 );
+			if( body && body->getDimension() == 3 && elemNum > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::HEXAHEDRON2 ) <<
+					", PARTNAME=" << partName << ", NUM=" << elemNum;
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::HEXAHEDRON2 ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << "," <<
+							eIter[8]+offsetNodeId << "," <<
+							eIter[9]+offsetNodeId << "," <<
+							eIter[10]+offsetNodeId << "," <<
+							eIter[11]+offsetNodeId << "," <<
+							eIter[12]+offsetNodeId << "," <<
+							eIter[13]+offsetNodeId << "," <<
+							eIter[14]+offsetNodeId << "," <<
+							eIter[15]+offsetNodeId << "," <<
+							eIter[16]+offsetNodeId << "," <<
+							eIter[17]+offsetNodeId << "," <<
+							eIter[18]+offsetNodeId << "," <<
+							eIter[19]+offsetNodeId << std::endl;
+					}
+					++eIter;
+				}
+			}
+		}
+
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			size_t elemNum = body->getCountByType( kmb::WEDGE );
+			if( body && body->getDimension() == 3 && elemNum > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE ) <<
+					", PARTNAME=" << partName << ", NUM=" << elemNum;
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::WEDGE ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << std::endl;
+					}
+					++eIter;
+				}
+			}
+		}
+
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			size_t elemNum = body->getCountByType( kmb::WEDGE2 );
+			if( body && body->getDimension() == 3 && elemNum > 0 ){
+				output << "!ELEMENT, TYPE=" << kmb::HecmwIO::getHECType( kmb::WEDGE2 ) <<
+					", PARTNAME=" << partName << ", NUM=" << elemNum;
+				if( strcmp( body->getBodyName(), "ALL" ) == 0 ){
+					output << std::endl;
+				}else if( strlen( body->getBodyName() ) == 0 ){
+					output << ", EGRP=Body_" << bodyId << std::endl;
+				}else{
+					output << ", EGRP=" << body->getBodyName() << std::endl;
+				}
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					if( eIter.getType() == kmb::WEDGE2 ){
+						output << eIter.getId()+offsetElementId << "," <<
+							eIter[0]+offsetNodeId << "," <<
+							eIter[1]+offsetNodeId << "," <<
+							eIter[2]+offsetNodeId << "," <<
+							eIter[3]+offsetNodeId << "," <<
+							eIter[4]+offsetNodeId << "," <<
+							eIter[5]+offsetNodeId << "," <<
+							eIter[6]+offsetNodeId << "," <<
+							eIter[7]+offsetNodeId << "," <<
+							eIter[8]+offsetNodeId << "," <<
+							eIter[9]+offsetNodeId << "," <<
+							eIter[10]+offsetNodeId << "," <<
+							eIter[11]+offsetNodeId << "," <<
+							eIter[12]+offsetNodeId << "," <<
+							eIter[13]+offsetNodeId << "," <<
+							eIter[14]+offsetNodeId << std::endl;
+					}
+					++eIter;
+				}
+			}
+		}
+
+		std::multimap< std::string, kmb::DataBindings*> dataBindings = mesh->getDataBindingsMap();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 		{
 			std::multimap< std::string, kmb::DataBindings*>::const_iterator dIter = dataBindings.begin();
@@ -2067,7 +2819,7 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 			while( dIter != dEnd ){
 				if( dataFlag )
 				{
-					if( dIter->second->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+					if( dIter->second->getBindingMode() == kmb::DataBindings::ElementGroup ){
 						output << "!EGROUP, EGRP=" << dIter->first <<
 							", PARTNAME=" << partName << ", NUM=" << dIter->second->getIdCount() << std::endl;
 						kmb::DataBindings::const_iterator nIter = dIter->second->begin();
@@ -2092,7 +2844,7 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 					dIter->second->getSpecType() == "CFLUX" ||
 					dIter->second->getSpecType() == "TEMPERATURE" )
 				{
-					if( dIter->second->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+					if( dIter->second->getBindingMode() == kmb::DataBindings::NodeGroup ){
 						output << "!NGROUP, NGRP=" << dIter->first <<
 							", PARTNAME=" << partName << ", NUM=" << dIter->second->getIdCount() << std::endl;
 						kmb::DataBindings::const_iterator nIter = dIter->second->begin();
@@ -2122,7 +2874,7 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 
 					dIter->second->getSpecType() == "COUPLING" )
 				{
-					if( dIter->second->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+					if( dIter->second->getBindingMode() == kmb::DataBindings::FaceGroup ){
 						output << "!SGROUP, SGRP=" << dIter->first <<
 							", PARTNAME=" << partName << ", NUM=" << dIter->second->getIdCount() << std::endl;
 						kmb::DataBindings::const_iterator fIter = dIter->second->begin();
@@ -2165,15 +2917,15 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 				if( dataFlag ||
 					dIter->second->getSpecType() == "CONTPAIR" )
 				{
-					if( dIter->second->getValueType() == kmb::PhysicalValue::ARRAY &&
+					if( dIter->second->getValueType() == kmb::PhysicalValue::Array &&
 						(ary = reinterpret_cast<kmb::ArrayValue*>(dIter->second->getPhysicalValue())) != NULL )
 					{
 						std::string masterName = reinterpret_cast<kmb::TextValue*>( ary->getValue(0) )->getValue();
 						std::string slaveName = reinterpret_cast<kmb::TextValue*>( ary->getValue(1) )->getValue();
 						kmb::DataBindings* masterData = dataBindings.find( masterName )->second;
 						kmb::DataBindings* slaveData = dataBindings.find( slaveName )->second;
-						if( masterData && masterData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
-							slaveData && slaveData->getBindingMode() == kmb::DataBindings::FACEGROUP )
+						if( masterData && masterData->getBindingMode() == kmb::DataBindings::FaceGroup &&
+							slaveData && slaveData->getBindingMode() == kmb::DataBindings::FaceGroup )
 						{
 							output << "!SGROUP, SGRP=" << masterName << "_CONT_MASTER" <<
 								", PARTNAME=" << partName << ", NUM=" << masterData->getIdCount() << std::endl;
@@ -2211,7 +2963,7 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 								output << nodeId+offsetNodeId << std::endl;
 								++nIter;
 							}
-							output << "!CONTACTPAIR, NAME=" << dIter->first << ", NUM=1" << std::endl;
+							output << "!CONTACT_PAIR, NAME=" << dIter->first << ", NUM=1" << std::endl;
 							output << slaveName << "_CONT_SLAVE, " << masterName << "_CONT_MASTER, " <<
 								partName << ", " << partName << std::endl;
 						}
@@ -2232,15 +2984,15 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 				if( dataFlag ||
 					dIter->second->getSpecType() == "ASSEMBLY" )
 				{
-					if( dIter->second->getValueType() == kmb::PhysicalValue::ARRAY &&
+					if( dIter->second->getValueType() == kmb::PhysicalValue::Array &&
 						(ary = reinterpret_cast<kmb::ArrayValue*>(dIter->second->getPhysicalValue())) != NULL )
 					{
 						std::string masterName = reinterpret_cast<kmb::TextValue*>( ary->getValue(0) )->getValue();
 						std::string slaveName = reinterpret_cast<kmb::TextValue*>( ary->getValue(1) )->getValue();
 						kmb::DataBindings* masterData = dataBindings.find( masterName )->second;
 						kmb::DataBindings* slaveData = dataBindings.find( slaveName )->second;
-						if( masterData && masterData->getBindingMode() == kmb::DataBindings::FACEGROUP &&
-							slaveData && slaveData->getBindingMode() == kmb::DataBindings::FACEGROUP )
+						if( masterData && masterData->getBindingMode() == kmb::DataBindings::FaceGroup &&
+							slaveData && slaveData->getBindingMode() == kmb::DataBindings::FaceGroup )
 						{
 							output << "!SGROUP, SGRP=" << masterName << "_ASSEM_MASTER" <<
 								", PARTNAME=" << partName << ", NUM=" << masterData->getIdCount() << std::endl;
@@ -2296,11 +3048,14 @@ kmb::HecmwIO::saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const
 									++fIter;
 								}
 							}
-							int dof_start = 1;
-							int dof_end = 3;
-							output << "!ASSEMBLY PAIR, NAME=" << dIter->first << ", NUM=1" << std::endl;
+							output << "!ASSEMBLY_PAIR, NAME=" << dIter->first << ", NUM=1" << std::endl;
+
+
+
+
+
 							output << slaveName << "_ASSEM_SLAVE, " << masterName << "_ASSEM_MASTER, " <<
-								partName << ", " << partName << ", " << dof_start << ", " << dof_end << std::endl;
+								partName << ", " << partName << std::endl;
 						}
 					}
 				}
@@ -2319,7 +3074,7 @@ kmb::HecmwIO::appendSgroupToFile(const char* filename,const kmb::MeshData* mesh,
 		return -1;
 	}
 	const kmb::DataBindings* data = mesh->getDataBindingsPtr(sgroup,stype);
-	if( data == NULL || data->getBindingMode() != kmb::DataBindings::FACEGROUP ){
+	if( data == NULL || data->getBindingMode() != kmb::DataBindings::FaceGroup ){
 		return -1;
 	}
 	std::ofstream output( filename, std::ios_base::app );
@@ -2376,7 +3131,9 @@ kmb::HecmwIO::appendEquationToFile(const char* filename,const kmb::MeshData* mes
 
 	const kmb::DataBindings* mGroup = mesh->getDataBindingsPtr(master);
 	kmb::FaceBucket fbucket;
-	fbucket.setup(mesh,mGroup);
+	fbucket.setContainer(mesh,mGroup);
+	fbucket.setAutoBucketSize();
+	fbucket.appendAll();
 	std::set< kmb::nodeIdType > nodeset;
 	mesh->getNodeSetFromDataBindings( nodeset, slave );
 	std::set< kmb::nodeIdType >::iterator nIter = nodeset.begin();
@@ -2501,5 +3258,66 @@ kmb::HecmwIO::appendFooterToFile(const char* filename) const
 	output << "!END" << std::endl;
 	output.close();
 	return 0;
+}
+
+int kmb::HecmwIO::tetRmap[] = {3,2,0,1};
+int kmb::HecmwIO::wedRmap[] = {0,1,2,3,4};
+int kmb::HecmwIO::hexRmap[] = {0,1,2,3,4,5};
+int kmb::HecmwIO::pyrRmap[] = {4,0,1,2,3};
+
+int
+kmb::HecmwIO::correctLocalFaceId( kmb::MeshData* mesh, const char* faceName, const char* stype )
+{
+	if( mesh == NULL ){
+		return 0;
+	}
+	kmb::DataBindings* data = mesh->getDataBindingsPtr( faceName, stype );
+	if( data == NULL || data->getBindingMode() != kmb::DataBindings::FaceVariable ){
+		return 0;
+	}
+	kmb::DataBindings* data2 = kmb::DataBindings::createDataBindings(
+		data->getBindingMode(),
+		data->getValueType(),
+		stype, data->getTargetBodyId() );
+
+	int correctCount(0);
+	kmb::Face f;
+	double* v = new double[data->getDimension()];
+	kmb::DataBindings::iterator dIter = data->begin();
+	while( !dIter.isFinished() ){
+		if( dIter.getFace(f) ){
+			kmb::ElementContainer::iterator eIter = mesh->findElement( f.getElementId() );
+			if( !eIter.isFinished() ){
+				switch( eIter.getType() ){
+				case kmb::TETRAHEDRON:
+				case kmb::TETRAHEDRON2:
+					f.setId( eIter.getId(), tetRmap[ f.getLocalFaceId()-1 ] );
+					break;
+				case kmb::HEXAHEDRON:
+				case kmb::HEXAHEDRON2:
+					f.setId( eIter.getId(), hexRmap[ f.getLocalFaceId()-1 ] );
+					break;
+				case kmb::WEDGE:
+				case kmb::WEDGE2:
+					f.setId( eIter.getId(), wedRmap[ f.getLocalFaceId()-1 ] );
+					break;
+				case kmb::PYRAMID:
+				case kmb::PYRAMID2:
+					f.setId( eIter.getId(), pyrRmap[ f.getLocalFaceId()-1 ] );
+					break;
+				default:
+					break;
+				}
+			}
+			dIter.getValue(v);
+			data2->setPhysicalValue( f, v );
+			++correctCount;
+		}
+		++dIter;
+	}
+	mesh->replaceData( data, data2, faceName, stype );
+	delete data;
+	delete[] v;
+	return correctCount;
 }
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TriangleList                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -57,6 +57,7 @@ public:
 		virtual kmb::elementIdType getId(void) const;
 		virtual bool getElement(kmb::elementType &etype,kmb::nodeIdType *nodes) const;
 		virtual kmb::Element* getElement(void);
+		virtual const kmb::Element* getElement(void) const;
 		virtual kmb::elementType getType(void) const;
 		virtual kmb::nodeIdType getCellId(int cellIndex) const;
 		virtual bool setCellId(int cellIndex, kmb::nodeIdType nodeId);

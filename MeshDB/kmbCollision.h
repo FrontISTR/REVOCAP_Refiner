@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Collision                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -35,13 +35,15 @@ public:
 	Collision(kmb::MeshData* mesh);
 	virtual ~Collision(void);
 	void setAccuracy(double acc);
-	double getAccuracy(void);
+	double getAccuracy(void) const;
 
 	double distanceSqPtTri(kmb::nodeIdType nodeId,kmb::ElementBase& tri,double s[2]) const;
 	double distanceSqPtQuad(kmb::Point3D& pt,kmb::ElementBase& quad) const;
 
 	double distanceSqSegSeg(kmb::nodeIdType a0,kmb::nodeIdType a1,kmb::nodeIdType b0,kmb::nodeIdType b1,double &t1, double &t2) const;
+	double distanceSqSegSeg(kmb::ElementBase& seg0,kmb::ElementBase& seg1,double &t1, double &t2) const;
 	double distanceSegSeg(kmb::nodeIdType a0,kmb::nodeIdType a1,kmb::nodeIdType b0,kmb::nodeIdType b1) const;
+	double distanceSegSeg(kmb::ElementBase& seg0,kmb::ElementBase& seg1) const;
 
 	double distanceSqSegTri(kmb::nodeIdType a0,kmb::nodeIdType a1,kmb::ElementBase& tri,double &s,double t[2]) const;
 	double distanceSegTri(kmb::nodeIdType a0,kmb::nodeIdType a1,kmb::ElementBase& tri) const;
@@ -104,9 +106,8 @@ public:
 
 
 	double getNearestFace(kmb::ElementBase& q0,const char* fg,kmb::Face &nearestFace,int &index) const;
-protected:
 
-	double distanceSqPtTri(kmb::Point3D& p0,kmb::Point3D& q0,kmb::Point3D& q1,kmb::Point3D& q2,double s[2]) const;
+
 	double distanceSqSegSeg(kmb::Point3D& p0,kmb::Point3D& p1,kmb::Point3D& q0,kmb::Point3D& q1,double &t1, double &t2) const;
 	double distanceSqSegTri(kmb::Point3D& p0,kmb::Point3D& p1,
 		kmb::Point3D& q0,kmb::Point3D& q1,kmb::Point3D& q2,

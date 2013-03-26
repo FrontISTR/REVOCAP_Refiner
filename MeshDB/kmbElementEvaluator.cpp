@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementEvaluator                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -17,13 +17,14 @@
 
 #include "MeshDB/kmbElementEvaluator.h"
 
-#include "Geometry/kmb_Sphere.h"
-#include "Geometry/kmb_Circle.h"
-#include "Geometry/kmb_Geometry.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Integration.h"
+#include "Common/kmbIntegration.h"
+
+#include "Geometry/kmbSphere.h"
+#include "Geometry/kmbCircle.h"
+#include "Geometry/kmbGeometry.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbPoint2DContainer.h"
+#include "Geometry/kmbPoint3DContainer.h"
 
 #include "MeshDB/kmbSegment.h"
 #include "MeshDB/kmbSegment2.h"
@@ -827,7 +828,6 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 					return -DBL_MAX;
 				}
 			}
-			break;
 		case QUAD:
 		case QUAD2:
 			{
@@ -847,7 +847,6 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 					return -DBL_MAX;
 				}
 			}
-			break;
 		default:
 			break;
 		}
@@ -868,7 +867,6 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 					return -DBL_MAX;
 				}
 			}
-			break;
 		case QUAD:
 		case QUAD2:
 			{
@@ -886,7 +884,89 @@ kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter) const
 					return -DBL_MAX;
 				}
 			}
+		default:
 			break;
+		}
+	}
+	return 0.0;
+}
+
+double
+kmb::ElementEvaluator::getArea(const kmb::ElementBase &eIter,kmb::idType localFaceId) const
+{
+	if( points != NULL ){
+		switch( eIter.getBoundaryType(localFaceId) )
+		{
+		case TRIANGLE:
+		case TRIANGLE2:
+			{
+				kmb::Point3D n0,n1,n2;
+				if( points->getPoint( eIter.getBoundaryCellId(localFaceId,0), n0 )
+				 && points->getPoint( eIter.getBoundaryCellId(localFaceId,1), n1 )
+				 && points->getPoint( eIter.getBoundaryCellId(localFaceId,2), n2 )
+				 )
+				{
+					return kmb::Point3D::area( n0, n1, n2 );
+				}else{
+					return -DBL_MAX;
+				}
+			}
+		case QUAD:
+		case QUAD2:
+			{
+				kmb::Point3D a,b,c,d;
+				if( points->getPoint( eIter.getBoundaryCellId(localFaceId,0), a )
+				 && points->getPoint( eIter.getBoundaryCellId(localFaceId,1), b )
+				 && points->getPoint( eIter.getBoundaryCellId(localFaceId,2), c )
+				 && points->getPoint( eIter.getBoundaryCellId(localFaceId,3), d )
+				)
+				{
+					return 0.5 * (
+						kmb::Point3D::area( a, b, c ) +
+						kmb::Point3D::area( a, c, d ) +
+						kmb::Point3D::area( b, c, d ) +
+						kmb::Point3D::area( b, d, a ) );
+				}else{
+					return -DBL_MAX;
+				}
+			}
+		default:
+			break;
+		}
+	}else if( point2Ds != NULL ){
+		switch( eIter.getBoundaryType(localFaceId) )
+		{
+		case TRIANGLE:
+		case TRIANGLE2:
+			{
+				kmb::Point2D n0,n1,n2;
+				if( point2Ds->getPoint( eIter.getBoundaryCellId(localFaceId,0), n0 )
+				 && point2Ds->getPoint( eIter.getBoundaryCellId(localFaceId,1), n1 )
+				 && point2Ds->getPoint( eIter.getBoundaryCellId(localFaceId,2), n2 )
+				 )
+				{
+					return kmb::Point2D::area( n0, n1, n2 );
+				}else{
+					return -DBL_MAX;
+				}
+			}
+		case QUAD:
+		case QUAD2:
+			{
+				kmb::Point2D a,b,c,d;
+				if( point2Ds->getPoint( eIter.getBoundaryCellId(localFaceId,0), a )
+				 && point2Ds->getPoint( eIter.getBoundaryCellId(localFaceId,1), b )
+				 && point2Ds->getPoint( eIter.getBoundaryCellId(localFaceId,2), c )
+				 && point2Ds->getPoint( eIter.getBoundaryCellId(localFaceId,3), d )
+				)
+				{
+					return
+						kmb::Point2D::area( a, b, c ) +
+						kmb::Point2D::area( a, c, d );
+				}else{
+					return -DBL_MAX;
+				}
+			}
 		default:
 			break;
 		}
@@ -913,7 +993,6 @@ kmb::ElementEvaluator::getLength(const kmb::ElementBase &eIter) const
 					return -DBL_MAX;
 				}
 			}
-			break;
 		default:
 			break;
 		}
@@ -933,7 +1012,6 @@ kmb::ElementEvaluator::getLength(const kmb::ElementBase &eIter) const
 					return -DBL_MAX;
 				}
 			}
-			break;
 		default:
 			break;
 		}
@@ -1913,9 +1991,9 @@ kmb::ElementEvaluator::getMinMaxJacobian(const kmb::ElementBase &element, double
 				for(int j=0;j<3;++j){
 					for(int k=0;k<3;++k){
 						bbox.update( kmb::Hexahedron::jacobian(
-							kmb::Integration::GAUSS_POINT3[i],
-							kmb::Integration::GAUSS_POINT3[j],
-							kmb::Integration::GAUSS_POINT3[k], pt) );
+							kmb::Integration::Gauss_Point3[i],
+							kmb::Integration::Gauss_Point3[j],
+							kmb::Integration::Gauss_Point3[k], pt) );
 					}
 				}
 			}
@@ -1933,7 +2011,6 @@ kmb::ElementEvaluator::getMinMaxJacobian(const kmb::ElementBase &element, double
 			max = bbox.getMax();
 			return true;
 		}
-		break;
 	default:
 		break;
 	}
@@ -2109,7 +2186,7 @@ kmb::ElementEvaluator::getDistanceSq(const kmb::ElementBase &element,const doubl
 }
 
 int
-kmb::ElementEvaluator::getDuplicationNodeIdCount(const kmb::ElementBase &element)
+kmb::ElementEvaluator::getDuplicationNodeIdCount(const kmb::ElementBase &element) const
 {
 	int count = 0;
 	int len = element.getNodeCount();

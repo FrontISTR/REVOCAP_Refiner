@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NurbsSurface3D                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,7 +16,7 @@
 
 #include "Shape/kmbSurface3D.h"
 #include "Shape/kmbBSpline.h"
-#include "Geometry/kmb_Geometry4D.h"
+#include "Geometry/kmbGeometry4D.h"
 #include <vector>
 
 namespace kmb{
@@ -28,6 +28,9 @@ private:
 	unsigned int uOrder, vOrder;
 	kmb::BSpline uBspline, vBspline;
 	std::vector< kmb::Point4D > ctrlPts;
+#ifdef _DEBUG
+	static int calcCount;
+#endif
 public:
 	NurbsSurface3D(void);
 	virtual ~NurbsSurface3D(void);

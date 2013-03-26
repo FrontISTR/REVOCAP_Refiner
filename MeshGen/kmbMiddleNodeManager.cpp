@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MiddleNodeManager                                       #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -15,9 +15,10 @@
 
 #include "MeshGen/kmbMiddleNodeManager.h"
 
-#include "Geometry/kmb_Point3DContainer.h"
+#include "Geometry/kmbPoint3DContainer.h"
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbPyramid2.h"
+#include "MeshGen/kmbMeshSmoother.h"
 
 kmb::MiddleNodeManager::MiddleNodeManager(void)
 : points(NULL)
@@ -42,7 +43,7 @@ kmb::MiddleNodeManager::setNodeContainer(kmb::Point3DContainer* points)
 }
 
 kmb::nodeIdType
-kmb::MiddleNodeManager::isDivided(kmb::nodeIdType a,kmb::nodeIdType b)
+kmb::MiddleNodeManager::isDivided(kmb::nodeIdType a,kmb::nodeIdType b) const
 {
 	if( a == kmb::nullNodeId || b == kmb::nullNodeId ){
 		return kmb::nullNodeId;
@@ -53,7 +54,7 @@ kmb::MiddleNodeManager::isDivided(kmb::nodeIdType a,kmb::nodeIdType b)
 		b = tmp;
 	}
 	kmb::MiddleNodeManager::NodePair pair(a,b);
-	std::map< NodePair, kmb::nodeIdType >::iterator nIter = middlePoints.find( pair );
+	std::map< NodePair, kmb::nodeIdType >::const_iterator nIter = middlePoints.find( pair );
 	if( nIter != middlePoints.end() ){
 		return nIter->second;
 	}
@@ -72,6 +73,19 @@ kmb::MiddleNodeManager::createMiddleNode(kmb::nodeIdType n0, kmb::nodeIdType n1)
 
 kmb::nodeIdType
 kmb::MiddleNodeManager::createMiddleNode3(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2)
+{
+	kmb::Node p0, p1, p2;
+	if( points && points->getPoint(n0,p0) && points->getPoint(n1,p1) && points->getPoint(n2,p2) ){
+		return points->addPoint(
+			(p0.x()+p1.x()+p2.x())/3.0,
+			(p0.y()+p1.y()+p2.y())/3.0,
+			(p0.z()+p1.z()+p2.z())/3.0);
+	}
+	return kmb::nullNodeId;
+}
+
+kmb::nodeIdType
+kmb::MiddleNodeManager::createMiddleNode3s(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2)
 {
 	kmb::Node p0, p1, p2;
 	if( points && points->getPoint(n0,p0) && points->getPoint(n1,p1) ){
@@ -121,6 +135,26 @@ kmb::MiddleNodeManager::createMiddleNode5(kmb::nodeIdType n0, kmb::nodeIdType n1
 		}else{
 			return points->addPoint( 0.5*(p0.x()+p1.x()), 0.5*(p0.y()+p1.y()), 0.5*(p0.z()+p1.z()) );
 		}
+	}
+	return kmb::nullNodeId;
+}
+
+kmb::nodeIdType
+kmb::MiddleNodeManager::createMiddleNode6(kmb::nodeIdType n0, kmb::nodeIdType n1,kmb::nodeIdType n2, kmb::nodeIdType n3,kmb::nodeIdType n4, kmb::nodeIdType n5)
+{
+	kmb::Node p0, p1, p2, p3, p4, p5;
+	if( points &&
+		points->getPoint(n0,p0) &&
+		points->getPoint(n1,p1) &&
+		points->getPoint(n2,p2) &&
+		points->getPoint(n3,p3) &&
+		points->getPoint(n4,p4) &&
+		points->getPoint(n5,p5) )
+	{
+		return points->addPoint(
+			(p0.x()+p1.x()+p2.x()+p3.x()+p4.x()+p5.x())/6.0,
+			(p0.y()+p1.y()+p2.y()+p3.y()+p4.y()+p5.y())/6.0,
+			(p0.z()+p1.z()+p2.z()+p3.z()+p4.z()+p5.z())/6.0);
 	}
 	return kmb::nullNodeId;
 }
@@ -197,7 +231,7 @@ kmb::MiddleNodeManager::getDividedNode3(kmb::nodeIdType a,kmb::nodeIdType b,kmb:
 	if( middleNodeId != kmb::nullNodeId ){
 		return middleNodeId;
 	}
-	middleNodeId = createMiddleNode3(a,b,c);
+	middleNodeId = createMiddleNode3s(a,b,c);
 	if( middleNodeId != kmb::nullNodeId ){
 		if( a < b ){
 			appendMiddleNode( middleNodeId, a, b, elemId );
@@ -288,11 +322,11 @@ kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,kmb::elementIdType 
 	case kmb::SEGMENT:
 	{
 		int minIndex = elem.getIndexMinNodeId();
-		a = elem.getCellId( minIndex );
+		a = elem[minIndex];
 		switch( minIndex )
 		{
-		case 0: b = elem.getCellId(1); break;
-		case 1: b = elem.getCellId(0); break;
+		case 0: b = elem[1]; break;
+		case 1: b = elem[0]; break;
 		default: break;
 		}
 		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
@@ -310,13 +344,13 @@ kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,kmb::elementIdType 
 	case kmb::QUAD2:
 	{
 		int minIndex = elem.getIndexMinNodeId();
-		a = elem.getCellId( minIndex );
+		a = elem[minIndex];
 		switch( minIndex )
 		{
-		case 0: b = elem.getCellId(2); break;
-		case 1: b = elem.getCellId(3); break;
-		case 2: b = elem.getCellId(0); break;
-		case 3: b = elem.getCellId(1); break;
+		case 0: b = elem[2]; break;
+		case 1: b = elem[3]; break;
+		case 2: b = elem[0]; break;
+		case 3: b = elem[1]; break;
 		default: break;
 		}
 		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
@@ -334,17 +368,17 @@ kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,kmb::elementIdType 
 	case kmb::HEXAHEDRON2:
 	{
 		int minIndex = elem.getIndexMinNodeId();
-		a = elem.getCellId( minIndex );
+		a = elem[minIndex];
 		switch( minIndex )
 		{
-		case 0: b = elem.getCellId(6); break;
-		case 1: b = elem.getCellId(7); break;
-		case 2: b = elem.getCellId(4); break;
-		case 3: b = elem.getCellId(5); break;
-		case 4: b = elem.getCellId(2); break;
-		case 5: b = elem.getCellId(3); break;
-		case 6: b = elem.getCellId(0); break;
-		case 7: b = elem.getCellId(1); break;
+		case 0: b = elem[6]; break;
+		case 1: b = elem[7]; break;
+		case 2: b = elem[4]; break;
+		case 3: b = elem[5]; break;
+		case 4: b = elem[2]; break;
+		case 5: b = elem[3]; break;
+		case 6: b = elem[0]; break;
+		case 7: b = elem[1]; break;
 		default: break;
 		}
 		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
@@ -352,6 +386,76 @@ kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,kmb::elementIdType 
 			return middleNodeId;
 		}
 		middleNodeId = createMiddleNode8(elem[0],elem[1],elem[2],elem[3],elem[4],elem[5],elem[6],elem[7]);
+		if( middleNodeId != kmb::nullNodeId ){
+			appendMiddleNode( middleNodeId, a, b, elementId );
+			return middleNodeId;
+		}
+		break;
+	}
+	case kmb::TRIANGLE:
+	{
+		int minIndex = elem.getIndexMinNodeId();
+		a = elem[minIndex];
+		switch( minIndex )
+		{
+		case 0: b = getDividedNode(elem[1],elem[2]); break;
+		case 1: b = getDividedNode(elem[2],elem[0]); break;
+		case 2: b = getDividedNode(elem[0],elem[1]); break;
+		default: break;
+		}
+		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
+		if( middleNodeId != kmb::nullNodeId ){
+			return middleNodeId;
+		}
+		middleNodeId = createMiddleNode3(elem[0],elem[1],elem[2]);
+		if( middleNodeId != kmb::nullNodeId ){
+			appendMiddleNode( middleNodeId, a, b, elementId );
+			return middleNodeId;
+		}
+		break;
+	}
+	case kmb::TETRAHEDRON:
+	{
+		int minIndex = elem.getIndexMinNodeId();
+		a = elem[minIndex];
+		switch( minIndex )
+		{
+		case 0: b = getCenterNode(elem,0,elementId); break;
+		case 1: b = getCenterNode(elem,1,elementId); break;
+		case 2: b = getCenterNode(elem,2,elementId); break;
+		case 3: b = getCenterNode(elem,3,elementId); break;
+		default: break;
+		}
+		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
+		if( middleNodeId != kmb::nullNodeId ){
+			return middleNodeId;
+		}
+		middleNodeId = createMiddleNode4(elem[0],elem[1],elem[2],elem[3]);
+		if( middleNodeId != kmb::nullNodeId ){
+			appendMiddleNode( middleNodeId, a, b, elementId );
+			return middleNodeId;
+		}
+		break;
+	}
+	case kmb::WEDGE:
+	{
+		int minIndex = elem.getIndexMinNodeId();
+		a = elem[minIndex];
+		switch( minIndex )
+		{
+		case 0: b = getDividedNode(elem[4],elem[5]); break;
+		case 1: b = getDividedNode(elem[5],elem[3]); break;
+		case 2: b = getDividedNode(elem[3],elem[4]); break;
+		case 3: b = getDividedNode(elem[1],elem[2]); break;
+		case 4: b = getDividedNode(elem[2],elem[0]); break;
+		case 5: b = getDividedNode(elem[0],elem[1]); break;
+		default: break;
+		}
+		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
+		if( middleNodeId != kmb::nullNodeId ){
+			return middleNodeId;
+		}
+		middleNodeId = createMiddleNode4(elem[0],elem[1],elem[2],elem[3]);
 		if( middleNodeId != kmb::nullNodeId ){
 			appendMiddleNode( middleNodeId, a, b, elementId );
 			return middleNodeId;
@@ -424,6 +528,31 @@ kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,int faceIndex, kmb:
 		}
 		break;
 	}
+	case kmb::TRIANGLE:
+	{
+		int minIndex = elem.getIndexMinNodeIdOfFace(faceIndex);
+		a = elem.getBoundaryCellId( faceIndex, minIndex );
+		switch( minIndex )
+		{
+		case 0: b = getDividedNode(elem.getBoundaryCellId(faceIndex,1),elem.getBoundaryCellId(faceIndex,2)); break;
+		case 1: b = getDividedNode(elem.getBoundaryCellId(faceIndex,2),elem.getBoundaryCellId(faceIndex,0)); break;
+		case 2: b = getDividedNode(elem.getBoundaryCellId(faceIndex,0),elem.getBoundaryCellId(faceIndex,1)); break;
+		default: break;
+		}
+		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
+		if( middleNodeId != kmb::nullNodeId ){
+			return middleNodeId;
+		}
+		middleNodeId = createMiddleNode3(
+			elem.getBoundaryCellId(faceIndex,0),
+			elem.getBoundaryCellId(faceIndex,1),
+			elem.getBoundaryCellId(faceIndex,2));
+		if( middleNodeId != kmb::nullNodeId ){
+			appendMiddleNode( middleNodeId, a, b, elementId );
+			return middleNodeId;
+		}
+		break;
+	}
 	default:
 		break;
 	}
@@ -445,13 +574,13 @@ kmb::MiddleNodeManager::getCenterNode2(kmb::ElementBase &elem,kmb::elementIdType
 	case kmb::QUAD2:
 	{
 		int minIndex = elem.getIndexMinNodeId();
-		a = elem.getCellId( minIndex );
+		a = elem[minIndex];
 		switch( minIndex )
 		{
-		case 0: b = elem.getCellId(2); break;
-		case 1: b = elem.getCellId(3); break;
-		case 2: b = elem.getCellId(0); break;
-		case 3: b = elem.getCellId(1); break;
+		case 0: b = elem[2]; break;
+		case 1: b = elem[3]; break;
+		case 2: b = elem[0]; break;
+		case 3: b = elem[1]; break;
 		default: break;
 		}
 		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
@@ -468,17 +597,17 @@ kmb::MiddleNodeManager::getCenterNode2(kmb::ElementBase &elem,kmb::elementIdType
 	case kmb::HEXAHEDRON2:
 	{
 		int minIndex = elem.getIndexMinNodeId();
-		a = elem.getCellId( minIndex );
+		a = elem[minIndex];
 		switch( minIndex )
 		{
-		case 0: b = elem.getCellId(6); break;
-		case 1: b = elem.getCellId(7); break;
-		case 2: b = elem.getCellId(4); break;
-		case 3: b = elem.getCellId(5); break;
-		case 4: b = elem.getCellId(2); break;
-		case 5: b = elem.getCellId(3); break;
-		case 6: b = elem.getCellId(0); break;
-		case 7: b = elem.getCellId(1); break;
+		case 0: b = elem[6]; break;
+		case 1: b = elem[7]; break;
+		case 2: b = elem[4]; break;
+		case 3: b = elem[5]; break;
+		case 4: b = elem[2]; break;
+		case 5: b = elem[3]; break;
+		case 6: b = elem[0]; break;
+		case 7: b = elem[1]; break;
 		default: break;
 		}
 		kmb::nodeIdType middleNodeId = this->isDivided(a,b);
@@ -590,4 +719,20 @@ kmb::MiddleNodeManager::getOriginalNode(kmb::nodeIdType centerId,kmb::nodeIdType
 	a = kmb::nullNodeId;
 	b = kmb::nullNodeId;
 	return kmb::Element::nullElementId;
+}
+
+int
+kmb::MiddleNodeManager::smoothingMiddleNodes(kmb::MeshSmoother* smoother)
+{
+	if( smoother == NULL ){
+		return 0;
+	}
+	int count = 0;
+	std::map< kmb::nodeIdType, kmb::MiddleNodeManager::originalPair >::iterator iter = originalPoints.begin();
+	while( iter != originalPoints.end() ){
+		kmb::nodeIdType middleNodeId = iter->first;
+		count += smoother->smoothingNode(middleNodeId);
+		++iter;
+	}
+	return count;
 }

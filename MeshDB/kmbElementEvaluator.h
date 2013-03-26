@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementEvaluator                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -25,13 +25,14 @@
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbFace.h"
 #include "MeshDB/kmbElementContainer.h"
-#include "Geometry/kmb_Geometry3D.h"
+#include "Geometry/kmbGeometry3D.h"
 
 namespace kmb{
 
 class Point3DContainer;
 class Point2DContainer;
 class BoundingBox;
+class SquareMatrix;
 
 class ElementEvaluator
 {
@@ -61,6 +62,7 @@ public:
 	double getVolume(kmb::nodeIdType n0,kmb::nodeIdType n1,kmb::nodeIdType n2,kmb::nodeIdType n3) const;
 
 	double getArea(const kmb::ElementBase &eIter) const;
+	double getArea(const kmb::ElementBase &eIter,kmb::idType localFaceId) const;
 
 	double getLength(const kmb::ElementBase &eIter) const;
 
@@ -106,13 +108,17 @@ public:
 	double getCosBetweenElements(const kmb::ElementBase &element0,const kmb::ElementBase &element1) const;
 
 
-	int getConcaveInQuad(const kmb::ElementBase &quad);
+	int getConcaveInQuad(const kmb::ElementBase &quad) const;
 
 
 	bool getMinMaxJacobian(const kmb::ElementBase &element, double &min, double &max) const;
 
 
-	int getDuplicationNodeIdCount(const kmb::ElementBase &element);
+	int getDuplicationNodeIdCount(const kmb::ElementBase &element) const;
+
+
+
+	bool getStiffMatrix(const kmb::ElementBase &element,kmb::SquareMatrix &stiff) const;
 protected:
 	const kmb::Point3DContainer* points;
 	const kmb::Point2DContainer* point2Ds;

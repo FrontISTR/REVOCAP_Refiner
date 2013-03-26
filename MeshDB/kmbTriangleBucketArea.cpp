@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TriangleBucketArea                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,7 +14,8 @@
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbTriangleBucketArea.h"
 #include "MeshDB/kmbElementContainer.h"
-#include "Geometry/kmb_Geometry4D.h"
+#include "Geometry/kmbGeometry4D.h"
+#include "Common/kmbCalculator.h"
 
 kmb::TriangleBucketArea::TriangleBucketArea(void)
 : kmb::Bucket< std::pair<kmb::elementIdType,double> >()
@@ -134,4 +135,93 @@ kmb::TriangleBucketArea::appendAll(void)
 		++eIter;
 	}
 	return count;
+}
+
+bool
+kmb::TriangleBucketArea::getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,double &dist,kmb::elementIdType &tri) const
+{
+	if( points == NULL || elements == NULL || this->getCount(i,j,k) == 0 ){
+		return false;
+	}
+	kmb::Minimizer minimizer;
+	kmb::Node n0, n1, n2;
+	kmb::Bucket< std::pair<kmb::elementIdType,double> >::const_iterator tIter = this->begin(i,j,k);
+	kmb::Bucket< std::pair<kmb::elementIdType,double> >::const_iterator endIter = this->end(i,j,k);
+	while( tIter != endIter ){
+		const kmb::elementIdType t0 = tIter.get().first;
+		kmb::ElementContainer::const_iterator elem = elements->find( t0 );
+		if( !elem.isFinished() ){
+			points->getPoint( elem[0], n0 );
+			points->getPoint( elem[1], n1 );
+			points->getPoint( elem[2], n2 );
+			if( minimizer.update(pt.distanceSqToTriangle(n0,n1,n2)) )
+			{
+				tri = t0;
+			}
+		}
+		++tIter;
+	}
+	dist = minimizer.getMin();
+	return true;
+}
+
+bool
+kmb::TriangleBucketArea::getNearest(double x,double y,double z,double &dist,kmb::elementIdType &tri) const
+{
+	if( points == NULL || elements == NULL ){
+		return false;
+	}
+	kmb::Minimizer minimizer;
+	kmb::Point3D pt(x,y,z);
+	kmb::Node n0, n1, n2;
+	int i0=0,j0=0,k0=0;
+	getSubIndices( x, y, z, i0, j0, k0 );
+	double d = 0.0;
+	kmb::elementIdType t0;
+	if( getNearestInBucket(pt,i0,j0,k0,d,t0) ){
+		minimizer.update( d );
+		tri = t0;
+		int i1=0,j1=0,k1=0,i2=0,j2=0,k2=0;
+		double span = sqrt( minimizer.getMin() );
+		getSubIndices( x-span, y-span, z-span, i1, j1, k1 );
+		getSubIndices( x+span, y+span, z+span, i2, j2, k2 );
+
+		for(int i=i1;i<=i2;++i){
+			for(int j=j1;j<=j2;++j){
+				for(int k=k1;k<=k2;++k){
+					if( i != i0 || j != j0 || k != k0 ){
+						if( getNearestInBucket(pt,i,j,k,d,t0) && minimizer.update(d) ){
+							tri = t0;
+						}
+					}
+				}
+			}
+		}
+	}else{
+
+
+		kmb::BoxRegion box;
+		kmb::Bucket< std::pair<kmb::elementIdType,double> >::const_iterator tIter = this->begin();
+		kmb::Bucket< std::pair<kmb::elementIdType,double> >::const_iterator endIter = this->end();
+		while( tIter != endIter ){
+			if( getSubRegion( tIter.getIndex(), box ) && box.distanceSq( pt ) > minimizer.getMin() ){
+				++tIter;
+				continue;
+			}
+			t0 = tIter.get().first;
+			kmb::ElementContainer::const_iterator elem = elements->find( t0 );
+			if( !elem.isFinished() ){
+				points->getPoint( elem[0], n0 );
+				points->getPoint( elem[1], n1 );
+				points->getPoint( elem[2], n2 );
+				if( minimizer.update(pt.distanceSqToTriangle(n0,n1,n2)) )
+				{
+					tri = t0;
+				}
+			}
+			++tIter;
+		}
+	}
+	dist = sqrt( minimizer.getMin() );
+	return true;
 }

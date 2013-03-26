@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshRefiner                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -82,9 +82,9 @@ public:
 
 	size_t refineBody(const kmb::ElementContainer* orgBody, kmb::ElementContainer* refinedBody);
 
-	kmb::elementType getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* originalNodes);
+	kmb::elementType getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* originalNodes) const;
 
-	kmb::nodeIdType getMiddle(kmb::ElementBase &element);
+	kmb::nodeIdType getMiddle(kmb::ElementBase &element) const;
 
 	void appendData(const char* dataname,const char* stype=NULL);
 	size_t getDataCount(void) const;

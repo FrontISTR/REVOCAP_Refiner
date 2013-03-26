@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : QuadOrientedSet                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -359,7 +359,7 @@ kmb::QuadOrientedSet::getElementNeighbor( const kmb::Quad* quad, kmb::Quad* neig
 
 
 kmb::Quad*
-kmb::QuadOrientedSet::getAdjacent( const kmb::Quad* quad, const int edgeNum, int &adjEdge )
+kmb::QuadOrientedSet::getAdjacent( const kmb::Quad* quad, const int edgeNum, int &adjEdge ) const
 {
 	if( quad == NULL )	return NULL;
 
@@ -392,11 +392,11 @@ kmb::QuadOrientedSet::getAdjacent( const kmb::Quad* quad, const int edgeNum, int
 }
 
 kmb::Quad*
-kmb::QuadOrientedSet::getSharedThreeNodes(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, int& restIndex)
+kmb::QuadOrientedSet::getSharedThreeNodes(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, int& restIndex) const
 {
 	kmb::Quad* quad = NULL;
-	NodeQuadMap::iterator tIter = quads.lower_bound(n0);
-	NodeQuadMap::iterator endIter = quads.upper_bound(n0);
+	NodeQuadMap::const_iterator tIter = quads.lower_bound(n0);
+	NodeQuadMap::const_iterator endIter = quads.upper_bound(n0);
 	while( tIter != endIter ){
 		kmb::Quad* other = tIter->second;
 
@@ -431,8 +431,20 @@ kmb::QuadOrientedSet::beginNodeIterator(void)
 	return this->quads.begin();
 }
 
+kmb::QuadOrientedSet::NodeQuadMap::const_iterator
+kmb::QuadOrientedSet::beginNodeIterator(void) const
+{
+	return this->quads.begin();
+}
+
 kmb::QuadOrientedSet::NodeQuadMap::iterator
 kmb::QuadOrientedSet::findNodeIterator(kmb::nodeIdType nodeId)
+{
+	return this->quads.find(nodeId);
+}
+
+kmb::QuadOrientedSet::NodeQuadMap::const_iterator
+kmb::QuadOrientedSet::findNodeIterator(kmb::nodeIdType nodeId) const
 {
 	return this->quads.find(nodeId);
 }
@@ -443,18 +455,30 @@ kmb::QuadOrientedSet::nextNodeIterator(kmb::nodeIdType nodeId)
 	return this->quads.upper_bound(nodeId);
 }
 
+kmb::QuadOrientedSet::NodeQuadMap::const_iterator
+kmb::QuadOrientedSet::nextNodeIterator(kmb::nodeIdType nodeId) const
+{
+	return this->quads.upper_bound(nodeId);
+}
+
 kmb::QuadOrientedSet::NodeQuadMap::iterator
 kmb::QuadOrientedSet::endNodeIterator(void)
 {
 	return this->quads.end();
 }
 
+kmb::QuadOrientedSet::NodeQuadMap::const_iterator
+kmb::QuadOrientedSet::endNodeIterator(void) const
+{
+	return this->quads.end();
+}
+
 size_t
-kmb::QuadOrientedSet::getNodeCount(void)
+kmb::QuadOrientedSet::getNodeCount(void) const
 {
 	size_t nCount = 0;
-	NodeQuadMap::iterator nIter = beginNodeIterator();
-	NodeQuadMap::iterator endIter = endNodeIterator();
+	NodeQuadMap::const_iterator nIter = beginNodeIterator();
+	NodeQuadMap::const_iterator endIter = endNodeIterator();
 	while( nIter != endIter ){
 		++nCount;
 		nIter = nextNodeIterator( nIter->first );
@@ -533,6 +557,12 @@ kmb::QuadOrientedSet::_iterator::getElement(kmb::elementType &etype,kmb::nodeIdT
 
 kmb::Element*
 kmb::QuadOrientedSet::_iterator::getElement(void)
+{
+	return tIter->second;
+}
+
+const kmb::Element*
+kmb::QuadOrientedSet::_iterator::getElement(void) const
 {
 	return tIter->second;
 }

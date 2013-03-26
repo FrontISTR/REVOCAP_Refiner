@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Curve2D                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,16 +13,41 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "Shape/kmbCurve2D.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbOptimization.h"
 #include <cmath>
 
 kmb::Curve2D::Curve2D(void)
+: epsilon(1.0e-8), iterMax(1000)
 {
 }
 
 kmb::Curve2D::~Curve2D(void)
 {
+}
+
+double
+kmb::Curve2D::getEpsilon(void) const
+{
+	return epsilon;
+}
+
+void
+kmb::Curve2D::setEpsilon(double e)
+{
+	this->epsilon = e;
+}
+
+int
+kmb::Curve2D::getIterMax(void) const
+{
+	return iterMax;
+}
+
+void
+kmb::Curve2D::setIterMax(int m)
+{
+	this->iterMax = m;
 }
 
 #ifdef _MSC_VER
@@ -118,6 +143,8 @@ kmb::Curve2D::getNearest( const kmb::Point2D& point, double &t ) const
 	dist_local distObj( this, point );
 	opt_local optObj( this, point );
 	kmb::Optimization opt;
+	opt.setEpsilon(epsilon);
+	opt.setIterMax(iterMax);
 	double min_t, max_t;
 	getDomain(min_t,max_t);
 	double t0 = 0.0;

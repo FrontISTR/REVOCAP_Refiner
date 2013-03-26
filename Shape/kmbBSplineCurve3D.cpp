@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : BSplineCurve3D                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,6 +16,7 @@
 #include "Shape/kmbBSplineCurve3D.h"
 
 kmb::BSplineCurve3D::BSplineCurve3D(void)
+: kmb::Curve3D()
 {
 }
 

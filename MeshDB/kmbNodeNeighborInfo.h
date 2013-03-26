@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NodeNeighborInfo                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -48,6 +48,8 @@ public:
 	virtual ~NodeNeighborInfo(void);
 
 	void clear(void);
+	bool getIgnoreOrientation(void) const;
+	void setIgnoreOrientation(bool f);
 
 
 private:
@@ -56,9 +58,9 @@ private:
 public:
 	bool appendCoboundary( kmb::elementIdType elementId, const kmb::ElementBase &element );
 	bool appendCoboundary( const kmb::ElementContainer* elements );
-	bool appendCoboundary( kmb::MeshData* mesh );
-	bool appendCoboundary( kmb::DataBindings* data, kmb::ElementContainer* body );
-	bool appendCoboundary( kmb::DataBindings* data, kmb::MeshData* mesh );
+	bool appendCoboundary( const kmb::MeshData* mesh );
+	bool appendCoboundary( const kmb::DataBindings* data, const kmb::ElementContainer* body );
+	bool appendCoboundary( const kmb::DataBindings* data, const kmb::MeshData* mesh );
 
 	bool deleteCoboundary( kmb::elementIdType elementId, const kmb::ElementBase &element );
 
@@ -74,10 +76,10 @@ public:
 
 
 
-	int getElementBoundary( const kmb::ElementBase &element, kmb::elementIdType *boundaries, const kmb::ElementContainer* elements );
+	int getElementBoundary( const kmb::ElementBase &element, kmb::elementIdType *boundaries, const kmb::ElementContainer* elements ) const;
 
 
-	kmb::elementIdType getElementFace( const kmb::ElementBase &element, kmb::idType faceId, const kmb::ElementContainer* elements );
+	kmb::elementIdType getElementFace( const kmb::ElementBase &element, kmb::idType faceId, const kmb::ElementContainer* elements ) const;
 
 
 
@@ -119,23 +121,23 @@ public:
 	};
 
 
-	void getSurroundingElements(kmb::nodeIdType nodeId, std::vector<kmb::elementIdType> &elements);
+	void getSurroundingElements(kmb::nodeIdType nodeId, std::vector<kmb::elementIdType> &elements) const;
 
-	void getSurroundingElementsOf2Node(kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1, std::vector<kmb::elementIdType> &elements);
-
-
-
-	kmb::elementIdType getNextElementAroundNode
-		( kmb::ElementContainer* triangles, kmb::nodeIdType nodeID, kmb::elementIdType elemID, bool clockwise=false);
+	void getSurroundingElementsOf2Node(kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1, std::vector<kmb::elementIdType> &elements) const;
 
 
 
-	void getEndsOfEdge( const kmb::ElementContainer* edges, kmb::nodeIdType& firstID, kmb::nodeIdType& endID );
+	kmb::elementIdType getNextElementAroundNode( kmb::ElementContainer* triangles, kmb::nodeIdType nodeID, kmb::elementIdType elemID, bool clockwise=false) const;
+
+
+
+	void getEndsOfEdge( const kmb::ElementContainer* edges, kmb::nodeIdType& firstID, kmb::nodeIdType& endID ) const;
 
 	NodeNeighbor::iterator beginNodeIterator(void);
 	NodeNeighbor::iterator endNodeIterator(void);
 private:
-	NodeNeighbor	coboundaries;
+	NodeNeighbor coboundaries;
+	bool admitAnti;
 };
 
 }

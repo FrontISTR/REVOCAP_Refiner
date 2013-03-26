@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MicroAVSIO                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,7 +29,7 @@ private:
 		DATA = 0x01,
 		GEOM = 0x02,
 		DATA_GEOM = 0x03,
-		UNDEFINED
+		Undefined
 	};
 	dataType dtype;
 	kmb::nodeIdType nodeOffset;
@@ -47,7 +47,7 @@ protected:
 
 
 
-	int getVersion(std::ifstream &input);
+	int getVersion(std::ifstream &input) const;
 
 	int readHeader(std::ifstream &input);
 	int skipGeom(std::ifstream &input);
@@ -59,8 +59,8 @@ public:
 	MicroAVSIO(void);
 	virtual ~MicroAVSIO(void);
 	int loadFromFile(const char* filename,kmb::MeshData* mesh);
-	int loadPostFromFile(const char* filename,kmb::MeshData* mesh);
 
+	int loadPostFromFile(const char* filename,kmb::MeshData* mesh);
 	int saveToFile(const char* filename,kmb::MeshData* mesh);
 
 	void setReadAsVector3( bool flag );

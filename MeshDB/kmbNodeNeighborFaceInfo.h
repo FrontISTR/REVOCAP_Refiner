@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NodeNeighborFaceInfo                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -60,9 +60,9 @@ private:
 	bool erase( kmb::nodeIdType nodeID, kmb::Face faceID );
 public:
 	bool appendCoboundary( kmb::Face face, const kmb::ElementContainer* body );
-	bool appendCoboundary( kmb::Face face, const kmb::MeshDB* mesh );
+	bool appendCoboundary( kmb::Face face, const kmb::MeshData* mesh );
 	bool appendCoboundary( const kmb::DataBindings* data, const kmb::ElementContainer* body );
-	bool appendCoboundary( const kmb::DataBindings* data, const kmb::MeshDB* mesh );
+	bool appendCoboundary( const kmb::DataBindings* data, const kmb::MeshData* mesh );
 
 	bool deleteCoboundary( kmb::Face face, const kmb::ElementContainer* body );
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,11 +30,13 @@
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbElementContainerMArray.h"
 #include "MeshDB/kmbElementContainerMixedArray.h"
+#ifdef REVOCAP_SUPPORT_DUMP_CONTAINER
 #include "MeshDB/kmbElementContainerMixedOnDisk.h"
+#endif
 #include "MeshDB/kmbElementContainerTriangleArray.h"
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbTetrahedron.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Common/kmbCalculator.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -90,9 +92,11 @@ kmb::ElementContainer::createContainer( const char* containerType, size_t size )
 	else if(0==strcmp(containerType,kmb::ElementContainerMixedArray::CONTAINER_TYPE) ){
 		return new kmb::ElementContainerMixedArray(size);
 	}
+#ifdef REVOCAP_SUPPORT_DUMP_CONTAINER
 	else if(0==strcmp(containerType,kmb::ElementContainerMixedOnDisk::CONTAINER_TYPE) ){
 		return new kmb::ElementContainerMixedOnDisk(static_cast<unsigned long>(size));
 	}
+#endif
 	else if(0==strcmp(containerType,kmb::ElementContainerTriangleArray::CONTAINER_TYPE) ){
 		return new kmb::ElementContainerTriangleArray(size);
 	}
@@ -128,7 +132,7 @@ kmb::ElementContainer::clear(void)
 }
 
 kmb::elementIdType
-kmb::ElementContainer::addElement(kmb::Element* element)
+kmb::ElementContainer::addElement(const kmb::Element* element)
 {
 	kmb::elementIdType elementId = kmb::Element::nullElementId;
 	if( element ){
@@ -146,7 +150,7 @@ kmb::ElementContainer::addElement(kmb::Element* element)
 }
 
 kmb::elementIdType
-kmb::ElementContainer::addElement(kmb::Element* element,const kmb::elementIdType id)
+kmb::ElementContainer::addElement(const kmb::Element* element,const kmb::elementIdType id)
 {
 	kmb::elementIdType elementId = kmb::Element::nullElementId;
 	if( element ){

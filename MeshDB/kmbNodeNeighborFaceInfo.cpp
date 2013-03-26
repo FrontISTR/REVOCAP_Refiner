@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NodeNeighborFaceInfo                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -102,7 +102,7 @@ kmb::NodeNeighborFaceInfo::appendCoboundary( kmb::Face face, const kmb::ElementC
 }
 
 bool
-kmb::NodeNeighborFaceInfo::appendCoboundary( kmb::Face face, const kmb::MeshDB* mesh )
+kmb::NodeNeighborFaceInfo::appendCoboundary( kmb::Face face, const kmb::MeshData* mesh )
 {
 	if( mesh == NULL )
 		return false;
@@ -147,8 +147,8 @@ kmb::NodeNeighborFaceInfo::appendCoboundary( const kmb::DataBindings* data, cons
 	bool retVal = false;
 
 	switch( data->getBindingMode() ){
-	case kmb::DataBindings::FACEVARIABLE:
-	case kmb::DataBindings::FACEGROUP:
+	case kmb::DataBindings::FaceVariable:
+	case kmb::DataBindings::FaceGroup:
 		{
 			kmb::DataBindings::const_iterator dIter = data->begin();
 			kmb::DataBindings::const_iterator dEnd = data->end();
@@ -169,7 +169,7 @@ kmb::NodeNeighborFaceInfo::appendCoboundary( const kmb::DataBindings* data, cons
 }
 
 bool
-kmb::NodeNeighborFaceInfo::appendCoboundary( const kmb::DataBindings* data, const kmb::MeshDB* mesh )
+kmb::NodeNeighborFaceInfo::appendCoboundary( const kmb::DataBindings* data, const kmb::MeshData* mesh )
 {
 	if( mesh == NULL || data == NULL )
 		return false;
@@ -177,8 +177,8 @@ kmb::NodeNeighborFaceInfo::appendCoboundary( const kmb::DataBindings* data, cons
 	const kmb::ElementContainer* body = mesh->getBodyPtr( data->getTargetBodyId() );
 
 	switch( data->getBindingMode() ){
-	case kmb::DataBindings::FACEVARIABLE:
-	case kmb::DataBindings::FACEGROUP:
+	case kmb::DataBindings::FaceVariable:
+	case kmb::DataBindings::FaceGroup:
 		{
 			kmb::DataBindings::const_iterator dIter = data->begin();
 			kmb::DataBindings::const_iterator dEnd = data->end();

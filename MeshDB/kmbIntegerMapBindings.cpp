@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : IntegerMapBindings                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,7 +26,7 @@
 kmb::IntegerMapBindings::IntegerMapBindings(kmb::DataBindings::bindingMode bmode)
 : kmb::DataBindings()
 {
-	this->type = kmb::PhysicalValue::INTEGER;
+	this->type = kmb::PhysicalValue::Integer;
 	this->bMode = bmode;
 }
 
@@ -86,7 +86,7 @@ kmb::IntegerMapBindings::replaceId(kmb::idType old_id,kmb::idType new_id)
 bool
 kmb::IntegerMapBindings::setPhysicalValue(kmb::idType id, kmb::PhysicalValue* val)
 {
-	if( val && 0 <= id && val->getType() == kmb::PhysicalValue::INTEGER ){
+	if( val && 0 <= id && val->getType() == kmb::PhysicalValue::Integer ){
 		mapValues.insert( std::pair<kmb::idType,int>(id,
 			reinterpret_cast< kmb::IntegerValue* >(val)->getValue() ) );
 		delete val;
@@ -104,6 +104,17 @@ kmb::IntegerMapBindings::setPhysicalValue(kmb::idType id, long *value)
 	}
 	return false;
 }
+
+bool
+kmb::IntegerMapBindings::setValue(kmb::idType id, long value,int index)
+{
+	if( index == 0 ){
+		mapValues.insert( std::pair<kmb::idType,int>(id,static_cast<int>(value)) );
+		return true;
+	}
+	return false;
+}
+
 
 bool
 kmb::IntegerMapBindings::getPhysicalValue(kmb::idType id, long *value) const

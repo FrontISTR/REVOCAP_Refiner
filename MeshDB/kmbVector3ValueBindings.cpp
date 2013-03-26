@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Vector3ValueBindings                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,6 +14,8 @@
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbVector3ValueBindings.h"
 #include "MeshDB/kmbPhysicalValue.h"
+
+#include <algorithm>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -29,16 +31,30 @@ kmb::Vector3ValueBindings::Vector3ValueBindings(size_t count,kmb::DataBindings::
 : kmb::DataBindings()
 , size(0)
 , values(NULL)
+, deletable(true)
 {
-	this->type = kmb::PhysicalValue::VECTOR3;
+	this->type = kmb::PhysicalValue::Vector3;
 	this->bMode = bmode;
 	this->size = static_cast<int>( count );
 	values = new double[3*this->size];
+	std::fill(values,values+(3*this->size),0.0);
+}
+
+kmb::Vector3ValueBindings::Vector3ValueBindings(size_t count,double* values,kmb::DataBindings::bindingMode bmode)
+: kmb::DataBindings()
+, size(0)
+, values(NULL)
+, deletable(false)
+{
+	this->type = kmb::PhysicalValue::Vector3;
+	this->bMode = bmode;
+	this->size = static_cast<int>( count );
+	this->values = values;
 }
 
 kmb::Vector3ValueBindings::~Vector3ValueBindings(void)
 {
-	if( values ){
+	if( values && deletable){
 		delete[] values;
 		values = NULL;
 	}
@@ -52,7 +68,7 @@ kmb::Vector3ValueBindings::clear(void)
 bool
 kmb::Vector3ValueBindings::setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val)
 {
-	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::VECTOR3 ){
+	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::Vector3 ){
 		values[3*id  ] = reinterpret_cast< kmb::Vector3Value* >(val)->getValue(0);
 		values[3*id+1] = reinterpret_cast< kmb::Vector3Value* >(val)->getValue(1);
 		values[3*id+2] = reinterpret_cast< kmb::Vector3Value* >(val)->getValue(2);
@@ -82,6 +98,15 @@ kmb::Vector3ValueBindings::setValue(kmb::idType id, double value,int index)
 		return true;
 	}
 	return false;
+}
+
+bool
+kmb::Vector3ValueBindings::scalar(double r)
+{
+	for(int i=0;i<size*3;++i){
+		values[i] *= r;
+	}
+	return true;
 }
 
 kmb::PhysicalValue*

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerNArray                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,7 +27,7 @@
 
 namespace kmb{
 
-class ElementContainerNArray : public ElementContainer
+class ElementContainerNArray : public ElementContainerDirectAccessable
 {
 protected:
 	size_t index;
@@ -81,6 +81,13 @@ public:
 	virtual const_iterator begin(void) const;
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
+
+	kmb::elementType getElementType(kmb::elementIdType id) const;
+
+
+
+	kmb::nodeIdType operator()(kmb::elementIdType elementId,kmb::idType localId) const;
+	kmb::nodeIdType& operator()(kmb::elementIdType elementId,kmb::idType localId);
 };
 
 }

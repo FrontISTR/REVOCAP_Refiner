@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Vector2WithIntBindings                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -50,9 +50,9 @@ public:
 private:
 	std::multimap<T,valueType> mapper;
 public:
-	Vector2WithIntBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE)
+	Vector2WithIntBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable)
 	{
-		this->type = kmb::PhysicalValue::VECTOR2WITHINT;
+		this->type = kmb::PhysicalValue::Vector2withInt;
 		this->bMode = bmode;
 	};
 	virtual ~Vector2WithIntBindings(void){
@@ -64,7 +64,7 @@ public:
 		mapper.clear();
 	};
 	virtual bool setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val){
-		if( val && val->getType() == kmb::PhysicalValue::VECTOR2WITHINT ){
+		if( val && val->getType() == kmb::PhysicalValue::Vector2withInt ){
 			kmb::Vector2WithInt* vec = reinterpret_cast< kmb::Vector2WithInt* >(val);
 			bool res = setValue( static_cast<T>(id), vec->getValue(0), vec->getValue(1), vec->getIValue() );
 			delete val;
@@ -122,6 +122,9 @@ public:
 		}
 		return false;
 	}
+
+
+
 	size_t replaceIds( const std::map<T,T>& iMapper ){
 		size_t count = 0;
 		typename std::multimap<T,valueType> temp;
@@ -133,8 +136,8 @@ public:
 			if( iter != iMapper.end() ){
 				++count;
 				mapper.insert( std::pair<T,valueType>( iter->second, tIter->second ) );
-			}else{
-				mapper.insert( std::pair<T,valueType>( tIter->first, tIter->second ) );
+
+
 			}
 			++tIter;
 		}
@@ -238,6 +241,29 @@ public:
 			}
 		}
 		return count;
+	}
+
+	size_t countId(T t) const{
+		return this->mapper.count(t);
+	}
+
+	bool getValues(T t,double &u,double &v,long &l,size_t index=0) const{
+		std::pair< typename std::multimap<T,valueType>::const_iterator,
+			typename std::multimap<T,valueType>::const_iterator > range = this->mapper.equal_range(t);
+		typename std::multimap<T,valueType>::const_iterator iter = range.first;
+		if( iter == range.second ){
+			return false;
+		}
+		for(size_t i=0;i<index;++i){
+			++iter;
+			if( iter == range.second ){
+				return false;
+			}
+		}
+		u = iter->second.u;
+		v = iter->second.v;
+		l = iter->second.l;
+		return true;
 	}
 };
 

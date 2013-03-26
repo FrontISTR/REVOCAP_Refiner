@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementRelation                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -78,6 +78,10 @@ public:
 	static kmb::ElementRelation::relationType
 		getQuadRelation
 			(int a0,int a1,int a2,int a3,int b0,int b1,int b2,int b3,int &aIndex,int &bIndex);
+
+	static kmb::ElementRelation::relationType
+		getTriangleQuadRelation
+			(int a0,int a1,int a2,int b0,int b1,int b2,int b3,int &aIndex,int &bIndex);
 
 	static kmb::ElementRelation::relationType
 		getTetrahedronRelation

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerMArray                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,10 +13,11 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 
+
 #pragma once
 
 #include "MeshDB/kmbElementContainer.h"
-#include "Geometry/kmb_BLArray.h"
+#include "Common/kmbBLArray.h"
 
 namespace kmb{
 
@@ -49,6 +50,7 @@ public:
 	public:
 		virtual kmb::elementIdType getId(void) const;
 		virtual kmb::Element* getElement(void);
+		virtual const kmb::Element* getElement(void) const;
 		virtual bool getElement(kmb::elementType &etype,kmb::nodeIdType *nodes) const;
 		virtual kmb::elementType getType(void) const;
 		virtual kmb::nodeIdType getCellId(int cellIndex) const;
@@ -69,6 +71,7 @@ public:
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
 protected:
+
 	BLArrayPtr<kmb::Element> elementArray;
 	BLArrayIndex aIndex;
 	size_t count;

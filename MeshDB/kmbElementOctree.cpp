@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementOctree                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -17,8 +17,8 @@
 #include "MeshDB/kmbElementEvaluator.h"
 #include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbTypes.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Geometry3D.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbGeometry3D.h"
 
 
 

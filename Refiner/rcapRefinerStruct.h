@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 1.0                          #
+# Software Name : REVOCAP_Refiner version 1.1                          #
 # Program Name : rcapRefinerStruct                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,7 +16,7 @@
 #define REVOCAP_REFINER_STRUCT_HEADER
 
 #include "rcapRefiner.h"
-#include "Geometry/kmb_idTypes.h"
+#include "Geometry/kmbIdTypes.h"
 
 #include <vector>
 
@@ -25,6 +25,7 @@ namespace kmb{
 	class MeshRefiner;
 	class MiddleNodeManager;
 	class Surface3D;
+	class MeshSmoother;
 }
 
 struct rcapRefinerInfo
@@ -33,6 +34,7 @@ struct rcapRefinerInfo
 	kmb::MeshRefiner* refiner;
 	kmb::MeshRefiner* boundaryRefiner;
 	kmb::MiddleNodeManager* middleMan;
+	kmb::MeshSmoother* smoother;
 	std::vector< kmb::Surface3D* > surfaces;
 	int32_t nodeOffset;
 	int32_t elementOffset;

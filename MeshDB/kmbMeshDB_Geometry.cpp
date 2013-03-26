@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -47,12 +47,13 @@
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbElementEvaluator.h"
 #include "MeshDB/kmbBodyOperation.h"
+#include "MeshDB/kmbNodeEvaluator.h"
 
-#include "Geometry/kmb_Geometry3D.h"
-#include "Geometry/kmb_Sphere.h"
-#include "Geometry/kmb_Circle.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmbGeometry3D.h"
+#include "Geometry/kmbSphere.h"
+#include "Geometry/kmbCircle.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Common/kmbCalculator.h"
 
 #include "MeshDB/kmbTypes.h"
 
@@ -85,9 +86,9 @@ kmb::MeshDB::getAspectRatio(elementIdType elementId,kmb::bodyIdType bodyId) cons
 }
 
 int
-kmb::MeshDB::getEdgeCountOfBody(kmb::bodyIdType bodyID)
+kmb::MeshDB::getEdgeCountOfBody(kmb::bodyIdType bodyId) const
 {
-	kmb::ElementContainer* body = this->getBodyPtr( bodyID );
+	const kmb::ElementContainer* body = this->getBodyPtr( bodyId );
 	if( body ){
 		kmb::BodyOperation bodyOp( this->getNodes() );
 		return static_cast<int>( bodyOp.getEdgesOfBody( body ) );
@@ -97,9 +98,9 @@ kmb::MeshDB::getEdgeCountOfBody(kmb::bodyIdType bodyID)
 }
 
 int
-kmb::MeshDB::getNodeCountOfBody(kmb::bodyIdType bodyID)
+kmb::MeshDB::getNodeCountOfBody(kmb::bodyIdType bodyId) const
 {
-	kmb::ElementContainer* body = this->getBodyPtr( bodyID );
+	const kmb::ElementContainer* body = this->getBodyPtr( bodyId );
 	if( body ){
 		std::set< kmb::nodeIdType > nodes;
 		body->getNodesOfBody( nodes );
@@ -110,9 +111,9 @@ kmb::MeshDB::getNodeCountOfBody(kmb::bodyIdType bodyID)
 }
 
 int
-kmb::MeshDB::getNaturalCoordinates(kmb::bodyIdType bodyId,kmb::elementIdType elementId,double x,double y,double z,double* values)
+kmb::MeshDB::getNaturalCoordinates(kmb::bodyIdType bodyId,kmb::elementIdType elementId,double x,double y,double z,double* values) const
 {
-	kmb::ElementContainer::iterator element = this->findElement(elementId,bodyId);
+	kmb::ElementContainer::const_iterator element = this->findElement(elementId,bodyId);
 	if( !element.isFinished() && values != NULL ){
 		switch( element.getType() ){
 			case kmb::TETRAHEDRON:
@@ -135,9 +136,9 @@ kmb::MeshDB::getNaturalCoordinates(kmb::bodyIdType bodyId,kmb::elementIdType ele
 }
 
 bool
-kmb::MeshDB::getPhysicalCoordinates(bodyIdType bodyId,elementIdType elementId,double s,double t,double u,kmb::Point3D &target)
+kmb::MeshDB::getPhysicalCoordinates(bodyIdType bodyId,elementIdType elementId,double s,double t,double u,kmb::Point3D &target) const
 {
-	kmb::ElementContainer::iterator element = this->findElement(elementId,bodyId);
+	kmb::ElementContainer::const_iterator element = this->findElement(elementId,bodyId);
 	if( !element.isFinished() ){
 		switch( element.getType() ){
 			case kmb::TETRAHEDRON:
@@ -268,7 +269,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 			kmb::NodeNeighborInfo neighborInfo;
 			neighborInfo.appendCoboundary( body );
 			std::vector< kmb::elementIdType > elements;
-			kmb::DataBindings* data = this->createDataBindings("NormalVectorOnNode",kmb::DataBindings::NODEVARIABLE,kmb::PhysicalValue::VECTOR3,"MeshProperty");
+			kmb::DataBindings* data = this->createDataBindings("NormalVectorOnNode",kmb::DataBindings::NodeVariable,kmb::PhysicalValue::Vector3,"MeshProperty");
 			kmb::Point3DContainer::iterator nIter = nodes->begin();
 			while( !nIter.isFinished() ){
 				elements.clear();
@@ -298,11 +299,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body && body->isUniqueDim(3) ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("AspectRatio","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("AspectRatio",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("AspectRatio",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -323,11 +324,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body && body->isUniqueDim(3) ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("ElementVolume","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("ElementVolume",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("ElementVolume",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -348,11 +349,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("MaxEdgeLength","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("MaxEdgeLength",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("MaxEdgeLength",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -373,11 +374,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("AverageEdgeLength","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("AverageEdgeLength",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("AverageEdgeLength",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -398,11 +399,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("EdgeLengthRatio","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("EdgeLengthRatio",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("EdgeLengthRatio",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -423,11 +424,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body && body->getDimension() >= 2 ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("MinAngle","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("MinAngle",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("MinAngle",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -448,11 +449,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body && body->getDimension() >= 2 ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("MaxAngle","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("MaxAngle",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("MaxAngle",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -473,11 +474,11 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		if( body && body->getDimension() >= 2 ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("ConcaveElement","MeshProperty");
 			if( data == NULL ){
-				data = this->createDataBindings("ConcaveElement",kmb::DataBindings::ELEMENTGROUP,kmb::PhysicalValue::NONE,"MeshProperty");
+				data = this->createDataBindings("ConcaveElement",kmb::DataBindings::ElementGroup,kmb::PhysicalValue::None,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTGROUP ||
-				data->getValueType() != kmb::PhysicalValue::NONE )
+				data->getBindingMode() != kmb::DataBindings::ElementGroup ||
+				data->getValueType() != kmb::PhysicalValue::None )
 			{
 				return false;
 			}
@@ -497,13 +498,12 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		kmb::ElementEvaluator evaluator(nodes);
 		if( body && body->getDimension() >= 2 ){
 			kmb::DataBindings* data = this->getDataBindingsPtr("MinJacobian","MeshProperty");
-
 			if( data == NULL ){
-				data = this->createDataBindings("MinJacobian",kmb::DataBindings::ELEMENTVARIABLE,kmb::PhysicalValue::SCALAR,"MeshProperty");
+				data = this->createDataBindings("MinJacobian",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 			}
 			if( data == NULL ||
-				data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-				data->getValueType() != kmb::PhysicalValue::SCALAR )
+				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
 				return false;
 			}
@@ -517,6 +517,12 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 			}
 			return true;
 		}
+	}
+	else if( strcmp(name,"Curvature")==0 ){
+		kmb::NodeEvaluator nevaluator;
+		nevaluator.setMesh(this);
+		this->createDataBindings("Curvature",kmb::DataBindings::NodeVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
+		nevaluator.calcCurvature("Curvature","MeshProperty");
 	}
 	return false;
 }
@@ -555,8 +561,8 @@ kmb::MeshDB::getArea(kmb::bodyIdType bodyId) const
 	if( body && body->isUniqueDim(2) ){
 		const kmb::DataBindings* data = this->getDataBindingsPtr("ElementArea","MeshProperty");
 		if( data != NULL &&
-			data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE &&
-			data->getValueType() != kmb::PhysicalValue::SCALAR )
+			data->getBindingMode() != kmb::DataBindings::ElementVariable &&
+			data->getValueType() != kmb::PhysicalValue::Scalar )
 		{
 			kmb::ElementContainer::const_iterator eIter = body->begin();
 			while( !eIter.isFinished() ){
@@ -589,8 +595,8 @@ kmb::MeshDB::getVolume(kmb::bodyIdType bodyId) const
 	if( body && body->isUniqueDim(3) ){
 		const kmb::DataBindings* data = this->getDataBindingsPtr("ElementVolume","MeshProperty");
 		if( data != NULL &&
-			data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE &&
-			data->getValueType() != kmb::PhysicalValue::SCALAR )
+			data->getBindingMode() != kmb::DataBindings::ElementVariable &&
+			data->getValueType() != kmb::PhysicalValue::Scalar )
 		{
 			kmb::ElementContainer::const_iterator eIter = body->begin();
 			while( !eIter.isFinished() ){
@@ -671,7 +677,7 @@ kmb::MeshDB::getCornerNodeIdOfFaceGroup(const char* faceGroup,kmb::Vector3D dir)
 	const kmb::ElementContainer* elements = NULL;
 	kmb::Face f;
 	if( data &&
-		( data->getBindingMode() == kmb::DataBindings::FACEGROUP || data->getBindingMode() == kmb::DataBindings::FACEVARIABLE ) &&
+		( data->getBindingMode() == kmb::DataBindings::FaceGroup || data->getBindingMode() == kmb::DataBindings::FaceVariable ) &&
 		( elements = this->getBodyPtr( data->getTargetBodyId() ) ) != NULL )
 	{
 		for( kmb::DataBindings::const_iterator fIter = data->begin();

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : BoundaryExtractor                                       #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -55,33 +55,41 @@ protected:
 
 	void eraseFaceMap(kmb::ElementBase &element,kmb::idType faceId,bool reverse=false,const kmb::ElementContainer* elements=NULL);
 
-	void appendElementContainer(kmb::ElementContainer* body);
+	void appendElementContainer(const kmb::ElementContainer* body);
 public:
 	BoundaryExtractor(void);
 	virtual ~BoundaryExtractor(void);
 	void setMesh(kmb::MeshData* mesh);
 	void appendBody(kmb::bodyIdType bodyId);
+
+	void appendUnitBody(const kmb::ElementContainer* body);
+
+
 	void appendData(const char* name);
+	void appendData(const kmb::DataBindings* data);
 	void eraseData(const char* name,bool reverse=false);
 
 
-	kmb::bodyIdType getBoundary(kmb::bodyIdType bodyId);
-	kmb::bodyIdType getBoundary(void);
+	kmb::bodyIdType getBoundary(kmb::bodyIdType bodyId) const;
+	kmb::bodyIdType getBoundary(void) const;
 
-	size_t getBoundary(const kmb::ElementContainer* parent,kmb::ElementContainer* boundary);
-
-	int getBoundaryComponents(kmb::bodyIdType bodyId,kmb::bodyIdType* &boundaryIds);
+	size_t getBoundary(const kmb::ElementContainer* parent,kmb::ElementContainer* boundary) const;
 
 
-	bool getBoundaryFace(kmb::bodyIdType bodyId,const char* name);
+	size_t getBoundaryNodeGroup(const kmb::ElementContainer* parent,kmb::DataBindings* nodeGroup) const;
+
+	int getBoundaryComponents(kmb::bodyIdType bodyId,kmb::bodyIdType* &boundaryIds) const;
 
 
-	bool isClosed(kmb::bodyIdType bodyId);
+	bool getBoundaryFace(kmb::bodyIdType bodyId,const char* name) const;
+
+
+
+	bool isClosed(kmb::bodyIdType bodyId) const;
+
+	bool isClosed(void) const;
 
 	void clear(void);
-
-	void appendUnitBody(const kmb::ElementContainer* body);
-	void appendData(const kmb::DataBindings* data);
 	void eraseData(const kmb::DataBindings* data,bool reverse);
 	void setReverseMode(bool mode);
 	bool getReverseMode(void) const;

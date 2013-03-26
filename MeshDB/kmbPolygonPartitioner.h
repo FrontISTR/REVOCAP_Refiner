@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : PolygonPartitioner                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,10 +26,10 @@
 #pragma once
 
 
-#include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Geometry2D.h"
-#include "Geometry/kmb_Geometry3D.h"
-#include "Geometry/kmb_FramedPlane.h"
+#include "Geometry/kmbPoint2DContainer.h"
+#include "Geometry/kmbGeometry2D.h"
+#include "Geometry/kmbGeometry3D.h"
+#include "Geometry/kmbFramedPlane.h"
 
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbPolygon.h"
@@ -58,7 +58,7 @@ public:
 	void clear(void);
 	void setPoints(const kmb::Point2DContainer* targetPoints);
 	void setInitialPolygon(kmb::ElementContainer* edges);
-	size_t getCount(void);
+	size_t getCount(void) const;
 
 
 	bool partition( kmb::ElementContainer &body );
@@ -70,11 +70,11 @@ private:
 
 
 
-	kmb::elementIdType getNearestSegmentWithSameLevel(kmb::nodeIdType nodeId, bool left=true);
+	kmb::elementIdType getNearestSegmentWithSameLevel(kmb::nodeIdType nodeId, bool left=true) const;
 
 
 
-	kmb::nodeIdType getHelperNode( kmb::nodeIdType nodeID, kmb::elementIdType leftID, kmb::elementIdType rightID, vertexType vType);
+	kmb::nodeIdType getHelperNode( kmb::nodeIdType nodeID, kmb::elementIdType leftID, kmb::elementIdType rightID, vertexType vType) const;
 
 
 	bool triangulateMonotonePolygon(kmb::Polygon* polygon, kmb::ElementContainer &body );
@@ -82,7 +82,7 @@ private:
 	const kmb::Point2DContainer* points;
 	kmb::Polygon* initialPolygon;
 
-	vertexType	getVertexType(kmb::Polygon* polygon,kmb::nodeIdType nodeId);
+	vertexType	getVertexType(kmb::Polygon* polygon,kmb::nodeIdType nodeId) const;
 	static vertexType	getVertexType(const kmb::Point2D& previousPoint,const kmb::Point2D& targetPoint,const kmb::Point2D& nextPoint);
 };
 

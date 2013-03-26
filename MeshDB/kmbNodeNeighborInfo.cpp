@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NodeNeighborInfo                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -33,6 +33,7 @@
 #include "MeshDB/kmbQuad.h"
 
 kmb::NodeNeighborInfo::NodeNeighborInfo(void)
+: coboundaries(), admitAnti(true)
 {
 }
 
@@ -44,6 +45,18 @@ void
 kmb::NodeNeighborInfo::clear(void)
 {
 	coboundaries.clear();
+}
+
+bool
+kmb::NodeNeighborInfo::getIgnoreOrientation(void) const
+{
+	return admitAnti;
+}
+
+void
+kmb::NodeNeighborInfo::setIgnoreOrientation(bool f)
+{
+	admitAnti = f;
 }
 
 bool
@@ -124,13 +137,13 @@ kmb::NodeNeighborInfo::appendCoboundary( const kmb::ElementContainer* elements )
 }
 
 bool
-kmb::NodeNeighborInfo::appendCoboundary( kmb::MeshData* mesh )
+kmb::NodeNeighborInfo::appendCoboundary( const kmb::MeshData* mesh )
 {
 	if( mesh == NULL )
 		return false;
 	const kmb::bodyIdType bodyCount = mesh->getBodyCount();
 	for( kmb::bodyIdType id = 0; id < bodyCount; ++id){
-		kmb::ElementContainer* body = mesh->getBodyPtr( id );
+		const kmb::ElementContainer* body = mesh->getBodyPtr( id );
 		appendCoboundary( body );
 	}
 	return true;
@@ -138,7 +151,7 @@ kmb::NodeNeighborInfo::appendCoboundary( kmb::MeshData* mesh )
 
 
 bool
-kmb::NodeNeighborInfo::appendCoboundary( kmb::DataBindings* data, kmb::MeshData* mesh )
+kmb::NodeNeighborInfo::appendCoboundary( const kmb::DataBindings* data, const kmb::MeshData* mesh )
 {
 	if( mesh == NULL || data == NULL )
 		return false;
@@ -146,11 +159,11 @@ kmb::NodeNeighborInfo::appendCoboundary( kmb::DataBindings* data, kmb::MeshData*
 	kmb::bodyIdType bodyId = data->getTargetBodyId();
 	switch( data->getBindingMode() )
 	{
-	case kmb::DataBindings::ELEMENTVARIABLE:
-	case kmb::DataBindings::ELEMENTGROUP:
+	case kmb::DataBindings::ElementVariable:
+	case kmb::DataBindings::ElementGroup:
 		{
-			kmb::DataBindings::iterator eIter = data->begin();
-			kmb::DataBindings::iterator eEnd = data->end();
+			kmb::DataBindings::const_iterator eIter = data->begin();
+			kmb::DataBindings::const_iterator eEnd = data->end();
 			while( eIter != eEnd ){
 				kmb::elementIdType elementId = static_cast< kmb::elementIdType >( eIter.getId() );
 				kmb::ElementContainer::const_iterator element = mesh->findElement(elementId,bodyId);
@@ -169,21 +182,21 @@ kmb::NodeNeighborInfo::appendCoboundary( kmb::DataBindings* data, kmb::MeshData*
 }
 
 bool
-kmb::NodeNeighborInfo::appendCoboundary( kmb::DataBindings* data, kmb::ElementContainer* body )
+kmb::NodeNeighborInfo::appendCoboundary( const kmb::DataBindings* data, const kmb::ElementContainer* body )
 {
 	if( body == NULL || data == NULL )
 		return false;
 	bool retVal = false;
 	switch( data->getBindingMode() )
 	{
-	case kmb::DataBindings::ELEMENTVARIABLE:
-	case kmb::DataBindings::ELEMENTGROUP:
+	case kmb::DataBindings::ElementVariable:
+	case kmb::DataBindings::ElementGroup:
 		{
-			kmb::DataBindings::iterator eIter = data->begin();
-			kmb::DataBindings::iterator eEnd = data->end();
+			kmb::DataBindings::const_iterator eIter = data->begin();
+			kmb::DataBindings::const_iterator eEnd = data->end();
 			while( eIter != eEnd ){
 				kmb::elementIdType elementId = static_cast< kmb::elementIdType >( eIter.getId() );
-				kmb::ElementContainer::iterator element = body->find(elementId);
+				kmb::ElementContainer::const_iterator element = body->find(elementId);
 				if( !element.isFinished() ){
 					appendCoboundary( elementId, element );
 				}
@@ -263,7 +276,7 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 							kmb::ElementRelation::getRelation( element, index, coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[count] = coElemId;
 							++count;
 						}
@@ -295,7 +308,7 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 							kmb::ElementRelation::getRelation( element, index, coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[count] = coElemId;
 							++count;
 						}
@@ -375,7 +388,7 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 							kmb::ElementRelation::getRelation( element, index, coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[count] = coElemId;
 							++count;
 						}
@@ -407,7 +420,7 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 							kmb::ElementRelation::getRelation( element, index, coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[count] = coElemId;
 							++count;
 						}
@@ -628,12 +641,11 @@ kmb::NodeNeighborInfo::endNodeIterator(void)
 }
 
 void
-kmb::NodeNeighborInfo::getSurroundingElements(kmb::nodeIdType nodeId, std::vector<kmb::elementIdType> &elements)
+kmb::NodeNeighborInfo::getSurroundingElements(kmb::nodeIdType nodeId, std::vector<kmb::elementIdType> &elements) const
 {
 
-	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
-		eIterPair = coboundaries.equal_range( nodeId );
-	NodeNeighbor::iterator eIter = eIterPair.first;
+	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator > eIterPair = coboundaries.equal_range( nodeId );
+	NodeNeighbor::const_iterator eIter = eIterPair.first;
 	while( eIter != eIterPair.second )
 	{
 		elements.push_back( eIter->second );
@@ -642,16 +654,14 @@ kmb::NodeNeighborInfo::getSurroundingElements(kmb::nodeIdType nodeId, std::vecto
 }
 
 void
-kmb::NodeNeighborInfo::getSurroundingElementsOf2Node(kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1, std::vector<kmb::elementIdType> &elements)
+kmb::NodeNeighborInfo::getSurroundingElementsOf2Node(kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1, std::vector<kmb::elementIdType> &elements) const
 {
-	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
-		eIterPair0 = coboundaries.equal_range( nodeId0 );
-	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
-		eIterPair1 = coboundaries.equal_range( nodeId1 );
-	NodeNeighbor::iterator eIter0 = eIterPair0.first;
+	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator > eIterPair0 = coboundaries.equal_range( nodeId0 );
+	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator > eIterPair1 = coboundaries.equal_range( nodeId1 );
+	NodeNeighbor::const_iterator eIter0 = eIterPair0.first;
 	while( eIter0 != eIterPair0.second )
 	{
-		NodeNeighbor::iterator eIter1 = eIterPair1.first;
+		NodeNeighbor::const_iterator eIter1 = eIterPair1.first;
 		while( eIter1 != eIterPair1.second )
 		{
 			if( eIter0->second == eIter1->second ){
@@ -664,20 +674,19 @@ kmb::NodeNeighborInfo::getSurroundingElementsOf2Node(kmb::nodeIdType nodeId0, km
 }
 
 kmb::elementIdType
-kmb::NodeNeighborInfo::getNextElementAroundNode
-( kmb::ElementContainer* triangles, kmb::nodeIdType nodeID, kmb::elementIdType elemID, bool clockwise)
+kmb::NodeNeighborInfo::getNextElementAroundNode( kmb::ElementContainer* triangles, kmb::nodeIdType nodeId, kmb::elementIdType elemId, bool clockwise) const
 {
-	kmb::elementIdType nextElementID = kmb::Element::nullElementId;
-	if( triangles == NULL || nodeID == kmb::nullNodeId || elemID == kmb::Element::nullElementId ||
+	kmb::elementIdType nextElementId = kmb::Element::nullElementId;
+	if( triangles == NULL || nodeId == kmb::nullNodeId || elemId == kmb::Element::nullElementId ||
 		!triangles->isUniqueDim(2) ){
-		return nextElementID;
+		return nextElementId;
 	}
-	kmb::ElementContainer::iterator element = triangles->find( elemID );
+	kmb::ElementContainer::iterator element = triangles->find( elemId );
 
 
-	kmb::NodeNeighbor::iterator eIter = beginIteratorAt(nodeID);
-	kmb::NodeNeighbor::iterator end = endIteratorAt(nodeID);
-	while( eIter != end && nextElementID == kmb::Element::nullElementId ){
+	kmb::NodeNeighbor::const_iterator eIter = beginIteratorAt(nodeId);
+	kmb::NodeNeighbor::const_iterator end = endIteratorAt(nodeId);
+	while( eIter != end && nextElementId == kmb::Element::nullElementId ){
 		kmb::ElementContainer::iterator neighborElement = triangles->find( eIter->second );
 		if( !neighborElement.isFinished() ){
 			int index = -1;
@@ -687,34 +696,34 @@ kmb::NodeNeighborInfo::getNextElementAroundNode
 			if( rel == kmb::ElementRelation::ADJACENT ){
 
 				if( clockwise && element.getType() == kmb::TRIANGLE &&
-					element.getCellId( kmb::Triangle::faceTable[index][0] ) == nodeID )
+					element.getCellId( kmb::Triangle::faceTable[index][0] ) == nodeId )
 				{
-					nextElementID = eIter->second;
+					nextElementId = eIter->second;
 				}
 				else if( !clockwise && element.getType() == kmb::TRIANGLE &&
-					element.getCellId( kmb::Triangle::faceTable[index][1] ) == nodeID )
+					element.getCellId( kmb::Triangle::faceTable[index][1] ) == nodeId )
 				{
-					nextElementID = eIter->second;
+					nextElementId = eIter->second;
 				}
 				else if( clockwise && element.getType() == kmb::QUAD &&
-					element.getCellId( kmb::Quad::faceTable[index][0] ) == nodeID )
+					element.getCellId( kmb::Quad::faceTable[index][0] ) == nodeId )
 				{
-					nextElementID = eIter->second;
+					nextElementId = eIter->second;
 				}
 				else if( !clockwise && element.getType() == kmb::QUAD &&
-					element.getCellId( kmb::Quad::faceTable[index][1] ) == nodeID )
+					element.getCellId( kmb::Quad::faceTable[index][1] ) == nodeId )
 				{
-					nextElementID = eIter->second;
+					nextElementId = eIter->second;
 				}
 			}
 		}
 		++eIter;
 	}
-	return nextElementID;
+	return nextElementId;
 }
 
 void
-kmb::NodeNeighborInfo::getEndsOfEdge( const kmb::ElementContainer* edges, kmb::nodeIdType& firstID, kmb::nodeIdType& endID )
+kmb::NodeNeighborInfo::getEndsOfEdge( const kmb::ElementContainer* edges, kmb::nodeIdType& firstID, kmb::nodeIdType& endID ) const
 {
 	if( edges == NULL || !edges->isUniqueType( kmb::SEGMENT ) )
 	{
@@ -748,7 +757,7 @@ kmb::NodeNeighborInfo::getEndsOfEdge( const kmb::ElementContainer* edges, kmb::n
 }
 
 int
-kmb::NodeNeighborInfo::getElementBoundary( const kmb::ElementBase &element, kmb::elementIdType *boundaries, const kmb::ElementContainer* elements )
+kmb::NodeNeighborInfo::getElementBoundary( const kmb::ElementBase &element, kmb::elementIdType *boundaries, const kmb::ElementContainer* elements ) const
 {
 	int count = 0;
 	if( elements == NULL ){
@@ -765,7 +774,7 @@ kmb::NodeNeighborInfo::getElementBoundary( const kmb::ElementBase &element, kmb:
 }
 
 kmb::elementIdType
-kmb::NodeNeighborInfo::getElementFace( const kmb::ElementBase &element, kmb::idType faceId, const kmb::ElementContainer* elements )
+kmb::NodeNeighborInfo::getElementFace( const kmb::ElementBase &element, kmb::idType faceId, const kmb::ElementContainer* elements ) const
 {
 	if( elements == NULL ){
 		return kmb::Element::nullElementId;
@@ -775,9 +784,8 @@ kmb::NodeNeighborInfo::getElementFace( const kmb::ElementBase &element, kmb::idT
 
 	kmb::nodeIdType nodeID = element.getBoundaryCellId(faceId,0);
 
-	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
-		eIterPair = coboundaries.equal_range( nodeID );
-	NodeNeighbor::iterator eIter = eIterPair.first;
+	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator > eIterPair = coboundaries.equal_range( nodeID );
+	NodeNeighbor::const_iterator eIter = eIterPair.first;
 	while( eIter != eIterPair.second )
 	{
 		kmb::elementIdType coElemId = eIter->second;
@@ -789,7 +797,7 @@ kmb::NodeNeighborInfo::getElementFace( const kmb::ElementBase &element, kmb::idT
 				kmb::ElementRelation::getRelation( element, index, coElement, otherIndex );
 			if( index == faceId &&
 				( rel == kmb::ElementRelation::COBOUNDARY ||
-				  rel == kmb::ElementRelation::ANTICOBOUNDARY ) ){
+				  (admitAnti && rel == kmb::ElementRelation::ANTICOBOUNDARY) ) ){
 				return coElemId;
 			}
 		}

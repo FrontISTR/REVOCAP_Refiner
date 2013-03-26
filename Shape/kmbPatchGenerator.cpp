@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : PatchGenerator                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -20,8 +20,8 @@
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbTriangle.h"
 #include "Shape/kmbShapeData.h"
-#include "Geometry/kmb_Octree.h"
-#include "Geometry/kmb_BoundingBox.h"
+#include "Geometry/kmbOctree.h"
+#include "Geometry/kmbBoundingBox.h"
 
 #include <TopoDS.hxx>
 #include <TopoDS_Face.hxx>
@@ -57,7 +57,7 @@ kmb::PatchGenerator::setDeflection(double d)
 }
 
 double
-kmb::PatchGenerator::getDeflection(void)
+kmb::PatchGenerator::getDeflection(void) const
 {
 	return deflection;
 }
@@ -69,7 +69,7 @@ kmb::PatchGenerator::setIncremental(double d)
 }
 
 double
-kmb::PatchGenerator::getIncremental(void)
+kmb::PatchGenerator::getIncremental(void) const
 {
 	return incremental;
 }
@@ -81,7 +81,7 @@ kmb::PatchGenerator::setTolerance(double d)
 }
 
 double
-kmb::PatchGenerator::getTolerance(void)
+kmb::PatchGenerator::getTolerance(void) const
 {
 	return tolerance;
 }
@@ -104,7 +104,7 @@ bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 
 	kmb::DataBindings* data = mesh.getDataBindingsPtr( "FaceHashCode" );
 	if( data == NULL ){
-		data = mesh.createDataBindings( "FaceHashCode", kmb::DataBindings::BODYVARIABLE, kmb::PhysicalValue::INTEGER );
+		data = mesh.createDataBindings( "FaceHashCode", kmb::DataBindings::BodyVariable, kmb::PhysicalValue::Integer );
 	}
 
 	kmb::OctreePoint3D octree;

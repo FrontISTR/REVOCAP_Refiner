@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Wedge2                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,7 +27,7 @@
 
 #include "MeshDB/kmbTetrahedron.h"
 #include "MeshDB/kmbWedge.h"
-#include "MeshDB/kmbMeshDB.h"
+#include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbElementRelation.h"
 
 /********************************************************************************

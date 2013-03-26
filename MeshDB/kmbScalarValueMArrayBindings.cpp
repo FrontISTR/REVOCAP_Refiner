@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ScalarValueMArrayBindings                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -21,7 +21,7 @@ kmb::ScalarValueMArrayBindings::ScalarValueMArrayBindings(size_t size,kmb::DataB
 , aIndex()
 , count(0)
 {
-	this->type = kmb::PhysicalValue::SCALAR;
+	this->type = kmb::PhysicalValue::Scalar;
 	this->bMode = bmode;
 	vArray.initialize(size);
 	aIndex = vArray.getBLArrayIndex(0);
@@ -35,15 +35,15 @@ kmb::ScalarValueMArrayBindings::~ScalarValueMArrayBindings(void)
 void
 kmb::ScalarValueMArrayBindings::clear(void)
 {
-	vArray.clear();
-	aIndex.clear();
+	vArray.clearData();
+	aIndex = vArray.getBLArrayIndex(0);
 	count = 0;
 }
 
 bool
 kmb::ScalarValueMArrayBindings::setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val)
 {
-	if( val && 0 <= id && val->getType() == kmb::PhysicalValue::SCALAR ){
+	if( val && 0 <= id && val->getType() == kmb::PhysicalValue::Scalar ){
 		kmb::BLArrayIndex ind = vArray.getBLArrayIndex( static_cast<size_t>(id) );
 		double q = reinterpret_cast< kmb::ScalarValue* >(val)->getValue();
 		if( vArray.set( ind, &q ) ){
@@ -90,6 +90,22 @@ kmb::ScalarValueMArrayBindings::setValue(kmb::idType id, double value,int index)
 		}
 	}
 	return false;
+}
+
+bool
+kmb::ScalarValueMArrayBindings::scalar(double r)
+{
+	kmb::BLArrayIndex index;
+	vArray.first(index);
+	while( vArray.valid(index) ){
+		double d(0.0);
+		if( vArray.get(index,&d)){
+			d *= r;
+			vArray.set(index,&d);
+		}
+		++index;
+	}
+	return true;
 }
 
 #ifdef _MSC_VER
@@ -179,7 +195,8 @@ kmb::ScalarValueMArrayBindings::begin(void)
 	_it = new kmb::ScalarValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-		_it->aIndex = this->vArray.getBLArrayIndex(0);
+
+		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::iterator(_it);
 }
@@ -194,7 +211,8 @@ kmb::ScalarValueMArrayBindings::begin(void) const
 	_it = new kmb::ScalarValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-		_it->aIndex = this->vArray.getBLArrayIndex(0);
+
+		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::const_iterator(_it);
 }

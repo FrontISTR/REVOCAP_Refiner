@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : DataBindings                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -39,8 +39,8 @@ const kmb::DataBindings::iterator kmb::DataBindings::endIterator;
 const kmb::DataBindings::const_iterator kmb::DataBindings::endConstIterator;
 
 kmb::DataBindings::DataBindings(void)
-: type(kmb::PhysicalValue::UNKNOWN)
-, bMode(DataBindings::UNKNOWN)
+: type(kmb::PhysicalValue::Unknown)
+, bMode(DataBindings::Unknown)
 , specType("")
 , targetBodyId(kmb::Body::nullBodyId)
 {
@@ -53,187 +53,187 @@ kmb::DataBindings::createDataBindings
 {
 	DataBindings* data = NULL;
 	switch(mode){
-		case NODEGROUP:
+		case NodeGroup:
 			data = new DataBindingsGroup<kmb::nodeIdType>(mode,vType);
 			break;
-		case ELEMENTGROUP:
+		case ElementGroup:
 			data = new DataBindingsGroup<kmb::elementIdType>(mode,vType);
 			break;
-		case FACEGROUP:
+		case FaceGroup:
 			data = new DataBindingsGroup<kmb::Face>(mode,vType);
 			break;
-		case BODYGROUP:
+		case BodyGroup:
 			data = new DataBindingsGroup<kmb::bodyIdType>(mode,vType);
 			break;
-		case NODEVARIABLE:
+		case NodeVariable:
 			switch( vType ){
-			case kmb::PhysicalValue::SCALAR:
+			case kmb::PhysicalValue::Scalar:
 				data = new DataVariable<kmb::nodeIdType,kmb::ScalarValue>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR2:
+			case kmb::PhysicalValue::Vector2:
 				data = new DataVariable<kmb::nodeIdType,kmb::Vector2Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR3:
+			case kmb::PhysicalValue::Vector3:
 				data = new DataVariable<kmb::nodeIdType,kmb::Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR4:
+			case kmb::PhysicalValue::Vector4:
 				data = new DataVariable<kmb::nodeIdType,kmb::Vector4Value>(mode);
 				break;
-			case kmb::PhysicalValue::TENSOR6:
+			case kmb::PhysicalValue::Tensor6:
 				data = new DataVariable<kmb::nodeIdType,kmb::Tensor6Value>(mode);
 				break;
-			case kmb::PhysicalValue::POINT3VECTOR3:
+			case kmb::PhysicalValue::Point3Vector3:
 				data = new DataVariable<kmb::nodeIdType,kmb::Point3Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::INTEGER:
+			case kmb::PhysicalValue::Integer:
 				data = new DataVariable<kmb::nodeIdType,kmb::IntegerValue>(mode);
 				break;
-			case kmb::PhysicalValue::ARRAY:
+			case kmb::PhysicalValue::Array:
 				data = new DataVariable<kmb::nodeIdType,kmb::ArrayValue>(mode);
 				break;
-			case kmb::PhysicalValue::HASH:
+			case kmb::PhysicalValue::Hash:
 				data = new DataVariable<kmb::nodeIdType,kmb::HashValue>(mode);
 				break;
-			case kmb::PhysicalValue::INTHASH:
+			case kmb::PhysicalValue::IntHash:
 				data = new DataVariable<kmb::nodeIdType,kmb::IntHashValue>(mode);
 				break;
-			case kmb::PhysicalValue::STRING:
+			case kmb::PhysicalValue::String:
 				data = new DataVariable<kmb::nodeIdType,kmb::TextValue>(mode);
 				break;
-			case kmb::PhysicalValue::BOOLEAN:
+			case kmb::PhysicalValue::Boolean:
 				data = new DataVariable<kmb::nodeIdType,kmb::BooleanValue>(mode);
 				break;
 			default:
 				break;
 			}
 			break;
-		case ELEMENTVARIABLE:
+		case ElementVariable:
 			switch( vType ){
-			case kmb::PhysicalValue::SCALAR:
+			case kmb::PhysicalValue::Scalar:
 				data = new DataVariable<kmb::elementIdType,kmb::ScalarValue>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR2:
+			case kmb::PhysicalValue::Vector2:
 				data = new DataVariable<kmb::elementIdType,kmb::Vector2Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR3:
+			case kmb::PhysicalValue::Vector3:
 				data = new DataVariable<kmb::elementIdType,kmb::Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR4:
+			case kmb::PhysicalValue::Vector4:
 				data = new DataVariable<kmb::elementIdType,kmb::Vector4Value>(mode);
 				break;
-			case kmb::PhysicalValue::TENSOR6:
+			case kmb::PhysicalValue::Tensor6:
 				data = new DataVariable<kmb::elementIdType,kmb::Tensor6Value>(mode);
 				break;
-			case kmb::PhysicalValue::POINT3VECTOR3:
+			case kmb::PhysicalValue::Point3Vector3:
 				data = new DataVariable<kmb::elementIdType,kmb::Point3Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::INTEGER:
+			case kmb::PhysicalValue::Integer:
 				data = new DataVariable<kmb::elementIdType,kmb::IntegerValue>(mode);
 				break;
-			case kmb::PhysicalValue::ARRAY:
+			case kmb::PhysicalValue::Array:
 				data = new DataVariable<kmb::elementIdType,kmb::ArrayValue>(mode);
 				break;
-			case kmb::PhysicalValue::HASH:
+			case kmb::PhysicalValue::Hash:
 				data = new DataVariable<kmb::elementIdType,kmb::HashValue>(mode);
 				break;
-			case kmb::PhysicalValue::INTHASH:
+			case kmb::PhysicalValue::IntHash:
 				data = new DataVariable<kmb::elementIdType,kmb::IntHashValue>(mode);
 				break;
-			case kmb::PhysicalValue::STRING:
+			case kmb::PhysicalValue::String:
 				data = new DataVariable<kmb::elementIdType,kmb::TextValue>(mode);
 				break;
-			case kmb::PhysicalValue::BOOLEAN:
+			case kmb::PhysicalValue::Boolean:
 				data = new DataVariable<kmb::elementIdType,kmb::BooleanValue>(mode);
 				break;
 			default:
 				break;
 			}
 			break;
-		case BODYVARIABLE:
+		case BodyVariable:
 			switch( vType ){
-			case kmb::PhysicalValue::SCALAR:
+			case kmb::PhysicalValue::Scalar:
 				data = new DataVariable<kmb::bodyIdType,kmb::ScalarValue>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR2:
+			case kmb::PhysicalValue::Vector2:
 				data = new DataVariable<kmb::bodyIdType,kmb::Vector2Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR3:
+			case kmb::PhysicalValue::Vector3:
 				data = new DataVariable<kmb::bodyIdType,kmb::Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR4:
+			case kmb::PhysicalValue::Vector4:
 				data = new DataVariable<kmb::bodyIdType,kmb::Vector4Value>(mode);
 				break;
-			case kmb::PhysicalValue::TENSOR6:
+			case kmb::PhysicalValue::Tensor6:
 				data = new DataVariable<kmb::bodyIdType,kmb::Tensor6Value>(mode);
 				break;
-			case kmb::PhysicalValue::POINT3VECTOR3:
+			case kmb::PhysicalValue::Point3Vector3:
 				data = new DataVariable<kmb::bodyIdType,kmb::Point3Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::INTEGER:
+			case kmb::PhysicalValue::Integer:
 				data = new DataVariable<kmb::bodyIdType,kmb::IntegerValue>(mode);
 				break;
-			case kmb::PhysicalValue::ARRAY:
+			case kmb::PhysicalValue::Array:
 				data = new DataVariable<kmb::bodyIdType,kmb::ArrayValue>(mode);
 				break;
-			case kmb::PhysicalValue::HASH:
+			case kmb::PhysicalValue::Hash:
 				data = new DataVariable<kmb::bodyIdType,kmb::HashValue>(mode);
 				break;
-			case kmb::PhysicalValue::INTHASH:
+			case kmb::PhysicalValue::IntHash:
 				data = new DataVariable<kmb::bodyIdType,kmb::IntHashValue>(mode);
 				break;
-			case kmb::PhysicalValue::STRING:
+			case kmb::PhysicalValue::String:
 				data = new DataVariable<kmb::bodyIdType,kmb::TextValue>(mode);
 				break;
-			case kmb::PhysicalValue::BOOLEAN:
+			case kmb::PhysicalValue::Boolean:
 				data = new DataVariable<kmb::bodyIdType,kmb::BooleanValue>(mode);
 				break;
 			default:
 				break;
 			}
 			break;
-		case FACEVARIABLE:
+		case FaceVariable:
 			switch( vType ){
-			case kmb::PhysicalValue::SCALAR:
+			case kmb::PhysicalValue::Scalar:
 				data = new DataVariable<kmb::Face,kmb::ScalarValue>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR2:
+			case kmb::PhysicalValue::Vector2:
 				data = new DataVariable<kmb::Face,kmb::Vector2Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR3:
+			case kmb::PhysicalValue::Vector3:
 				data = new DataVariable<kmb::Face,kmb::Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::VECTOR4:
+			case kmb::PhysicalValue::Vector4:
 				data = new DataVariable<kmb::Face,kmb::Vector4Value>(mode);
 				break;
-			case kmb::PhysicalValue::TENSOR6:
+			case kmb::PhysicalValue::Tensor6:
 				data = new DataVariable<kmb::Face,kmb::Tensor6Value>(mode);
 				break;
-			case kmb::PhysicalValue::POINT3VECTOR3:
+			case kmb::PhysicalValue::Point3Vector3:
 				data = new DataVariable<kmb::Face,kmb::Point3Vector3Value>(mode);
 				break;
-			case kmb::PhysicalValue::INTEGER:
+			case kmb::PhysicalValue::Integer:
 				data = new DataVariable<kmb::Face,kmb::IntegerValue>(mode);
 				break;
-			case kmb::PhysicalValue::ARRAY:
+			case kmb::PhysicalValue::Array:
 				data = new DataVariable<kmb::Face,kmb::ArrayValue>(mode);
 				break;
-			case kmb::PhysicalValue::HASH:
+			case kmb::PhysicalValue::Hash:
 				data = new DataVariable<kmb::Face,kmb::HashValue>(mode);
 				break;
-			case kmb::PhysicalValue::INTHASH:
+			case kmb::PhysicalValue::IntHash:
 				data = new DataVariable<kmb::Face,kmb::IntHashValue>(mode);
 				break;
-			case kmb::PhysicalValue::STRING:
+			case kmb::PhysicalValue::String:
 				data = new DataVariable<kmb::Face,kmb::TextValue>(mode);
 				break;
-			case kmb::PhysicalValue::BOOLEAN:
+			case kmb::PhysicalValue::Boolean:
 				data = new DataVariable<kmb::Face,kmb::BooleanValue>(mode);
 				break;
 			default:
 				break;
 			}
 			break;
-		case GLOBAL:
+		case Global:
 			data = new DataBindingsGlobal(mode,vType);
 			break;
 		default:
@@ -371,6 +371,28 @@ kmb::DataBindings::setValue(kmb::Face f, long value,int index)
 	return false;
 }
 
+bool
+kmb::DataBindings::scalar(double r)
+{
+	int len = this->getDimension();
+	if( len <= 0 ){
+		return false;
+	}
+	double* value = new double[len];
+	kmb::DataBindings::iterator dIter = this->begin();
+	while( !dIter.isFinished() ){
+		if( dIter.getValue(value) ){
+			for(int i=0;i<len;++i){
+				value[i] *= r;
+			}
+			dIter.setValue(value);
+		}
+		++dIter;
+	}
+	delete[] value;
+	return true;
+}
+
 kmb::PhysicalValue*
 kmb::DataBindings::getPhysicalValue(void) const
 {
@@ -462,7 +484,7 @@ kmb::DataBindings::iterator::getValue(void) const
 }
 
 bool
-kmb::DataBindings::iterator::getValue(double *value)  const
+kmb::DataBindings::iterator::getValue(double *value) const
 {
 	if( _iter != NULL ){
 		return _iter->getValue(value);
@@ -472,10 +494,30 @@ kmb::DataBindings::iterator::getValue(double *value)  const
 }
 
 bool
-kmb::DataBindings::iterator::getValue(long *value)  const
+kmb::DataBindings::iterator::getValue(long *value) const
 {
 	if( _iter != NULL ){
 		return _iter->getValue(value);
+	}else{
+		return false;
+	}
+}
+
+bool
+kmb::DataBindings::iterator::setValue(double *value)
+{
+	if( _iter != NULL ){
+		return _iter->setValue(value);
+	}else{
+		return false;
+	}
+}
+
+bool
+kmb::DataBindings::iterator::setValue(long *value)
+{
+	if( _iter != NULL ){
+		return _iter->setValue(value);
 	}else{
 		return false;
 	}

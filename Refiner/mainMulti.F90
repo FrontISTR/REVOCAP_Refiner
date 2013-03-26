@@ -1,10 +1,10 @@
 !/*----------------------------------------------------------------------
 !#                                                                      #
-!# Software Name : REVOCAP_Refiner version 1.0                          #
+!# Software Name : REVOCAP_Refiner version 1.1                          #
 !# Sample Program Multi By Fortran90                                    #
 !#                                                                      #
 !#                                Written by                            #
-!#                                           K. Tokunaga 2011/03/23     #
+!#                                           K. Tokunaga 2012/03/23     #
 !#                                                                      #
 !#      Contact Address: IIS, The University of Tokyo CISS              #
 !#                                                                      #
@@ -126,11 +126,10 @@ PROGRAM RefinerSampleMulti
 ! ç◊ï™å„ÇÃêﬂì_îzóÒÇÃå¬êîÇí≤Ç◊ÇÈ
 
   PRINT *, "----- Refined Model -----"
-  refineNodeCount = rcapRefineElementMulti( elementCount, elementTypes, elements, refineElementCount, -1, -1 )
+  refineNodeCount = rcapGetRefineElementMultiCount( elementCount, elementTypes, refineElementCount )
   ALLOCATE( refineElements(refineNodeCount) )
   ALLOCATE( refineElementTypes(refineElementCount) )
-  refineElements = 0
-  refineElementTypes = 0
+
   res = rcapRefineElementMulti( elementCount, elementTypes, elements, refineElementCount, refineElementTypes, refineElements )
 
   refineNodeCount = rcapGetNodeCount()

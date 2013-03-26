@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 1.0                          #
+# Software Name : REVOCAP_Refiner version 1.1                          #
 # Sample Program NodeVariable                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -102,81 +102,116 @@ int main(void)
 	rcapGetInterpolateMode( mode );
 	assert( strncmp( "MIN", mode, 3 )==0 );
 
+	printf("REVOCAP_Refiner sample program : Boundary Node Variable Refine\n");
 	printf("----- Original Model -----\n");
+	printf("---\n");
 	/* 座標値を Refiner に教える */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
 	/* 細分前の節点数 */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 12 );
-	printf("Node : Count = %"PRIsz"\n", nodeCount );
+	printf("node:\n");
+	printf("  size: %zu\n", nodeCount );
+	printf("  coordinate:\n");
 	for(i=0;(size_t)i<nodeCount;++i){
-		printf("%d : %f, %f, %f\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
+		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
+
 	/* 細分前の要素数 */
 	assert( elementCount == 10 );
-	printf("Element : Count = %"PRIsz"\n", elementCount );
+	printf("element:\n");
+	printf("  - size: %zu\n", elementCount );
+	printf("    connectivity:\n");
 	for(i=0;(size_t)i<elementCount;++i){
-		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
+		printf("      - [%d, TETRAHEDRON, %d, %d, %d, %d]\n", i+elementOffset,
+			tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
 	}
+
 	/* 節点グループの登録 */
 	rcapAppendNodeGroup("ng0",ng0Count,ng0);
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	assert( ng0Count == 4 );
-	printf("Node Group : Count = %"PRIsz"\n", ng0Count );
+	printf("data:\n");
+	printf("  - name: ng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",ng0Count);
+	printf("    id:\n");
 	for(i=0;(size_t)i<ng0Count;++i){
-		printf("%d\n", ng0[i]);
+		printf("    - %d\n", ng0[i]);
 	}
+
 	/* 境界節点グループの登録 */
 	rcapAppendBNodeGroup("bng0",bng0Count,bng0);
 	bng0Count = rcapGetBNodeGroupCount("bng0");
 	assert( bng0Count == 3 );
-	printf("Boundary Node Group : Count = %"PRIsz"\n", bng0Count );
-	for(i=0;(size_t)i<bng0Count;++i){
-		printf("%d\n", bng0[i]);
+	printf("  - name: bng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",bng0Count);
+	printf("    id:\n");
+	for(i=0;(size_t)i<ng0Count;++i){
+		printf("    - %d\n", bng0[i]);
 	}
+
 	/* 境界節点変数の登録 */
 	rcapAppendBNodeVarInt("bnv0",bnv0Count,bnv0,bnv1);
 	bnv0Count = rcapGetBNodeVarIntCount("bnv0");
 	assert( bnv0Count == 3 );
-	printf("Boundary Node Variable : Count = %"PRIsz"\n", bnv0Count );
+	printf("  - name: bnv0\n");
+	printf("    mode: NODEVARIABLE\n");
+	printf("    vtype: INTEGER\n");
+	printf("    size: %zu\n",bnv0Count);
+	printf("    value:\n");
 	for(i=0;(size_t)i<bnv0Count;++i){
-		printf("%d, %d\n", bnv0[i], bnv1[i]);
+		printf("    - [%d, %d]\n", bnv0[i], bnv1[i]);
 	}
 
 	/*---------------------- REFINE -----------------------------------------*/
 
 	/* 要素の細分 */
-	refineElementCount = rcapRefineElement( elementCount, etype, tetras, NULL );
+	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
 	elementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras );
 	rcapCommit();
 
 	printf("----- Refined Model -----\n");
+	printf("---\n");
 
 	/* 細分後の節点 */
 	refineNodeCount = rcapGetNodeCount();
-	printf("Node : Count = %"PRIsz"\n", refineNodeCount );
-
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
-	for(j=0;(size_t)j<refineNodeCount;++j){
-		printf("%d : %f, %f, %f\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
+	printf("node:\n");
+	printf("  size: %zu\n", refineNodeCount );
+	printf("  coordinate:\n");
+	for(i=0;(size_t)i<refineNodeCount;++i){
+		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, resultCoords[3*i], resultCoords[3*i+1], resultCoords[3*i+2] );
 	}
+	free( resultCoords );
 
 	/* 細分後の要素 */
-	printf("Element : Count = %"PRIsz"\n", refineElementCount );
+	printf("element:\n");
+	printf("  - size: %zu\n", refineElementCount );
+	printf("    connectivity:\n");
 	for(i=0;(size_t)i<refineElementCount;++i){
-		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
+		printf("      - [%d, TETRAHEDRON, %d, %d, %d, %d]\n", i+elementOffset,
+			refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
 	}
 
 	/* 細分後の節点グループの更新 */
 	ng0Count = rcapGetNodeGroupCount("ng0");
-	printf("Node Group : Count = %"PRIsz"\n", ng0Count );
 	assert( ng0Count > 0 );
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
 	rcapGetNodeGroup("ng0",ng0Count,result_ng0);
+	printf("data:\n");
+	printf("  - name: ng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %d\n",ng0Count);
+	printf("    id:\n");
 	for(i=0;(size_t)i<ng0Count;++i){
-		printf("%d\n", result_ng0[i]);
+		printf("    - %d\n", result_ng0[i]);
 	}
 	free( result_ng0 );
 	result_ng0 = NULL;
@@ -185,9 +220,13 @@ int main(void)
 	bng0Count = rcapGetBNodeGroupCount("bng0");
 	result_bng0 = (int32_t*)calloc( bng0Count, sizeof(int32_t) );
 	rcapGetBNodeGroup("bng0",bng0Count,result_bng0);
-	printf("Boundary Node Group : Count = %"PRIsz"\n", bng0Count );
+	printf("  - name: bng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %d\n",bng0Count);
+	printf("    id:\n");
 	for(i=0;(size_t)i<bng0Count;++i){
-		printf("%d\n", result_bng0[i]);
+		printf("    - %d\n", result_bng0[i]);
 	}
 	free( result_bng0 );
 
@@ -196,9 +235,13 @@ int main(void)
 	result_bnv0 = (int32_t*)calloc( bnv0Count, sizeof(int32_t) );
 	result_bnv1 = (int32_t*)calloc( bnv0Count, sizeof(int32_t) );
 	rcapGetBNodeVarInt("bnv0",bnv0Count,result_bnv0,result_bnv1);
-	printf("Boundary Node Variable : Count = %"PRIsz"\n", bnv0Count );
+	printf("  - name: bnv0\n");
+	printf("    mode: NODEVARIABLE\n");
+	printf("    vtype: INTEGER\n");
+	printf("    size: %zu\n",bnv0Count);
+	printf("    value:\n");
 	for(i=0;(size_t)i<bnv0Count;++i){
-		printf("%d, %d\n", result_bnv0[i], result_bnv1[i]);
+		printf("    - [%d, %d]\n", result_bnv0[i], result_bnv1[i]);
 	}
 
 	/* ここでチェック！ */

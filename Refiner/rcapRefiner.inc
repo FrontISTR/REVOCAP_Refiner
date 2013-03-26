@@ -1,10 +1,10 @@
 !/*----------------------------------------------------------------------
 !#                                                                      #
-!# Software Name : REVOCAP_Refiner version 1.0                          #
+!# Software Name : REVOCAP_Refiner version 1.1                          #
 !# Program Name : rcapRefiner                                           #
 !#                                                                      #
 !#                                Written by                            #
-!#                                           K. Tokunaga 2011/03/23     #
+!#                                           K. Tokunaga 2012/03/23     #
 !#                                                                      #
 !#      Contact Address: IIS, The University of Tokyo CISS              #
 !#                                                                      #
@@ -65,6 +65,8 @@
       external :: rcapClearRefiner
       external :: rcapTermRefiner
       external :: rcapSetCADFilename
+      external :: rcapSetSecondFitting
+      external :: rcapSetSmoothing
       external :: rcapSetPartitionFilename
       external :: rcapSetNode64
       external :: rcapSetNode32
@@ -74,7 +76,9 @@
       external :: rcapGetNodeSeq32
       external :: rcapCommit
       integer(kind=4) :: rcapGetNodeCount
+      integer(kind=4) :: rcapGetRefineElementCount
       integer(kind=4) :: rcapRefineElement
+      integer(kind=4) :: rcapGetRefineElementMultiCount
       integer(kind=4) :: rcapRefineElementMulti
 
       external :: rcapAppendNodeGroup

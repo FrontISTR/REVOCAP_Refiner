@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerMArray                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -58,7 +58,7 @@ kmb::ElementContainerMArray::clear(void)
 	kmb::ElementContainer::clear();
 
 	elementArray.clear();
-	aIndex.clear();
+	aIndex = elementArray.getBLArrayIndex(0);
 	count = 0;
 }
 
@@ -254,7 +254,8 @@ kmb::ElementContainerMArray::begin(void)
 	_it = new kmb::ElementContainerMArray::_iteratorMArray();
 	if( _it ){
 		_it->elementContainer = this;
-		_it->aIndex = this->elementArray.getBLArrayIndex(0);
+
+		this->elementArray.first( _it->aIndex );
 	}
 	return kmb::ElementContainer::iterator(_it,offsetId);
 }
@@ -269,7 +270,8 @@ kmb::ElementContainerMArray::begin(void) const
 	_it = new kmb::ElementContainerMArray::_iteratorMArray();
 	if( _it ){
 		_it->elementContainer = const_cast<kmb::ElementContainerMArray*>(this);
-		_it->aIndex = this->elementArray.getBLArrayIndex(0);
+
+		this->elementArray.first( _it->aIndex );
 	}
 	return kmb::ElementContainer::const_iterator(_it,offsetId);
 }
@@ -343,6 +345,12 @@ kmb::ElementContainerMArray::_iteratorMArray::getId(void) const
 
 kmb::Element*
 kmb::ElementContainerMArray::_iteratorMArray::getElement(void)
+{
+	return this->elementContainer->elementArray.get( aIndex );
+}
+
+const kmb::Element*
+kmb::ElementContainerMArray::_iteratorMArray::getElement(void) const
 {
 	return this->elementContainer->elementArray.get( aIndex );
 }

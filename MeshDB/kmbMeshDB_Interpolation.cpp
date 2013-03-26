@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -39,7 +39,7 @@ kmb::MeshDB::getInterpolatedValueInBody(const char* name,kmb::bodyIdType bodyId,
 	}
 	int dim = -1;
 	const kmb::DataBindings* data = this->getDataBindingsPtr(name,stype);
-	if( data == NULL || data->getBindingMode() != kmb::DataBindings::NODEVARIABLE || (dim=data->getDimension()) == 0){
+	if( data == NULL || data->getBindingMode() != kmb::DataBindings::NodeVariable || (dim=data->getDimension()) == 0){
 		return -1;
 	}
 	kmb::elementIdType elementId = this->searchElement(bodyId,x,y,z,tolerance);
@@ -76,7 +76,7 @@ kmb::MeshDB::getInterpolatedValueInData(const char* name,const char* target,doub
 	}
 	int dim = -1;
 	const kmb::DataBindings* data = this->getDataBindingsPtr(name,stype);
-	if( data == NULL || data->getBindingMode() != kmb::DataBindings::NODEVARIABLE || (dim=data->getDimension()) == 0){
+	if( data == NULL || data->getBindingMode() != kmb::DataBindings::NodeVariable || (dim=data->getDimension()) == 0){
 		return -1;
 	}
 	const kmb::DataBindings* targetGroup = this->getDataBindingsPtr(target);
@@ -120,7 +120,7 @@ kmb::MeshDB::getInterpolatedValue(const char* name,double x,double y,double z,do
 	int dim = -1;
 	const kmb::DataBindings* data = this->getDataBindingsPtr(name,stype);
 	if( data == NULL ||
-		data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+		data->getBindingMode() != kmb::DataBindings::NodeVariable ||
 		(dim=data->getDimension()) <= 0 )
 	{
 		return -2;
@@ -160,7 +160,7 @@ kmb::MeshDB::getValueOnNearestNode(const char* name,double x,double y,double z,d
 	int dim = -1;
 	const kmb::DataBindings* data = this->getDataBindingsPtr(name,stype);
 	if( data == NULL ||
-		data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
+		data->getBindingMode() != kmb::DataBindings::NodeVariable ||
 		(dim=data->getDimension()) <= 0 )
 	{
 		return -1;

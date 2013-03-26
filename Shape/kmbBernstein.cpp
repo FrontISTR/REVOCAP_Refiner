@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Bernstein                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -44,7 +44,7 @@ kmb::Bernstein::getValue(int m,int i,double t)
 	}
 	for(int j=i;j<m;++j){
 		u *= s;
-       	}
+	}
 	u *= getCombinatorial( m, i );
 	return u;
 }

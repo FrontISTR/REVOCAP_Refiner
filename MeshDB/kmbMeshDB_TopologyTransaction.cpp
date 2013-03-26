@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -31,21 +31,21 @@
 #include "MeshDB/kmbMatching.h"
 #include "MeshDB/kmbPolygonPartitioner.h"
 
-#include "Geometry/kmb_FramedPlane.h"
+#include "Geometry/kmbFramedPlane.h"
 
 
 
 void
-kmb::MeshDB::getSurroundingElements(nodeIdType nodeId,std::vector<elementIdType>& elements,bool cacheOnly)
+kmb::MeshDB::getSurroundingElements(nodeIdType nodeId,std::vector<elementIdType>& elements,bool cacheOnly) const
 {
 	if( this->neighborInfo.getSize() > 0 ){
 		this->neighborInfo.getSurroundingElements(nodeId,elements);
 	}else if(cacheOnly == false){
 		const kmb::bodyIdType bodyCount = this->getBodyCount();
 		for( kmb::bodyIdType id = 0; id < bodyCount; ++id){
-			kmb::ElementContainer* body = this->getBodyPtr(id);
+			const kmb::ElementContainer* body = this->getBodyPtr(id);
 			if( body != NULL ){
-				kmb::ElementContainer::iterator eIter = body->begin();
+				kmb::ElementContainer::const_iterator eIter = body->begin();
 				while( eIter != body->end() )
 				{
 					if( eIter.include( nodeId ) )

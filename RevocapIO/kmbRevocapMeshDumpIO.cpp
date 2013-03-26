@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : RevocapMeshDumpIO                                       #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -53,7 +53,7 @@
 
 #include "RevocapIO/kmbRevocapMeshDumpIO.h"
 #include "MeshDB/kmbMeshData.h"
-#include "Geometry/kmb_Common.h"
+#include "Common/kmbCommon.h"
 
 #include <cstdio>
 #include <cstring>
@@ -100,7 +100,7 @@ kmb::RevocapMeshDumpIO::getVersion(int &ver)
 			int32_t v = -1;
 			res = fread( &v, sizeof(int32_t), 1, fp );
 			if( res < 1 ){
-			    return false;
+				return false;
 			}
 			ver = static_cast<int>(v);
 			switch( ver )
@@ -655,7 +655,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 		kmb::DataBindings::bindingMode bmode = dataArray[0]->getBindingMode();
 		switch( bmode )
 		{
-		case kmb::DataBindings::BODYVARIABLE:
+		case kmb::DataBindings::BodyVariable:
 			{
 				kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
 				for(unsigned int i=0;i<idcount;++i){
@@ -667,7 +667,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::ELEMENTVARIABLE:
+		case kmb::DataBindings::ElementVariable:
 			{
 				kmb::elementIdType elementId = kmb::Element::nullElementId;
 				for(unsigned int i=0;i<idcount;++i){
@@ -679,7 +679,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::NODEVARIABLE:
+		case kmb::DataBindings::NodeVariable:
 			{
 				kmb::nodeIdType nodeId = kmb::nullNodeId;
 				for(unsigned int i=0;i<idcount;++i){
@@ -691,7 +691,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::FACEVARIABLE:
+		case kmb::DataBindings::FaceVariable:
 			{
 				kmb::elementIdType elementId = kmb::Element::nullElementId;
 				kmb::idType localId = -1;
@@ -707,7 +707,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::BODYGROUP:
+		case kmb::DataBindings::BodyGroup:
 			{
 				kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
 				for(unsigned int i=0;i<idcount;++i){
@@ -723,7 +723,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::ELEMENTGROUP:
+		case kmb::DataBindings::ElementGroup:
 			{
 				kmb::elementIdType elementId = kmb::Element::nullElementId;
 				for(unsigned int i=0;i<idcount;++i){
@@ -739,7 +739,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::NODEGROUP:
+		case kmb::DataBindings::NodeGroup:
 			{
 				kmb::nodeIdType nodeId = kmb::nullNodeId;
 				for(unsigned int i=0;i<idcount;++i){
@@ -755,7 +755,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::FACEGROUP:
+		case kmb::DataBindings::FaceGroup:
 			{
 				kmb::elementIdType elementId = kmb::Element::nullElementId;
 				kmb::idType localId = -1;
@@ -774,7 +774,7 @@ kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::GLOBAL:
+		case kmb::DataBindings::Global:
 			for(int j=0;j<num;++j){
 				loadValue( dataArray[j] );
 			}
@@ -801,7 +801,7 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 		kmb::DataBindings::bindingMode bmode = dataArray[0]->getBindingMode();
 		switch( bmode )
 		{
-		case kmb::DataBindings::BODYVARIABLE:
+		case kmb::DataBindings::BodyVariable:
 			{
 				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
 				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
@@ -815,7 +815,7 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::ELEMENTVARIABLE:
+		case kmb::DataBindings::ElementVariable:
 			{
 				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
 				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
@@ -829,7 +829,7 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::NODEVARIABLE:
+		case kmb::DataBindings::NodeVariable:
 			{
 				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
 				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
@@ -843,7 +843,7 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::FACEVARIABLE:
+		case kmb::DataBindings::FaceVariable:
 			{
 				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
 				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
@@ -862,7 +862,7 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				}
 			}
 			break;
-		case kmb::DataBindings::BODYGROUP:
+		case kmb::DataBindings::BodyGroup:
 			{
 				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
 				kmb::DataBindings::iterator iEnd = dataArray[0]->end();
@@ -874,10 +874,9 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				for(int j=0;j<num;++j){
 					saveValue( dataArray[j] );
 				}
-				break;
 			}
 			break;
-		case kmb::DataBindings::ELEMENTGROUP:
+		case kmb::DataBindings::ElementGroup:
 			{
 				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
 				kmb::DataBindings::iterator iEnd = dataArray[0]->end();
@@ -889,10 +888,9 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				for(int j=0;j<num;++j){
 					saveValue( dataArray[j] );
 				}
-				break;
 			}
 			break;
-		case kmb::DataBindings::NODEGROUP:
+		case kmb::DataBindings::NodeGroup:
 			{
 				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
 				kmb::DataBindings::iterator iEnd = dataArray[0]->end();
@@ -904,10 +902,9 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				for(int j=0;j<num;++j){
 					saveValue( dataArray[j] );
 				}
-				break;
 			}
 			break;
-		case kmb::DataBindings::FACEGROUP:
+		case kmb::DataBindings::FaceGroup:
 			{
 				kmb::Face f;
 				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
@@ -924,10 +921,9 @@ kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,
 				for(int j=0;j<num;++j){
 					saveValue( dataArray[j] );
 				}
-				break;
 			}
 			break;
-		case kmb::DataBindings::GLOBAL:
+		case kmb::DataBindings::Global:
 			for(int j=0;j<num;++j){
 				saveValue( dataArray[j] );
 			}
@@ -945,7 +941,7 @@ kmb::RevocapMeshDumpIO::loadValue(kmb::DataBindings* data)
 	size_t res = 0;
 	switch( data->getValueType() )
 	{
-	case kmb::PhysicalValue::SCALAR:
+	case kmb::PhysicalValue::Scalar:
 		{
 			double v;
 			res = fread( &v, sizeof(double), 1, fp );
@@ -954,7 +950,7 @@ kmb::RevocapMeshDumpIO::loadValue(kmb::DataBindings* data)
 			}
 		}
 		break;
-	case kmb::PhysicalValue::VECTOR3:
+	case kmb::PhysicalValue::Vector3:
 		{
 			double v[3];
 			res = fread( v, sizeof(double), 3, fp );
@@ -974,13 +970,13 @@ kmb::RevocapMeshDumpIO::saveValue(kmb::DataBindings* data)
 {
 	switch( data->getValueType() )
 	{
-	case kmb::PhysicalValue::SCALAR:
+	case kmb::PhysicalValue::Scalar:
 		{
 			double v = reinterpret_cast< kmb::ScalarValue* >( data->getPhysicalValue() )->getValue();
 			fwrite( &v, sizeof(double), 1, fp );
 		}
 		break;
-	case kmb::PhysicalValue::VECTOR3:
+	case kmb::PhysicalValue::Vector3:
 		{
 			kmb::Vector3Value* vData = reinterpret_cast< kmb::Vector3Value* >( data->getPhysicalValue() );
 			double v[3];
@@ -1002,7 +998,7 @@ kmb::RevocapMeshDumpIO::loadValueAtId(kmb::DataBindings* data,T t)
 	size_t res = 0;
 	switch( data->getValueType() )
 	{
-	case kmb::PhysicalValue::SCALAR:
+	case kmb::PhysicalValue::Scalar:
 		{
 			double v;
 			res = fread( &v, sizeof(double), 1, fp );
@@ -1011,7 +1007,7 @@ kmb::RevocapMeshDumpIO::loadValueAtId(kmb::DataBindings* data,T t)
 			}
 		}
 		break;
-	case kmb::PhysicalValue::VECTOR3:
+	case kmb::PhysicalValue::Vector3:
 		{
 			double v[3];
 			res = fread( v, sizeof(double), 3, fp );
@@ -1020,7 +1016,7 @@ kmb::RevocapMeshDumpIO::loadValueAtId(kmb::DataBindings* data,T t)
 			}
 		}
 		break;
-	case kmb::PhysicalValue::TENSOR6:
+	case kmb::PhysicalValue::Tensor6:
 		{
 			double v[6];
 			res = fread( v, sizeof(double), 6, fp );
@@ -1040,21 +1036,21 @@ kmb::RevocapMeshDumpIO::saveValueAtId(kmb::DataBindings* data,T t)
 {
 	switch( data->getValueType() )
 	{
-	case kmb::PhysicalValue::SCALAR:
+	case kmb::PhysicalValue::Scalar:
 		{
 			double v = 0.0;
 			data->getPhysicalValue(t,&v);
 			fwrite( &v, sizeof(double), 1, fp );
 		}
 		break;
-	case kmb::PhysicalValue::VECTOR3:
+	case kmb::PhysicalValue::Vector3:
 		{
 			double v[3];
 			data->getPhysicalValue(t,v);
 			fwrite( v, sizeof(double), 3, fp );
 		}
 		break;
-	case kmb::PhysicalValue::TENSOR6:
+	case kmb::PhysicalValue::Tensor6:
 		{
 			double v[6];
 			data->getPhysicalValue(t,v);

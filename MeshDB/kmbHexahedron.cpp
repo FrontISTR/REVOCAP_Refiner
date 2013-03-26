@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Hexahedron                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,15 +26,14 @@
 #include <cmath>
 #include "MeshDB/kmbHexahedron.h"
 #include "MeshDB/kmbTetrahedron.h"
-#include "MeshDB/kmbMeshDB.h"
-#include "MeshDB/kmbMeshDB.h"
+#include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbWedge.h"
 #include "MeshDB/kmbElementRelation.h"
 
 #include "Matrix/kmbMatrix.h"
 #include "Matrix/kmbVector.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbOptimization.h"
 
 /********************************************************************************
 =begin
@@ -169,6 +168,22 @@ kmb::Hexahedron::Hexahedron(void)
 : kmb::Element(kmb::HEXAHEDRON)
 {
 	cell = new kmb::nodeIdType[8];
+}
+
+kmb::Hexahedron::Hexahedron(
+		kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, kmb::nodeIdType n3,
+		kmb::nodeIdType n4, kmb::nodeIdType n5, kmb::nodeIdType n6, kmb::nodeIdType n7)
+: kmb::Element(kmb::HEXAHEDRON)
+{
+	cell = new kmb::nodeIdType[8];
+	cell[0] = n0;
+	cell[1] = n1;
+	cell[2] = n2;
+	cell[3] = n3;
+	cell[4] = n4;
+	cell[5] = n5;
+	cell[6] = n6;
+	cell[7] = n7;
 }
 
 kmb::Hexahedron::Hexahedron(kmb::nodeIdType *ary)

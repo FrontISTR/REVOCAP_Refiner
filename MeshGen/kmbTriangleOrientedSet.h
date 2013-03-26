@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TriangleOrientedSet                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -28,11 +28,12 @@
 
 #pragma once
 #include "MeshDB/kmbElementContainer.h"
-#include "MeshDB/kmbTriangle.h"
 #include <map>
 #include <set>
 
 namespace kmb{
+
+class Triangle;
 
 class TriangleOrientedSet : public ElementContainer
 {
@@ -59,8 +60,8 @@ public:
 	};
 
 
-	int appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2);
-	bool include(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2);
+	kmb::Triangle* appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2);
+	kmb::Triangle* include(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2);
 
 	int getElementNeighbor( const kmb::Triangle* tri, kmb::Triangle* neighbors[3] ) const;
 	size_t getElementCountAroundNode(kmb::nodeIdType nodeId) const;
@@ -69,10 +70,13 @@ public:
 
 
 	NodeTriMap::iterator beginNodeIterator(void);
+	NodeTriMap::const_iterator beginNodeIterator(void) const;
 
 	NodeTriMap::iterator nextNodeIterator(kmb::nodeIdType nodeId);
+	NodeTriMap::const_iterator nextNodeIterator(kmb::nodeIdType nodeId) const;
 	NodeTriMap::iterator endNodeIterator(void);
-	size_t getNodeCount(void);
+	NodeTriMap::const_iterator endNodeIterator(void) const;
+	size_t getNodeCount(void) const;
 
 
 	size_t getAllEdges( std::set< std::pair< kmb::Triangle*, kmb::Triangle* > > &edges ) const;
@@ -86,6 +90,7 @@ public:
 		virtual kmb::elementIdType getId(void) const;
 		virtual bool getElement(kmb::elementType &etype,kmb::nodeIdType *nodes) const;
 		virtual kmb::Element* getElement(void);
+		virtual const kmb::Element* getElement(void) const;
 		virtual kmb::elementType getType(void) const;
 		virtual kmb::nodeIdType getCellId(int cellIndex) const;
 		virtual bool setCellId(int cellIndex, kmb::nodeIdType nodeId);

@@ -1,0 +1,27 @@
+#
+# This is the configuration file for makefile of REVOCAP_Refiner depending on environments.
+# 
+# If Ruby is installed in your system, please give RUBY_PLATFORM to ARCH variable.
+# Otherwise ARCH variable should be a platform string (ex, i686-linux, etc)
+
+###########################################################
+# for MPICH2 Cygwin                                       #
+###########################################################
+
+ARCH = i686-pc-cygwin-MPICH2
+CC = mpicc
+CFLAGS = -O -Wall $(DEBUGFLAG)
+CXX = mpic++
+CXXFLAGS = -O -Wall $(DEBUGFLAG) -DREVOCAP_SUPPORT_MPI
+F90 = mpif90
+FFLAGS = -Wall $(DEBUGFLAG)
+AR = ar
+ARFLAGS = rsv
+LD = mpic++
+LDFLAGS = -O -Wall $(DEBUGFLAG)
+LDSHARED = mpic++ -shared -s
+LIBPATH = -L"/usr/local/gfortran/lib/gcc/i686-pc-cygwin/4.4.0"
+LIBS = -lgfortran -lgfortranbegin
+RM = rm -f
+DOXYGEN = doxygen
+TAR = tar

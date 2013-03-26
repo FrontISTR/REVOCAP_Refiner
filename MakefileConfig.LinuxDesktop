@@ -1,0 +1,27 @@
+#
+# This is the configuration file for makefile of REVOCAP_Refiner depending on environments.
+# 
+# If Ruby is installed in your system, please give RUBY_PLATFORM to ARCH variable.
+# Otherwise ARCH variable should be a platform string (ex, i686-linux, etc)
+
+######################################
+# for Desktop PC linux GNU Compilers #
+######################################
+
+ARCH = $(shell ruby -e 'puts RUBY_PLATFORM')
+CC = gcc
+CFLAGS = -O -Wall $(DEBUGFLAG)
+CXX = g++
+CXXFLAGS = -O -Wall -fPIC $(DEBUGFLAG) $(EXTENSIONLIB) -I/opt/local/include
+F90 = gfortran
+FFLAGS = -Wall $(DEBUGFLAG)
+AR = ar
+ARFLAGS = rsv
+LD = $(F90)
+LDFLAGS = $(FFLAGS)
+LDSHARED = g++ -shared -s
+LIBPATH =
+LIBS = -lstdc++
+RM = rm -f
+DOXYGEN = doxygen
+TAR = tar

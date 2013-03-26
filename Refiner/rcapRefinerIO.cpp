@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 1.0                          #
+# Software Name : REVOCAP_Refiner version 1.1                          #
 # Program Name : rcapRefinerIO                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -15,18 +15,18 @@
 
 #include "rcapRefiner.h"
 #include "rcapRefinerStruct.h"
-#include "Geometry/kmb_idTypes.h"
+#include "Geometry/kmbIdTypes.h"
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbElement.h"
 #include "MeshGen/kmbMeshRefiner.h"
-#include "Geometry/kmb_Point3DContainerMArray.h"
+#include "Geometry/kmbPoint3DContainerMArray.h"
 #include "MeshDB/kmbElementContainerNArray.h"
 #include "MeshDB/kmbElementContainerMixedArray.h"
 #include "MeshDB/kmbBoundaryExtractor.h"
 #include "MeshDB/kmbIntegerMapBindings.h"
 #include "MeshGen/kmbMiddleNodeManager.h"
 
-#include "RevocapIO/kmbFFBIO.h"
+#include "RevocapIO/kmbFFbIO.h"
 #include "RevocapIO/kmbHecmwIO.h"
 #include "RevocapIO/kmbRevocapNeutralIO.h"
 #include "RevocapIO/kmbRevocapCouplerIO.h"
@@ -49,7 +49,7 @@ extern struct rcapRefinerInfo rcapRefinerDoc;
 
 int32_t rcapLoadGFFile( const char* gffile, const char* bounfile )
 {
-	kmb::FFBIO ffbIO;
+	kmb::FFbIO ffbIO;
 	rcapRefinerDoc.mesh->clearModel();
 	rcapRefinerDoc.mesh->beginModel();
 	ffbIO.loadFromMeshFile( gffile, rcapRefinerDoc.mesh );
@@ -211,11 +211,9 @@ void rcapRefineFFbModel( void )
 
 int32_t rcapSaveGFFile( const char* gffile, const char* bounfile )
 {
-	kmb::FFBIO ffbIO;
+	kmb::FFbIO ffbIO;
 	ffbIO.saveToMeshFile( gffile, rcapRefinerDoc.mesh );
 	ffbIO.saveToBoundaryFile( bounfile, rcapRefinerDoc.mesh );
-	kmb::RevocapNeutralIO rnfIO;
-	rnfIO.saveToRNFFile( "output.rnf" , rcapRefinerDoc.mesh );
 	return static_cast<int32_t>(rcapRefinerDoc.mesh->getElementCount());
 }
 

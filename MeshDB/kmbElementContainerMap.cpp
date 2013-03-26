@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerMap                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,7 +26,7 @@
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbTetrahedron.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Common/kmbCalculator.h"
 #include <limits.h>
 
 #ifdef _MSC_VER
@@ -338,6 +338,12 @@ kmb::ElementContainerMap::_iteratorMap::getId(void) const
 
 kmb::Element*
 kmb::ElementContainerMap::_iteratorMap::getElement(void)
+{
+	return this->elementIter->second;
+}
+
+const kmb::Element*
+kmb::ElementContainerMap::_iteratorMap::getElement(void) const
 {
 	return this->elementIter->second;
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Collision                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,10 +13,10 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include <cmath>
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Geometry3D.h"
-#include "Geometry/kmb_Geometry4D.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Geometry/kmbGeometry3D.h"
+#include "Geometry/kmbGeometry4D.h"
+#include "Common/kmbCalculator.h"
 #include "MeshDB/kmbCollision.h"
 #include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbTriangle.h"
@@ -60,55 +60,55 @@ kmb::Collision::setAccuracy(double acc)
 }
 
 double
-kmb::Collision::getAccuracy(void)
+kmb::Collision::getAccuracy(void) const
 {
 	return this->accuracy;
 }
 
-double
-kmb::Collision::distanceSqPtTri(kmb::Point3D& p0,kmb::Point3D& q0,kmb::Point3D& q1,kmb::Point3D& q2,double s[2]) const
-{
 
 
-	kmb::Vector3D u0(q0,p0);
-	kmb::Vector3D u1(q1,q0);
-	kmb::Vector3D u2(q2,q0);
-	kmb::Matrix2x2 mat(
-		u1*u1, u1*u2,
-		u2*u1, u2*u2);
-	kmb::Vector2D v(-(u1*u0),-(u2*u0));
-	kmb::Vector2D* tmp = mat.solve(v);
-	if( tmp &&
-		0.0 < tmp->x() && 0.0 < tmp->y() &&
-		tmp->x() + tmp->y() < 1.0 )
-	{
-		s[0] = tmp->getCoordinate(0);
-		s[1] = tmp->getCoordinate(1);
-		delete tmp;
-		return (u0 + u1.scalar(s[0]) + u2.scalar(s[1])).lengthSq();
-	}else{
 
 
-		kmb::Minimizer min;
-		double t=0.0;
-		if( min.update( p0.distanceSqToSegment( q0, q1, t ) ) ){
-			s[0] = t;
-			s[1] = 0.0;
-		}
-		if( min.update( p0.distanceSqToSegment( q1, q2, t ) ) ){
-			s[0] = 1.0-t;
-			s[1] = t;
-		}
-		if( min.update( p0.distanceSqToSegment( q0, q2, t ) ) ){
-			s[0] = 0.0;
-			s[1] = t;
-		}
-		if( tmp ){
-			delete tmp;
-		}
-		return min.getMin();
-	}
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 double
 kmb::Collision::distanceSqPtTri(kmb::nodeIdType nodeId,kmb::ElementBase& tri,double s[2]) const
@@ -120,7 +120,7 @@ kmb::Collision::distanceSqPtTri(kmb::nodeIdType nodeId,kmb::ElementBase& tri,dou
 		points->getPoint( tri.getCellId(1), q1 ) &&
 		points->getPoint( tri.getCellId(2), q2 ) )
 	{
-		distanceSqPtTri(p0,q0,q1,q2,s);
+		return p0.distanceSqToTriangle(q0,q1,q2,s);
 	}
 	return DBL_MAX;
 }
@@ -190,10 +190,32 @@ kmb::Collision::distanceSqSegSeg(kmb::nodeIdType a0,kmb::nodeIdType a1,kmb::node
 }
 
 double
+kmb::Collision::distanceSqSegSeg(kmb::ElementBase& seg0,kmb::ElementBase& seg1,double &t1, double &t2) const
+{
+	kmb::Point3D p0,p1,q0,q1;
+	if( points &&
+		points->getPoint( seg0[0], p0 ) &&
+		points->getPoint( seg0[1], p1 ) &&
+		points->getPoint( seg1[0], q0 ) &&
+		points->getPoint( seg1[1], q1 ) )
+	{
+		return distanceSqSegSeg(p0,p1,q0,q1,t1,t2);
+	}
+	return DBL_MAX;
+}
+
+double
 kmb::Collision::distanceSegSeg(kmb::nodeIdType a0,kmb::nodeIdType a1,kmb::nodeIdType b0,kmb::nodeIdType b1) const
 {
 	double s=0.0, t=0.0;
 	return sqrt( distanceSqSegSeg(a0,a1,b0,b1,s,t) );
+}
+
+double
+kmb::Collision::distanceSegSeg(kmb::ElementBase& seg0,kmb::ElementBase& seg1) const
+{
+	double s=0.0, t=0.0;
+	return sqrt( distanceSqSegSeg(seg0,seg1,s,t) );
 }
 
 double
@@ -230,12 +252,12 @@ kmb::Collision::distanceSqSegTri(kmb::Point3D& p0,kmb::Point3D& p1,
 		kmb::Minimizer min;
 
 		double tt[2];
-		if( min.update( distanceSqPtTri( p0, q0, q1, q2, tt ) ) ){
+		if( min.update( p0.distanceSqToTriangle( q0, q1, q2, tt ) ) ){
 			s = 0.0;
 			t[0] = tt[0];
 			t[1] = tt[1];
 		}
-		if( min.update( distanceSqPtTri( p1, q0, q1, q2, tt ) ) ){
+		if( min.update( p1.distanceSqToTriangle( q0, q1, q2, tt ) ) ){
 			s = 1.0;
 			t[0] = tt[0];
 			t[1] = tt[1];
@@ -565,11 +587,11 @@ kmb::Collision::detectFaceGroup(const char* fg0,const char* fg1,double thres,con
 	kmb::DataBindings* faceGroup0 = mesh->getDataBindingsPtr( fg0 );
 	kmb::DataBindings* faceGroup1 = mesh->getDataBindingsPtr( fg1 );
 	kmb::DataBindings* resultGroup = mesh->getDataBindingsPtr( result );
-	if( faceGroup0 && ( faceGroup0->getBindingMode() == kmb::DataBindings::FACEGROUP ||
-		  faceGroup0->getBindingMode() == kmb::DataBindings::FACEVARIABLE ) &&
-	    faceGroup1 && ( faceGroup1->getBindingMode() == kmb::DataBindings::FACEGROUP ||
-		  faceGroup1->getBindingMode() == kmb::DataBindings::FACEVARIABLE ) &&
-		resultGroup && ( resultGroup->getBindingMode() == kmb::DataBindings::FACEGROUP ) )
+	if( faceGroup0 && ( faceGroup0->getBindingMode() == kmb::DataBindings::FaceGroup ||
+		  faceGroup0->getBindingMode() == kmb::DataBindings::FaceVariable ) &&
+	    faceGroup1 && ( faceGroup1->getBindingMode() == kmb::DataBindings::FaceGroup ||
+		  faceGroup1->getBindingMode() == kmb::DataBindings::FaceVariable ) &&
+		resultGroup && ( resultGroup->getBindingMode() == kmb::DataBindings::FaceGroup ) )
 	{
 		size_t orgSize = resultGroup->getIdCount();
 		kmb::Face f0,f1;
@@ -664,9 +686,9 @@ kmb::Collision::detectSurfaceFaceGroup(kmb::bodyIdType bodyId0,const char* fg1,d
 	kmb::DataBindings* faceGroup1 = mesh->getDataBindingsPtr( fg1 );
 	kmb::DataBindings* resultGroup = mesh->getDataBindingsPtr( result );
 	if( surf0 && ( surf0->getDimension() == 2 ) &&
-	    faceGroup1 && ( faceGroup1->getBindingMode() == kmb::DataBindings::FACEGROUP ||
-		  faceGroup1->getBindingMode() == kmb::DataBindings::FACEVARIABLE ) &&
-		resultGroup &&( resultGroup->getBindingMode() == kmb::DataBindings::FACEGROUP ) )
+	    faceGroup1 && ( faceGroup1->getBindingMode() == kmb::DataBindings::FaceGroup ||
+		  faceGroup1->getBindingMode() == kmb::DataBindings::FaceVariable ) &&
+		resultGroup &&( resultGroup->getBindingMode() == kmb::DataBindings::FaceGroup ) )
 	{
 		size_t orgSize = resultGroup->getIdCount();
 		kmb::Face f1;
@@ -753,9 +775,9 @@ kmb::Collision::detectSurfaceFaceGroupByNode(kmb::bodyIdType bodyId0,const char*
 	kmb::DataBindings* faceGroup1 = mesh->getDataBindingsPtr( fg1 );
 	kmb::DataBindings* resultGroup = mesh->getDataBindingsPtr( result );
 	if( surf0 && ( surf0->getDimension() == 2 ) &&
-	    faceGroup1 && ( faceGroup1->getBindingMode() == kmb::DataBindings::FACEGROUP ||
-		  faceGroup1->getBindingMode() == kmb::DataBindings::FACEVARIABLE ) &&
-		resultGroup &&( resultGroup->getBindingMode() == kmb::DataBindings::FACEGROUP ) )
+	    faceGroup1 && ( faceGroup1->getBindingMode() == kmb::DataBindings::FaceGroup ||
+		  faceGroup1->getBindingMode() == kmb::DataBindings::FaceVariable ) &&
+		resultGroup &&( resultGroup->getBindingMode() == kmb::DataBindings::FaceGroup ) )
 	{
 		kmb::Element2DOctree octree;
 		const kmb::ElementContainer* body = mesh->getBodyPtr(bodyId0);
@@ -808,8 +830,8 @@ kmb::Collision::getNearestFace(kmb::ElementBase& q0,const char* fg,kmb::Face &ne
 		return minimizer.getMin();
 	}
 	kmb::DataBindings* faceGroup = mesh->getDataBindingsPtr( fg );
-	if( faceGroup && ( faceGroup->getBindingMode() == kmb::DataBindings::FACEGROUP ||
-		  faceGroup->getBindingMode() == kmb::DataBindings::FACEVARIABLE ) )
+	if( faceGroup && ( faceGroup->getBindingMode() == kmb::DataBindings::FaceGroup ||
+		  faceGroup->getBindingMode() == kmb::DataBindings::FaceVariable ) )
 	{
 		kmb::Face f;
 		kmb::Quad q;

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -32,7 +32,7 @@
 #include "MeshDB/kmbElementEvaluator.h"
 #include "MeshDB/kmbTetrahedron.h"
 #include "MeshDB/kmbHexahedron.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Common/kmbCalculator.h"
 
 #include <cmath>
 #include <cstring>
@@ -190,8 +190,8 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 	kmb::elementIdType findElementId = kmb::Element::nullElementId;
 	const kmb::DataBindings* data = this->getDataBindingsPtr(name);
 	if( data == NULL ||
-		!(data->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ||
-		data->getBindingMode() == kmb::DataBindings::FACEGROUP ) )
+		!(data->getBindingMode() == kmb::DataBindings::ElementGroup ||
+		data->getBindingMode() == kmb::DataBindings::FaceGroup ) )
 	{
 		return findElementId;
 	}
@@ -203,7 +203,7 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 	if( this->elementBucket.getCount() > 0 ){
 
 		findElementId = this->elementBucket.searchElementInData(data,body,x,y,z,tolerance);
-	}else if( data->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+	}else if( data->getBindingMode() == kmb::DataBindings::ElementGroup ){
 
 		kmb::Maximizer maximizer;
 		kmb::Minimizer minimizer;
@@ -286,7 +286,7 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 				findElementId = kmb::Element::nullElementId;
 			}
 		}
-	}else if( data->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+	}else if( data->getBindingMode() == kmb::DataBindings::FaceGroup ){
 
 		kmb::Minimizer minimizer;
 		kmb::Node n0,n1,n2,n3;
@@ -626,7 +626,7 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 	if( group != NULL )
 	{
 		switch( group->getBindingMode() ){
-		case kmb::DataBindings::ELEMENTGROUP:
+		case kmb::DataBindings::ElementGroup:
 		{
 			kmb::bodyIdType bodyId = group->getTargetBodyId();
 			kmb::DataBindings::const_iterator eIter = group->begin();
@@ -682,7 +682,7 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 			}
 			break;
 		}
-		case kmb::DataBindings::FACEGROUP:
+		case kmb::DataBindings::FaceGroup:
 		{
 			kmb::bodyIdType bodyId = group->getTargetBodyId();
 			kmb::DataBindings::const_iterator fIter = group->begin();
@@ -867,13 +867,13 @@ kmb::MeshDB::getNearestElement(kmb::bodyIdType bodyId,double x,double y,double z
 */
 
 void
-kmb::MeshDB::getNodesInRegion(const kmb::Region* region,std::set<kmb::nodeIdType>& selectedNodes)
+kmb::MeshDB::getNodesInRegion(const kmb::Region* region,std::set<kmb::nodeIdType>& selectedNodes) const
 {
 	if( this->node3Ds && this->nodeOctree.getCount() != 0 ){
 		this->nodeOctree.getNodesInRegion(region,selectedNodes);
 	}else if( this->node3Ds && region ){
 		kmb::Point3D pt;
-		kmb::Point3DContainer::iterator nIter = node3Ds->begin();
+		kmb::Point3DContainer::const_iterator nIter = node3Ds->begin();
 		while( nIter != node3Ds->end() )
 		{
 			if( nIter.getPoint(pt) && region->intersect(pt) != kmb::Region::OUTSIDE ){

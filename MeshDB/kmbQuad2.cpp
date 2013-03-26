@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Quad2                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,14 +24,14 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbQuad2.h"
-#include "Geometry/kmb_Geometry2D.h"
-#include "Geometry/kmb_Geometry3D.h"
+#include "Geometry/kmbGeometry2D.h"
+#include "Geometry/kmbGeometry3D.h"
 #include <cfloat>
 
 #include "Matrix/kmbMatrix.h"
 #include "Matrix/kmbVector.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbOptimization.h"
 
 /********************************************************************************
 =begin

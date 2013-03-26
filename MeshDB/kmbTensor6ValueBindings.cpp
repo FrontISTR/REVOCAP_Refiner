@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Tensor6ValueBindings                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,6 +14,7 @@
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbTensor6ValueBindings.h"
 #include "MeshDB/kmbPhysicalValue.h"
+#include <algorithm>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -29,16 +30,30 @@ kmb::Tensor6ValueBindings::Tensor6ValueBindings(size_t count,kmb::DataBindings::
 : kmb::DataBindings()
 , size(0)
 , values(NULL)
+, deletable(true)
 {
-	this->type = kmb::PhysicalValue::TENSOR6;
+	this->type = kmb::PhysicalValue::Tensor6;
 	this->bMode = bmode;
 	this->size = static_cast<int>( count );
 	values = new double[6*this->size];
+	std::fill(values,values+(6*this->size),0.0);
+}
+
+kmb::Tensor6ValueBindings::Tensor6ValueBindings(size_t count,double* values,kmb::DataBindings::bindingMode bmode)
+: kmb::DataBindings()
+, size(0)
+, values(NULL)
+, deletable(false)
+{
+	this->type = kmb::PhysicalValue::Tensor6;
+	this->bMode = bmode;
+	this->size = static_cast<int>( count );
+	this->values = values;
 }
 
 kmb::Tensor6ValueBindings::~Tensor6ValueBindings(void)
 {
-	if( values ){
+	if( values && deletable ){
 		delete[] values;
 		values = NULL;
 	}
@@ -52,7 +67,7 @@ kmb::Tensor6ValueBindings::clear(void)
 bool
 kmb::Tensor6ValueBindings::setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val)
 {
-	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::TENSOR6 ){
+	if( val && 0 <= id && id < size && val->getType() == kmb::PhysicalValue::Tensor6 ){
 		values[6*id  ] = reinterpret_cast< kmb::Tensor6Value* >(val)->getValue(0);
 		values[6*id+1] = reinterpret_cast< kmb::Tensor6Value* >(val)->getValue(1);
 		values[6*id+2] = reinterpret_cast< kmb::Tensor6Value* >(val)->getValue(2);
@@ -88,6 +103,15 @@ kmb::Tensor6ValueBindings::setValue(kmb::idType id, double value,int index)
 		return true;
 	}
 	return false;
+}
+
+bool
+kmb::Tensor6ValueBindings::scalar(double r)
+{
+	for(int i=0;i<size*6;++i){
+		values[i] *= r;
+	}
+	return true;
 }
 
 kmb::PhysicalValue*

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TriangleItem                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -40,8 +40,8 @@ public:
 
 
 	int changeNeighbor(kmb::TriangleItem* oldNei, kmb::TriangleItem* newNei);
-	kmb::TriangleItem* getNeighbor(int index);
-	int getNeighborIndex(kmb::TriangleItem* nei);
+	kmb::TriangleItem* getNeighbor(int index) const;
+	int getNeighborIndex(kmb::TriangleItem* nei) const;
 
 
 	bool push_back(kmb::TriangleItem* item);

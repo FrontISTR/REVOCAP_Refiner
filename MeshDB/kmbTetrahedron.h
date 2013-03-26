@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Tetrahedron                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -25,7 +25,7 @@
 ----------------------------------------------------------------------*/
 #pragma once
 #include "MeshDB/kmbElement.h"
-#include "Geometry/kmb_Point3DContainer.h"
+#include "Geometry/kmbPoint3DContainer.h"
 
 namespace kmb{
 
@@ -33,7 +33,7 @@ class Tetrahedron : public Element
 {
 public:
 	static const int nodeCount;
-	Tetrahedron();
+	Tetrahedron(void);
 	Tetrahedron(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, kmb::nodeIdType n3);
 	Tetrahedron(kmb::nodeIdType *ary);
 	virtual ~Tetrahedron(void);

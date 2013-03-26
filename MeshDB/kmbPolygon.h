@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Polygon                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -36,9 +36,9 @@
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbNodeNeighborInfo.h"
 
-#include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Polygon2D.h"
+#include "Geometry/kmbPoint2DContainer.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Geometry/kmbPolygon2D.h"
 
 #include <vector>
 

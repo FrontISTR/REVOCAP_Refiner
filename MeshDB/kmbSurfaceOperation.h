@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : SurfaceOperation                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -34,11 +34,11 @@
 #include <string>
 #include "MeshDB/kmbTypes.h"
 #include "MeshDB/kmbElement.h"
-#include "Geometry/kmb_Classification.h"
+#include "Common/kmbClassification.h"
 
 namespace kmb{
 
-class MeshDB;
+class MeshData;
 class Face;
 class ElementContainer;
 class NodeNeighborInfo;
@@ -48,7 +48,7 @@ class DataBindings;
 class SurfaceOperation
 {
 protected:
-	kmb::MeshDB* mesh;
+	kmb::MeshData* mesh;
 	kmb::ElementContainer* elements;
 	kmb::NodeNeighborInfo* neighborInfo;
 	kmb::Classification< kmb::elementIdType > dividedElementsInfo;
@@ -60,7 +60,7 @@ protected:
 public:
 	SurfaceOperation(void);
 	virtual ~SurfaceOperation(void);
-	void setMesh(kmb::MeshDB* mesh);
+	void setMesh(kmb::MeshData* mesh);
 	void setPermitReverse(bool f);
 
 
@@ -96,9 +96,9 @@ public:
 	void decomposeByElementContainer(kmb::ElementContainer* elements,std::set< kmb::ElementContainer* > &components);
 	void clear(void);
 
-	void setSurface(kmb::MeshDB* mesh,kmb::bodyIdType bodyId);
+	void setSurface(kmb::MeshData* mesh,kmb::bodyIdType bodyId);
 	enum vertexType{
-		UNKNOWN,
+		Unknown,
 		CONVEX,
 		CONCAVE,
 		FLAT,
@@ -108,10 +108,10 @@ public:
 
 	static vertexType getVertexType
 		(kmb::nodeIdType nodeId,
-		 kmb::MeshDB* mesh,
+		 kmb::MeshData* mesh,
 		 kmb::ElementContainer* elements,
 		 kmb::NodeNeighborInfo* neighborInfo);
-	vertexType getVertexType(kmb::nodeIdType nodeId);
+	vertexType getVertexType(kmb::nodeIdType nodeId) const;
 
 	kmb::bodyIdType faceGroup2Surface(const char* name);
 	bool surface2FaceGroup(kmb::bodyIdType bodyId,kmb::bodyIdType parentBodyId,const char* name);
@@ -124,7 +124,7 @@ protected:
 	size_t divideSurface(const kmb::ElementContainer* elements,const kmb::Point3DContainer* points,double angle);
 
 
-	bool getDividedSurfaceElementCount(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,size_t &triCount,size_t &quadCount);
+	bool getDividedSurfaceElementCount(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,size_t &triCount,size_t &quadCount) const;
 
 	size_t getDividedSurface(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,kmb::ElementContainer* dividedSurf) const;
 	size_t getTotalRidge(const kmb::ElementContainer* org,kmb::ElementContainer* ridges) const;

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : RevocapCouplerIO                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -52,7 +52,7 @@ kmb::RevocapCouplerIO::loadFromPartitionFile(const char* filename,kmb::MeshData*
 			tokenizer >> dummy;
 			int partId = 0;
 			tokenizer >> partId;
-			kmb::DataBindings* data = mesh->createDataBindings("Solid_Part",kmb::DataBindings::GLOBAL,kmb::PhysicalValue::INTEGER);
+			kmb::DataBindings* data = mesh->createDataBindings("Solid_Part",kmb::DataBindings::Global,kmb::PhysicalValue::Integer);
 			if(data){
 				data->setPhysicalValue( new kmb::IntegerValue(partId) );
 			}
@@ -62,7 +62,7 @@ kmb::RevocapCouplerIO::loadFromPartitionFile(const char* filename,kmb::MeshData*
 			tokenizer >> dummy;
 			int partId = 0;
 			tokenizer >> partId;
-			kmb::DataBindings* data = mesh->createDataBindings("Fluid_Part",kmb::DataBindings::GLOBAL,kmb::PhysicalValue::INTEGER);
+			kmb::DataBindings* data = mesh->createDataBindings("Fluid_Part",kmb::DataBindings::Global,kmb::PhysicalValue::Integer);
 			if(data){
 				data->setPhysicalValue( new kmb::IntegerValue(partId) );
 			}
@@ -124,7 +124,7 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 			int partId = 0;
 			tokenizer >> partId;
 			std::cout << "Solid_PartID" << partId << std::endl;
-			kmb::DataBindings* data = mesh->createDataBindings("Solid_Part",kmb::DataBindings::GLOBAL,kmb::PhysicalValue::INTEGER);
+			kmb::DataBindings* data = mesh->createDataBindings("Solid_Part",kmb::DataBindings::Global,kmb::PhysicalValue::Integer);
 			if(data){
 				std::cout << "Solid_Pard Setting" << std::endl;
 				data->setPhysicalValue( new kmb::IntegerValue(partId) );
@@ -136,7 +136,7 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 			int partId = 0;
 			tokenizer >> partId;
 			std::cout << "Fluid_PartID" << partId << std::endl;
-			kmb::DataBindings* data = mesh->createDataBindings("Fluid_Part",kmb::DataBindings::GLOBAL,kmb::PhysicalValue::INTEGER);
+			kmb::DataBindings* data = mesh->createDataBindings("Fluid_Part",kmb::DataBindings::Global,kmb::PhysicalValue::Integer);
 			if(data){
 				data->setPhysicalValue( new kmb::IntegerValue(partId) );
 			}

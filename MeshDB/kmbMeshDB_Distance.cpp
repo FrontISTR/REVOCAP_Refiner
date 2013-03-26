@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,8 +29,8 @@
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbSegment.h"
 #include "MeshDB/kmbTriangle.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Geometry3D.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbGeometry3D.h"
 #include "MeshDB/kmbElementContainer.h"
 
 double
@@ -49,21 +49,21 @@ kmb::MeshDB::getDistance(kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1) const
 
 
 double
-kmb::MeshDB::getNearestNodeInBody(double x,double y,double z,kmb::bodyIdType bodyID,kmb::nodeIdType& nearestId)
+kmb::MeshDB::getNearestNodeInBody(double x,double y,double z,kmb::bodyIdType bodyID,kmb::nodeIdType& nearestId) const
 {
 	kmb::Minimizer minimizer;
 	kmb::Node node;
-	kmb::ElementContainer* body = this->getBodyPtr(bodyID);
+	const kmb::ElementContainer* body = this->getBodyPtr(bodyID);
 	if( body != NULL && this->node3Ds != NULL ){
-		ElementContainer::iterator eIter = body->begin();
+		ElementContainer::const_iterator eIter = body->begin();
 		while( eIter != body->end() )
 		{
 			const int len = eIter.getNodeCount();
 			for(int i=0;i<len;++i){
-				const kmb::nodeIdType nodeID = eIter.getCellId(i);
-				if( this->getNode( nodeID, node ) ){
+				const kmb::nodeIdType nodeId = eIter.getCellId(i);
+				if( this->getNode( nodeId, node ) ){
 					if( minimizer.update( node.distanceSq(x,y,z) ) ){
-						nearestId = nodeID;
+						nearestId = nodeId;
 					}
 				}
 			}
@@ -74,13 +74,13 @@ kmb::MeshDB::getNearestNodeInBody(double x,double y,double z,kmb::bodyIdType bod
 }
 
 double
-kmb::MeshDB::getNearestNodeInBody(const kmb::Point3D& point, kmb::bodyIdType bodyId, kmb::nodeIdType& nearestId)
+kmb::MeshDB::getNearestNodeInBody(const kmb::Point3D& point, kmb::bodyIdType bodyId, kmb::nodeIdType& nearestId) const
 {
 	kmb::Minimizer minimizer;
 	kmb::Node node;
-	kmb::ElementContainer* body = this->getBodyPtr(bodyId);
+	const kmb::ElementContainer* body = this->getBodyPtr(bodyId);
 	if( body != NULL && this->node3Ds != NULL ){
-		ElementContainer::iterator eIter = body->begin();
+		ElementContainer::const_iterator eIter = body->begin();
 		while( eIter != body->end() )
 		{
 			const int len = eIter.getNodeCount();
@@ -105,7 +105,7 @@ kmb::MeshDB::getNearestNode(const kmb::nodeIdType id,kmb::nodeIdType& nearestId)
 	kmb::Minimizer minimizer;
 	kmb::Node node,target;
 	if(this->node3Ds != NULL && this->getNode(id,node)){
-		kmb::Point3DContainer::iterator nIter = this->node3Ds->begin();
+		kmb::Point3DContainer::const_iterator nIter = this->node3Ds->begin();
 		while( nIter != this->node3Ds->end() )
 		{
 			kmb::nodeIdType target_id = nIter.getId();
@@ -121,21 +121,21 @@ kmb::MeshDB::getNearestNode(const kmb::nodeIdType id,kmb::nodeIdType& nearestId)
 }
 
 double
-kmb::MeshDB::getNearestNodeInBody(const kmb::nodeIdType id,kmb::bodyIdType bodyID,kmb::nodeIdType& nearestId)
+kmb::MeshDB::getNearestNodeInBody(const kmb::nodeIdType id,kmb::bodyIdType bodyID,kmb::nodeIdType& nearestId) const
 {
 	kmb::Minimizer minimizer;
 	kmb::Node node,targetNode;
-	kmb::ElementContainer* body = this->getBodyPtr(bodyID);
+	const kmb::ElementContainer* body = this->getBodyPtr(bodyID);
 	if( body != NULL && this->node3Ds != NULL && this->getNode(id,node) ){
-		ElementContainer::iterator eIter = body->begin();
+		ElementContainer::const_iterator eIter = body->begin();
 		while( eIter != body->end() )
 		{
 			const int len = eIter.getNodeCount();
 			for(int i=0;i<len;++i){
-				const kmb::nodeIdType target_nodeID = eIter.getCellId(i);
-				if( this->getNode( target_nodeID, targetNode ) && id != target_nodeID ){
+				const kmb::nodeIdType target_nodeId = eIter.getCellId(i);
+				if( this->getNode( target_nodeId, targetNode ) && id != target_nodeId ){
 					if( minimizer.update( targetNode.distanceSq( node ) ) ){
-						nearestId = target_nodeID;
+						nearestId = target_nodeId;
 					}
 				}
 			}

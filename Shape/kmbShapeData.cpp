@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ShapeData                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,6 +24,8 @@
 #include <TopoDS_Face.hxx>
 #include <TopoDS_Wire.hxx>
 #include <TopoDS_Edge.hxx>
+#include <TopoDS_Vertex.hxx>
+#include <Standard_PrimitiveTypes.hxx>
 #include <BRep_Tool.hxx>
 #include <BRepMesh.hxx>
 #include <BRepAlgo.hxx>
@@ -51,6 +53,17 @@
 #include <Geom_SweptSurface.hxx>
 #include <Geom_SurfaceOfLinearExtrusion.hxx>
 #include <Geom_SurfaceOfRevolution.hxx>
+#include <Geom_Curve.hxx>
+#include <Geom_OffsetCurve.hxx>
+#include <Geom_Line.hxx>
+#include <Geom_Parabola.hxx>
+#include <Geom_Hyperbola.hxx>
+#include <Geom_Ellipse.hxx>
+#include <Geom_Circle.hxx>
+#include <Geom_TrimmedCurve.hxx>
+#include <Geom_BSplineCurve.hxx>
+#include <Geom_BezierCurve.hxx>
+
 #include <BRepClass3d_SolidExplorer.hxx>
 
 #include <iostream>
@@ -75,8 +88,14 @@ kmb::ShapeData::~ShapeData(void)
 	}
 }
 
-TopoDS_Shape&
+const TopoDS_Shape&
 kmb::ShapeData::getShape(void) const
+{
+	return *topo_shape;
+}
+
+TopoDS_Shape&
+kmb::ShapeData::getShape(void)
 {
 	return *topo_shape;
 }
@@ -104,72 +123,6 @@ kmb::ShapeData::getBoundingBox(void) const
 	bbox.setMinMax( xmin, ymin, zmin, xmax, ymax, zmax );
 
 	return bbox;
-}
-
-void
-kmb::ShapeData::test(void) const
-{
-	std::cout << "RevocapMesh::Shape test" << std::endl;
-
-	TopExp_Explorer exCompound;
-	for( exCompound.Init(*topo_shape,TopAbs_COMPOUND); exCompound.More(); exCompound.Next() ){
-		TopoDS_Compound compound = TopoDS::Compound(exCompound.Current());
-		std::cout << "COMPOUND " << compound.Closed() << std::endl;
-	}
-
-	TopExp_Explorer exCompSolid;
-	for( exCompSolid.Init(*topo_shape,TopAbs_COMPSOLID); exCompSolid.More(); exCompSolid.Next() ){
-		TopoDS_CompSolid compSolid = TopoDS::CompSolid(exCompSolid.Current());
-		std::cout << "COMPSOLID " << compSolid.Closed() << std::endl;
-	}
-
-	TopExp_Explorer exSolid;
-	for( exSolid.Init(*topo_shape,TopAbs_SOLID); exSolid.More(); exSolid.Next() ){
-		TopoDS_Solid solid = TopoDS::Solid(exSolid.Current());
-		std::cout << "SOLID " << solid.Closed() << std::endl;
-		TopExp_Explorer exShell;
-		for( exShell.Init(solid,TopAbs_SHELL); exShell.More(); exShell.Next() ){
-			TopoDS_Shell shell = TopoDS::Shell(exShell.Current());
-			std::cout << " SHELL " << shell.Closed() << std::endl;
-			TopExp_Explorer exFace;
-			for( exFace.Init(shell,TopAbs_FACE); exFace.More(); exFace.Next() ){
-				TopoDS_Face face = TopoDS::Face(exFace.Current());
-				std::cout << "  FACE " << face.Closed() << std::endl;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-				Handle(Geom_Surface) surf = BRep_Tool::Surface(face);
-				ShapeAnalysis_Surface saSurf(surf);
-				std::cout << "v-period " << surf->VPeriod() << std::endl;
-				std::cout << "u-period " << surf->UPeriod() << std::endl;
-				Standard_Real u1, u2, v1, v2;
-				surf->Bounds( u1, u2, v1, v2 );
-				std::cout << "Bounds " << u1 << " " << u2 << " " << v1 << " " << v2 << std::endl;
-				std::cout << "Type " << surf->DynamicType()->Name() << std::endl;
-				std::cout << "UClosed " << surf->IsUClosed() << std::endl;
-				std::cout << "VClosed " << surf->IsVClosed() << std::endl;
-				std::cout << "UPeriodic " << surf->IsUPeriodic() << std::endl;
-				std::cout << "VPeriodic " << surf->IsVPeriodic() << std::endl;
-				ShapeAnalysis_Surface anaSurf(surf);
-				std::cout << "Singularities " << anaSurf.HasSingularities(1.0e-6) << " " <<
-					anaSurf.NbSingularities(1.0e-6) << std::endl;
-				std::cout << "Gap " << anaSurf.Gap() << std::endl;
-			}
-		}
-	}
-
 }
 
 void
@@ -250,6 +203,447 @@ kmb::ShapeData::isClosed(void) const
 
 
 int
+kmb::ShapeData::getBezierSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const
+{
+	Handle(Geom_BezierSurface) bsf = Handle(Geom_BezierSurface)::DownCast(surf);
+	kmb::BezierSurface3D* bezier = new kmb::BezierSurface3D();
+	int nu = bsf->NbUPoles();
+	int nv = bsf->NbVPoles();
+	bezier->setOrder( nu, nv );
+
+	for(int j=1;j<=nv;++j){
+		for(int i=1;i<=nu;++i){
+			gp_Pnt pt = bsf->Pole(i,j);
+			bezier->appendCtrlPt( pt.X(), pt.Y(), pt.Z() );
+		}
+	}
+	bezier->setSurfaceId( face.HashCode( 0x80000000 ) );
+	surfaces.push_back( bezier );
+	return 1;
+}
+
+int
+kmb::ShapeData::getBSplineSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const
+{
+	Handle(Geom_BSplineSurface) bsp = Handle(Geom_BSplineSurface)::DownCast(surf);
+	kmb::NurbsSurface3D* nurbs = new kmb::NurbsSurface3D();
+	nurbs->setOrder( bsp->UDegree()+1, bsp->VDegree()+1 );
+	int ku = bsp->NbUKnots();
+	for(int i=1;i<=ku;++i){
+		int multi = bsp->UMultiplicity(i);
+		for(int j=0;j<multi;++j){
+			nurbs->appendUKnot( bsp->UKnot(i) );
+		}
+	}
+	int kv = bsp->NbVKnots();
+	for(int i=1;i<=kv;++i){
+		int multi = bsp->VMultiplicity(i);
+		for(int j=0;j<multi;++j){
+			nurbs->appendVKnot( bsp->VKnot(i) );
+		}
+	}
+	int nu = bsp->NbUPoles();
+	int nv = bsp->NbVPoles();
+
+	for(int j=1;j<=nv;++j){
+		for(int i=1;i<=nu;++i){
+			gp_Pnt pt = bsp->Pole(i,j);
+			nurbs->appendCtrlPt( pt.X(), pt.Y(), pt.Z(), bsp->Weight(i,j) );
+		}
+	}
+	nurbs->setSurfaceId( face.HashCode( 0x80000000 ) );
+	surfaces.push_back( nurbs );
+	return 1;
+}
+
+int
+kmb::ShapeData::getCylindricalSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const
+{
+	Handle(Geom_CylindricalSurface) cylinder = Handle(Geom_CylindricalSurface)::DownCast(surf);
+	Standard_Real u0(0.0),u1(0.0),v0(0.0),v1(0.0);
+	BRepTools::UVBounds(face,u0,u1,v0,v1);
+	std::cout << "cylindrical bounds " << u0 << " " << u1 << " " << v0 << " " << v1  << std::endl;
+	std::cout << "periodic => " << cylinder->IsUPeriodic() << std::endl;
+	if( cylinder->IsUPeriodic() && fabs(u1-u0-2*PI)<1.0e-6 ){
+
+		kmb::NurbsSurface3D* col0 = new kmb::NurbsSurface3D();
+		kmb::NurbsSurface3D* col1 = new kmb::NurbsSurface3D();
+		col0->setOrder( 3, 2 );
+		col1->setOrder( 3, 2 );
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(0.5);
+		col0->appendUKnot(0.5);
+		col0->appendUKnot(1.0);
+		col0->appendUKnot(1.0);
+		col0->appendUKnot(1.0);
+		col0->appendVKnot(0.0);
+		col0->appendVKnot(0.0);
+		col0->appendVKnot(1.0);
+		col0->appendVKnot(1.0);
+		col1->appendUKnot(0.0);
+		col1->appendUKnot(0.0);
+		col1->appendUKnot(0.0);
+		col1->appendUKnot(0.5);
+		col1->appendUKnot(0.5);
+		col1->appendUKnot(1.0);
+		col1->appendUKnot(1.0);
+		col1->appendUKnot(1.0);
+		col1->appendVKnot(0.0);
+		col1->appendVKnot(0.0);
+		col1->appendVKnot(1.0);
+		col1->appendVKnot(1.0);
+
+		gp_Pnt pt0,pt1,pt2,pt3,pt4,pt5,pt6,pt7;
+		cylinder->D0(u0                 ,v0,pt0);
+		cylinder->D0((3.0*u0+1.0*u1)/4.0,v0,pt1);
+		cylinder->D0((u0+u1)/2.0        ,v0,pt2);
+		cylinder->D0((1.0*u0+3.0*u1)/4.0,v0,pt3);
+		cylinder->D0(u0                 ,v1,pt4);
+		cylinder->D0((3.0*u0+1.0*u1)/4.0,v1,pt5);
+		cylinder->D0((u0+u1)/2.0        ,v1,pt6);
+		cylinder->D0((1.0*u0+3.0*u1)/4.0,v1,pt7);
+		gp_Pnt c(
+			cylinder->Position().Location().X(),
+			cylinder->Position().Location().Y(),
+			cylinder->Position().Location().Z()
+		);
+		double sq2 = 0.7071067811865475244008443621;
+
+		col0->appendCtrlPt( pt0.X(), pt0.Y(), pt0.Z() );
+		col0->appendCtrlPt(
+			pt0.X() + pt1.X() - c.X() - v0 * cylinder->Axis().Direction().X(),
+			pt0.Y() + pt1.Y() - c.Y() - v0 * cylinder->Axis().Direction().Y(),
+			pt0.Z() + pt1.Z() - c.Z() - v0 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col0->appendCtrlPt( pt1.X(), pt1.Y(), pt1.Z() );
+		col0->appendCtrlPt(
+			pt1.X() + pt2.X() - c.X() - v0 * cylinder->Axis().Direction().X(),
+			pt1.Y() + pt2.Y() - c.Y() - v0 * cylinder->Axis().Direction().Y(),
+			pt1.Z() + pt2.Z() - c.Z() - v0 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col0->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+
+		col1->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+		col1->appendCtrlPt(
+			pt2.X() + pt3.X() - c.X() - v0 * cylinder->Axis().Direction().X(),
+			pt2.Y() + pt3.Y() - c.Y() - v0 * cylinder->Axis().Direction().Y(),
+			pt2.Z() + pt3.Z() - c.Z() - v0 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col1->appendCtrlPt( pt3.X(), pt3.Y(), pt3.Z() );
+		col1->appendCtrlPt(
+			pt3.X() + pt0.X() - c.X() - v0 * cylinder->Axis().Direction().X(),
+			pt3.Y() + pt0.Y() - c.Y() - v0 * cylinder->Axis().Direction().Y(),
+			pt3.Z() + pt0.Z() - c.Z() - v0 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col1->appendCtrlPt( pt0.X(), pt0.Y(), pt0.Z() );
+
+		col0->appendCtrlPt( pt4.X(), pt4.Y(), pt4.Z() );
+		col0->appendCtrlPt(
+			pt4.X() + pt5.X() - c.X() - v1 * cylinder->Axis().Direction().X(),
+			pt4.Y() + pt5.Y() - c.Y() - v1 * cylinder->Axis().Direction().Y(),
+			pt4.Z() + pt5.Z() - c.Z() - v1 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col0->appendCtrlPt( pt5.X(), pt5.Y(), pt5.Z() );
+		col0->appendCtrlPt(
+			pt5.X() + pt6.X() - c.X() - v1 * cylinder->Axis().Direction().X(),
+			pt5.Y() + pt6.Y() - c.Y() - v1 * cylinder->Axis().Direction().Y(),
+			pt5.Z() + pt6.Z() - c.Z() - v1 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col0->appendCtrlPt( pt6.X(), pt6.Y(), pt6.Z() );
+
+		col1->appendCtrlPt( pt6.X(), pt6.Y(), pt6.Z() );
+		col1->appendCtrlPt(
+			pt6.X() + pt7.X() - c.X() - v1 * cylinder->Axis().Direction().X(),
+			pt6.Y() + pt7.Y() - c.Y() - v1 * cylinder->Axis().Direction().Y(),
+			pt6.Z() + pt7.Z() - c.Z() - v1 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col1->appendCtrlPt( pt7.X(), pt7.Y(), pt7.Z() );
+		col1->appendCtrlPt(
+			pt7.X() + pt4.X() - c.X() - v1 * cylinder->Axis().Direction().X(),
+			pt7.Y() + pt4.Y() - c.Y() - v1 * cylinder->Axis().Direction().Y(),
+			pt7.Z() + pt4.Z() - c.Z() - v1 * cylinder->Axis().Direction().Z(),
+			sq2);
+		col1->appendCtrlPt( pt4.X(), pt4.Y(), pt4.Z() );
+
+		col0->setSurfaceId( face.HashCode( 0x80000000 ) );
+		col1->setSurfaceId( face.HashCode( 0x80000000 ) + 0x80000000 );
+		surfaces.push_back( col0 );
+		surfaces.push_back( col1 );
+		return 2;
+	}else if( cylinder->IsUPeriodic() && fabs(u1-u0)>PI ){
+
+		kmb::NurbsSurface3D* col0 = new kmb::NurbsSurface3D();
+		kmb::NurbsSurface3D* col1 = new kmb::NurbsSurface3D();
+		col0->setOrder(3,2);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(1.0);
+		col0->appendUKnot(1.0);
+		col0->appendUKnot(1.0);
+		col0->appendVKnot(0.0);
+		col0->appendVKnot(0.0);
+		col0->appendVKnot(1.0);
+		col0->appendVKnot(1.0);
+		col1->setOrder(3,2);
+		col1->appendUKnot(0.0);
+		col1->appendUKnot(0.0);
+		col1->appendUKnot(0.0);
+		col1->appendUKnot(1.0);
+		col1->appendUKnot(1.0);
+		col1->appendUKnot(1.0);
+		col1->appendVKnot(0.0);
+		col1->appendVKnot(0.0);
+		col1->appendVKnot(1.0);
+		col1->appendVKnot(1.0);
+
+		double c = cos(0.5*(u1-u0));
+		double w = cos(0.25*(u1-u0));
+		gp_Pnt pt1,pt2,pt3;
+
+		cylinder->D0( u0,          v0, pt1 );
+		cylinder->D0( 0.5*(u0+u1), v0, pt2 );
+		cylinder->D0( u1,          v0, pt3 );
+
+		col0->appendCtrlPt( pt1.X(), pt1.Y(), pt1.Z() );
+		col0->appendCtrlPt(
+				1/(c+1)*(pt1.X() + pt2.X()) + (c-1)/(c+1)*( cylinder->Axis().Location().X() + v0 * cylinder->Axis().Direction().X()),
+				1/(c+1)*(pt1.Y() + pt2.Y()) + (c-1)/(c+1)*( cylinder->Axis().Location().Y() + v0 * cylinder->Axis().Direction().Y()),
+				1/(c+1)*(pt1.Z() + pt2.Z()) + (c-1)/(c+1)*( cylinder->Axis().Location().Z() + v0 * cylinder->Axis().Direction().Z()),
+				w);
+		col0->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+
+		col1->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+		col1->appendCtrlPt(
+				1/(c+1)*(pt2.X() + pt3.X()) + (c-1)/(c+1)*( cylinder->Axis().Location().X() + v0 * cylinder->Axis().Direction().X()),
+				1/(c+1)*(pt2.Y() + pt3.Y()) + (c-1)/(c+1)*( cylinder->Axis().Location().Y() + v0 * cylinder->Axis().Direction().Y()),
+				1/(c+1)*(pt2.Z() + pt3.Z()) + (c-1)/(c+1)*( cylinder->Axis().Location().Z() + v0 * cylinder->Axis().Direction().Z()),
+				w);
+		col1->appendCtrlPt( pt3.X(), pt3.Y(), pt3.Z() );
+
+		cylinder->D0( u0,          v1, pt1 );
+		cylinder->D0( 0.5*(u0+u1), v1, pt2 );
+		cylinder->D0( u1,          v1, pt3 );
+
+		col0->appendCtrlPt( pt1.X(), pt1.Y(), pt1.Z() );
+		col0->appendCtrlPt(
+				1/(c+1)*(pt1.X() + pt2.X()) + (c-1)/(c+1)*( cylinder->Axis().Location().X() + v1 * cylinder->Axis().Direction().X()),
+				1/(c+1)*(pt1.Y() + pt2.Y()) + (c-1)/(c+1)*( cylinder->Axis().Location().Y() + v1 * cylinder->Axis().Direction().Y()),
+				1/(c+1)*(pt1.Z() + pt2.Z()) + (c-1)/(c+1)*( cylinder->Axis().Location().Z() + v1 * cylinder->Axis().Direction().Z()),
+				w);
+		col0->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+
+		col1->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+		col1->appendCtrlPt(
+				1/(c+1)*(pt2.X() + pt3.X()) + (c-1)/(c+1)*( cylinder->Axis().Location().X() + v1 * cylinder->Axis().Direction().X()),
+				1/(c+1)*(pt2.Y() + pt3.Y()) + (c-1)/(c+1)*( cylinder->Axis().Location().Y() + v1 * cylinder->Axis().Direction().Y()),
+				1/(c+1)*(pt2.Z() + pt3.Z()) + (c-1)/(c+1)*( cylinder->Axis().Location().Z() + v1 * cylinder->Axis().Direction().Z()),
+				w);
+		col1->appendCtrlPt( pt3.X(), pt3.Y(), pt3.Z() );
+
+		col0->setSurfaceId( face.HashCode( 0x80000000 ) );
+		col1->setSurfaceId( face.HashCode( 0x80000000 ) + 0x80000000 );
+		surfaces.push_back( col0 );
+		surfaces.push_back( col1 );
+		return 2;
+	}else if( cylinder->IsUPeriodic() ){
+
+		kmb::NurbsSurface3D* col0 = new kmb::NurbsSurface3D();
+		col0->setOrder(3,2);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(0.0);
+		col0->appendUKnot(1.0);
+		col0->appendUKnot(1.0);
+		col0->appendUKnot(1.0);
+		col0->appendVKnot(0.0);
+		col0->appendVKnot(0.0);
+		col0->appendVKnot(1.0);
+		col0->appendVKnot(1.0);
+
+		double c = cos(u1-u0);
+		double w = cos(0.5*(u1-u0));
+		gp_Pnt pt1,pt2;
+
+		cylinder->D0( u0,          v0, pt1 );
+		cylinder->D0( u1,          v0, pt2 );
+
+		col0->appendCtrlPt( pt1.X(), pt1.Y(), pt1.Z() );
+		col0->appendCtrlPt(
+				1/(c+1)*(pt1.X() + pt2.X()) + (c-1)/(c+1)*( cylinder->Axis().Location().X() + v0 * cylinder->Axis().Direction().X()),
+				1/(c+1)*(pt1.Y() + pt2.Y()) + (c-1)/(c+1)*( cylinder->Axis().Location().Y() + v0 * cylinder->Axis().Direction().Y()),
+				1/(c+1)*(pt1.Z() + pt2.Z()) + (c-1)/(c+1)*( cylinder->Axis().Location().Z() + v0 * cylinder->Axis().Direction().Z()),
+				w);
+		col0->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+
+		cylinder->D0( u0,          v1, pt1 );
+		cylinder->D0( u1,          v1, pt2 );
+
+		col0->appendCtrlPt( pt1.X(), pt1.Y(), pt1.Z() );
+		col0->appendCtrlPt(
+				1/(c+1)*(pt1.X() + pt2.X()) + (c-1)/(c+1)*( cylinder->Axis().Location().X() + v1 * cylinder->Axis().Direction().X()),
+				1/(c+1)*(pt1.Y() + pt2.Y()) + (c-1)/(c+1)*( cylinder->Axis().Location().Y() + v1 * cylinder->Axis().Direction().Y()),
+				1/(c+1)*(pt1.Z() + pt2.Z()) + (c-1)/(c+1)*( cylinder->Axis().Location().Z() + v1 * cylinder->Axis().Direction().Z()),
+				w);
+		col0->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
+
+		col0->setSurfaceId( face.HashCode( 0x80000000 ) );
+		surfaces.push_back( col0 );
+		return 1;
+	}else{
+		return 0;
+	}
+}
+
+int
+kmb::ShapeData::getSphericalSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const
+{
+	Handle(Geom_SphericalSurface) sphere = Handle(Geom_SphericalSurface)::DownCast(surf);
+	Standard_Real u0(0.0),u1(0.0),v0(0.0),v1(0.0);
+	BRepTools::UVBounds(face,u0,u1,v0,v1);
+	std::cout << "spherical bounds " << u0 << " " << u1 << " " << v0 << " " << v1  << std::endl;
+	std::cout << "u periodic => " << sphere->IsUPeriodic() << std::endl;
+	std::cout << "v periodic => " << sphere->IsVPeriodic() << std::endl;
+	kmb::Point3D center;
+	center.x( sphere->Location().X() );
+	center.y( sphere->Location().Y() );
+	center.z( sphere->Location().Z() );
+	double radius = sphere->Radius();
+	kmb::NurbsSurface3D** s = new kmb::NurbsSurface3D*[4];
+	double sq2 = 0.7071067811865475244008443621;
+	for(int i=0;i<4;++i){
+		s[i] = new kmb::NurbsSurface3D();
+		s[i]->setOrder(3,3);
+		s[i]->appendUKnot(0.0);
+		s[i]->appendUKnot(0.0);
+		s[i]->appendUKnot(0.0);
+		s[i]->appendUKnot(0.5);
+		s[i]->appendUKnot(0.5);
+		s[i]->appendUKnot(1.0);
+		s[i]->appendUKnot(1.0);
+		s[i]->appendUKnot(1.0);
+		s[i]->appendVKnot(0.0);
+		s[i]->appendVKnot(0.0);
+		s[i]->appendVKnot(0.0);
+		s[i]->appendVKnot(1.0);
+		s[i]->appendVKnot(1.0);
+		s[i]->appendVKnot(1.0);
+	}
+	s[0]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[0]->appendCtrlPt( center.x()         , center.y() + radius, center.z() - radius, sq2 );
+	s[0]->appendCtrlPt( center.x()         , center.y() + radius, center.z()         , 1.0 );
+	s[0]->appendCtrlPt( center.x()         , center.y() + radius, center.z() + radius, sq2 );
+	s[0]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[0]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, sq2 );
+	s[0]->appendCtrlPt( center.x() - radius, center.y() + radius, center.z() - radius, 0.5 );
+	s[0]->appendCtrlPt( center.x() - radius, center.y() + radius, center.z()         , sq2 );
+	s[0]->appendCtrlPt( center.x() - radius, center.y() + radius, center.z() + radius, 0.5 );
+	s[0]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, sq2 );
+
+	s[0]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[0]->appendCtrlPt( center.x() - radius, center.y()         , center.z() - radius, sq2 );
+	s[0]->appendCtrlPt( center.x() - radius, center.y()         , center.z()         , 1.0 );
+	s[0]->appendCtrlPt( center.x() - radius, center.y()         , center.z() + radius, sq2 );
+	s[0]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[1]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[1]->appendCtrlPt( center.x() + radius, center.y()         , center.z() - radius, sq2 );
+	s[1]->appendCtrlPt( center.x() + radius, center.y()         , center.z()         , 1.0 );
+	s[1]->appendCtrlPt( center.x() + radius, center.y()         , center.z() + radius, sq2 );
+	s[1]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[1]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, sq2 );
+	s[1]->appendCtrlPt( center.x() + radius, center.y() + radius, center.z() - radius, 0.5 );
+	s[1]->appendCtrlPt( center.x() + radius, center.y() + radius, center.z()         , sq2 );
+	s[1]->appendCtrlPt( center.x() + radius, center.y() + radius, center.z() + radius, 0.5 );
+	s[1]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, sq2 );
+
+	s[1]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[1]->appendCtrlPt( center.x()         , center.y() + radius, center.z() - radius, sq2 );
+	s[1]->appendCtrlPt( center.x()         , center.y() + radius, center.z()         , 1.0 );
+	s[1]->appendCtrlPt( center.x()         , center.y() + radius, center.z() + radius, sq2 );
+	s[1]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[2]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[2]->appendCtrlPt( center.x() - radius, center.y()         , center.z() - radius, sq2 );
+	s[2]->appendCtrlPt( center.x() - radius, center.y()         , center.z()         , 1.0 );
+	s[2]->appendCtrlPt( center.x() - radius, center.y()         , center.z() + radius, sq2 );
+	s[2]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[2]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, sq2 );
+	s[2]->appendCtrlPt( center.x() - radius, center.y() - radius, center.z() - radius, 0.5 );
+	s[2]->appendCtrlPt( center.x() - radius, center.y() - radius, center.z()         , sq2 );
+	s[2]->appendCtrlPt( center.x() - radius, center.y() - radius, center.z() + radius, 0.5 );
+	s[2]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, sq2 );
+
+	s[2]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[2]->appendCtrlPt( center.x()         , center.y() - radius, center.z() - radius, sq2 );
+	s[2]->appendCtrlPt( center.x()         , center.y() - radius, center.z()         , 1.0 );
+	s[2]->appendCtrlPt( center.x()         , center.y() - radius, center.z() + radius, sq2 );
+	s[2]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[3]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[3]->appendCtrlPt( center.x()         , center.y() - radius, center.z() - radius, sq2 );
+	s[3]->appendCtrlPt( center.x()         , center.y() - radius, center.z()         , 1.0 );
+	s[3]->appendCtrlPt( center.x()         , center.y() - radius, center.z() + radius, sq2 );
+	s[3]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[3]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, sq2 );
+	s[3]->appendCtrlPt( center.x() + radius, center.y() - radius, center.z() - radius, 0.5 );
+	s[3]->appendCtrlPt( center.x() + radius, center.y() - radius, center.z()         , sq2 );
+	s[3]->appendCtrlPt( center.x() + radius, center.y() - radius, center.z() + radius, 0.5 );
+	s[3]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, sq2 );
+
+	s[3]->appendCtrlPt( center.x()         , center.y()         , center.z() - radius, 1.0 );
+	s[3]->appendCtrlPt( center.x() + radius, center.y()         , center.z() - radius, sq2 );
+	s[3]->appendCtrlPt( center.x() + radius, center.y()         , center.z()         , 1.0 );
+	s[3]->appendCtrlPt( center.x() + radius, center.y()         , center.z() + radius, sq2 );
+	s[3]->appendCtrlPt( center.x()         , center.y()         , center.z() + radius, 1.0 );
+
+	s[0]->setSurfaceId( face.HashCode( 0x80000000 ) );
+	surfaces.push_back( s[0] );
+	s[1]->setSurfaceId( face.HashCode( 0x80000000 ) + 0x80000000 );
+	surfaces.push_back( s[1] );
+	s[2]->setSurfaceId( face.HashCode( 0x80000000 ) + 0x100000000 );
+	surfaces.push_back( s[2] );
+	s[3]->setSurfaceId( face.HashCode( 0x80000000 ) + 0x200000000 );
+	surfaces.push_back( s[3] );
+	return 4;
+}
+
+int
+kmb::ShapeData::getPlane( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const
+{
+	Handle(Geom_Plane) plane = Handle(Geom_Plane)::DownCast(surf);
+	kmb::PlaneSurface3D* p3d = new kmb::PlaneSurface3D();
+	p3d->setBasePoint(
+		plane->Position().Location().X(),
+		plane->Position().Location().Y(),
+		plane->Position().Location().Z()
+		);
+	Standard_Real u0(0.0),u1(0.0),v0(0.0),v1(0.0);
+	BRepTools::UVBounds(face,u0,u1,v0,v1);
+	std::cout << "plane bounds " << u0 << " " << u1 << " " << v0 << " " << v1  << std::endl;
+	gp_Pnt p00,p01,p10,p11;
+	plane->D0(u0,v1,p01);
+	plane->D0(u1,v0,p10);
+	p3d->setAxisVectors(
+		p10.X() - plane->Position().Location().X(),
+		p10.Y() - plane->Position().Location().Y(),
+		p10.Z() - plane->Position().Location().Z(),
+		p01.X() - plane->Position().Location().X(),
+		p01.Y() - plane->Position().Location().Y(),
+		p01.Z() - plane->Position().Location().Z()
+		);
+	p3d->setSurfaceId( face.HashCode( 0x80000000 ) );
+	surfaces.push_back( p3d );
+	return 1;
+}
+
+int
 kmb::ShapeData::getSurfaces( std::vector<kmb::Surface3D*> &surfaces) const
 {
 	int count = 0;
@@ -258,61 +652,28 @@ kmb::ShapeData::getSurfaces( std::vector<kmb::Surface3D*> &surfaces) const
 		TopoDS_Face face = TopoDS::Face(exFace.Current());
 		if( !face.IsNull() ){
 			Handle(Geom_Surface) surf = BRep_Tool::Surface(face);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 			if( surf->IsKind( STANDARD_TYPE(Geom_BezierSurface) ) ){
-				count += 1;
-				Handle(Geom_BezierSurface) bsf =
-					Handle(Geom_BezierSurface)::DownCast(surf);
-				kmb::BezierSurface3D* bezier = new kmb::BezierSurface3D();
-				int nu = bsf->NbUPoles();
-				int nv = bsf->NbVPoles();
-				bezier->setOrder( nu, nv );
-
-				for(int j=1;j<=nv;++j){
-					for(int i=1;i<=nu;++i){
-						gp_Pnt pt = bsf->Pole(i,j);
-						bezier->appendCtrlPt( pt.X(), pt.Y(), pt.Z() );
-					}
-				}
-				bezier->setSurfaceId( face.HashCode( 0x80000000 ) );
-				surfaces.push_back( bezier );
+				count += getBezierSurface( face, surf, surfaces );
 			}else if( surf->IsKind( STANDARD_TYPE(Geom_BSplineSurface) ) ){
-				count += 1;
-				Handle(Geom_BSplineSurface) bsp =
-					Handle(Geom_BSplineSurface)::DownCast(surf);
-				kmb::NurbsSurface3D* nurbs = new kmb::NurbsSurface3D();
-				nurbs->setOrder( bsp->UDegree()+1, bsp->VDegree()+1 );
-				int ku = bsp->NbUKnots();
-				for(int i=1;i<=ku;++i){
-					int multi = bsp->UMultiplicity(i);
-					for(int j=0;j<multi;++j){
-						nurbs->appendUKnot( bsp->UKnot(i) );
-					}
-				}
-				int kv = bsp->NbVKnots();
-				for(int i=1;i<=kv;++i){
-					int multi = bsp->VMultiplicity(i);
-					for(int j=0;j<multi;++j){
-						nurbs->appendVKnot( bsp->VKnot(i) );
-					}
-				}
-				int nu = bsp->NbUPoles();
-				int nv = bsp->NbVPoles();
-
-				for(int j=1;j<=nv;++j){
-					for(int i=1;i<=nu;++i){
-						gp_Pnt pt = bsp->Pole(i,j);
-						nurbs->appendCtrlPt( pt.X(), pt.Y(), pt.Z(), bsp->Weight(i,j) );
-					}
-				}
-				nurbs->setSurfaceId( face.HashCode( 0x80000000 ) );
-				surfaces.push_back( nurbs );
+				count += getBSplineSurface( face, surf, surfaces );
 			}else if( surf->IsKind( STANDARD_TYPE(Geom_RectangularTrimmedSurface) ) ){
 				std::cout << "not supported Geom_RectangularTrimmedSurface" << std::endl;
 				Handle(Geom_RectangularTrimmedSurface) rts =
 					Handle(Geom_RectangularTrimmedSurface)::DownCast(surf);
-				Standard_Real u1,u2,v1,v2;
-				rts->Bounds( u1, u2, v1, v2 );
-				std::cout << "bounds " << u1 << " " << u2 << " " << v1 << " " << v2  << std::endl;
 
 				rts->BasisSurface();
 			}else if( surf->IsKind( STANDARD_TYPE(Geom_ElementarySurface) ) ){
@@ -321,237 +682,11 @@ kmb::ShapeData::getSurfaces( std::vector<kmb::Surface3D*> &surfaces) const
 					Handle(Geom_ConicalSurface) cone =
 						Handle(Geom_ConicalSurface)::DownCast(surf);
 				}else if( surf->IsKind( STANDARD_TYPE(Geom_CylindricalSurface) ) ){
-					Handle(Geom_CylindricalSurface) cylinder =
-						Handle(Geom_CylindricalSurface)::DownCast(surf);
-					std::cout << "axis (" <<
-						cylinder->Axis().Location().X() << ", " <<
-						cylinder->Axis().Location().Y() << ", " <<
-						cylinder->Axis().Location().Z() << ")" << std::endl;
-					std::cout << "radius " << cylinder->Radius() << std::endl;
-					std::cout << "center (" <<
-						cylinder->Position().Location().X() << "," <<
-						cylinder->Position().Location().Y() << "," <<
-						cylinder->Position().Location().Z() << ")" << std::endl;
-					std::cout << "uperiodic " << cylinder->IsUPeriodic() << std::endl;
-					std::cout << "vperiodic " << cylinder->IsVPeriodic() << std::endl;
-					std::cout << "uclosed " << cylinder->IsUClosed() << std::endl;
-					std::cout << "vclosed " << cylinder->IsVClosed() << std::endl;
-					Standard_Real u1,v1,u2,v2;
-					cylinder->Bounds(u1,u2,v1,v2);
-					std::cout << u1 << " " << u2 << " " << v1 << " " << v2 << std::endl;
-					v1 = 0.0;
-					v2 = 1.0;
-					gp_Pnt uv11,uv12,uv21,uv22;
-					cylinder->D0(u1,v1,uv11);
-					cylinder->D0(u1,v2,uv12);
-					cylinder->D0(u2,v1,uv21);
-					cylinder->D0(u2,v2,uv22);
-					std::cout << "uv11 (" <<
-						uv11.X() << "," <<
-						uv11.Y() << "," <<
-						uv11.Z() << ")" << std::endl;
-					std::cout << "uv12 (" <<
-						uv12.X() << "," <<
-						uv12.Y() << "," <<
-						uv12.Z() << ")" << std::endl;
-					std::cout << "uv21 (" <<
-						uv21.X() << "," <<
-						uv21.Y() << "," <<
-						uv21.Z() << ")" << std::endl;
-					std::cout << "uv22 (" <<
-						uv12.X() << "," <<
-						uv12.Y() << "," <<
-						uv12.Z() << ")" << std::endl;
-					ShapeAnalysis_Surface saSurf(surf);
-					Standard_Real xMin,yMin,zMin,xMax,yMax,zMax;
-					saSurf.GetBoxUF().Get(xMin,yMin,zMin,xMax,yMax,zMax);
-					std::cout << "BoxUF " <<
-						"(" <<
-						xMin << "," <<
-						yMin << "," <<
-						zMin << ")" <<
-						"(" <<
-						xMax << "," <<
-						yMax << "," <<
-						zMax << ")" << std::endl;
-					saSurf.GetBoxUL().Get(xMin,yMin,zMin,xMax,yMax,zMax);
-					std::cout << "BoxUL " <<
-						"(" <<
-						xMin << "," <<
-						yMin << "," <<
-						zMin << ")" <<
-						"(" <<
-						xMax << "," <<
-						yMax << "," <<
-						zMax << ")" << std::endl;
-					saSurf.GetBoxVF().Get(xMin,yMin,zMin,xMax,yMax,zMax);
-					std::cout << "BoxVF " <<
-						"(" <<
-						xMin << "," <<
-						yMin << "," <<
-						zMin << ")" <<
-						"(" <<
-						xMax << "," <<
-						yMax << "," <<
-						zMax << ")" << std::endl;
-					saSurf.GetBoxVL().Get(xMin,yMin,zMin,xMax,yMax,zMax);
-					std::cout << "BoxVL " <<
-						"(" <<
-						xMin << "," <<
-						yMin << "," <<
-						zMin << ")" <<
-						"(" <<
-						xMax << "," <<
-						yMax << "," <<
-						zMax << ")" << std::endl;
-					saSurf.Bounds(u1,u2,v1,v2);
-					std::cout << "Bounds " <<
-						"(" << u1 << "," << u2 << ")" <<
-						"(" << v1 << "," << v2 << ")" << std::endl;
-
-
-					kmb::NurbsSurface3D* col0 = new kmb::NurbsSurface3D();
-					kmb::NurbsSurface3D* col1 = new kmb::NurbsSurface3D();
-					col0->setOrder( 3, 2 );
-					col1->setOrder( 3, 2 );
-					col0->appendUKnot(0.0);
-					col0->appendUKnot(0.0);
-					col0->appendUKnot(0.0);
-					col0->appendUKnot(0.5);
-					col0->appendUKnot(0.5);
-					col0->appendUKnot(1.0);
-					col0->appendUKnot(1.0);
-					col0->appendUKnot(1.0);
-					col0->appendVKnot(0.0);
-					col0->appendVKnot(0.0);
-					col0->appendVKnot(1.0);
-					col0->appendVKnot(1.0);
-					col1->appendUKnot(0.0);
-					col1->appendUKnot(0.0);
-					col1->appendUKnot(0.0);
-					col1->appendUKnot(0.5);
-					col1->appendUKnot(0.5);
-					col1->appendUKnot(1.0);
-					col1->appendUKnot(1.0);
-					col1->appendUKnot(1.0);
-					col1->appendVKnot(0.0);
-					col1->appendVKnot(0.0);
-					col1->appendVKnot(1.0);
-					col1->appendVKnot(1.0);
-
-					gp_Pnt pt0,pt1,pt2,pt3,pt4,pt5,pt6,pt7;
-					cylinder->D0(u1                 ,0.0,pt0);
-					cylinder->D0((3.0*u1+1.0*u2)/4.0,0.0,pt1);
-					cylinder->D0((u1+u2)/2.0        ,0.0,pt2);
-					cylinder->D0((1.0*u1+3.0*u2)/4.0,0.0,pt3);
-					cylinder->D0(u1                 ,1.0,pt4);
-					cylinder->D0((3.0*u1+1.0*u2)/4.0,1.0,pt5);
-					cylinder->D0((u1+u2)/2.0        ,1.0,pt6);
-					cylinder->D0((1.0*u1+3.0*u2)/4.0,1.0,pt7);
-					gp_Pnt c(
-						cylinder->Position().Location().X(),
-						cylinder->Position().Location().Y(),
-						cylinder->Position().Location().Z()
-					);
-					double sq2 = 0.7071067811865475244008443621;
-
-					col0->appendCtrlPt( pt0.X(), pt0.Y(), pt0.Z() );
-					col0->appendCtrlPt(
-						pt0.X() + pt1.X() - c.X(),
-						pt0.Y() + pt1.Y() - c.Y(),
-						pt0.Z() + pt1.Z() - c.Z(),
-						sq2);
-					col0->appendCtrlPt( pt1.X(), pt1.Y(), pt1.Z() );
-					col0->appendCtrlPt(
-						pt1.X() + pt2.X() - c.X(),
-						pt1.Y() + pt2.Y() - c.Y(),
-						pt1.Z() + pt2.Z() - c.Z(),
-						sq2);
-					col0->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
-
-					col1->appendCtrlPt( pt2.X(), pt2.Y(), pt2.Z() );
-					col1->appendCtrlPt(
-						pt2.X() + pt3.X() - c.X(),
-						pt2.Y() + pt3.Y() - c.Y(),
-						pt2.Z() + pt3.Z() - c.Z(),
-						sq2);
-					col1->appendCtrlPt( pt3.X(), pt3.Y(), pt3.Z() );
-					col1->appendCtrlPt(
-						pt3.X() + pt0.X() - c.X(),
-						pt3.Y() + pt0.Y() - c.Y(),
-						pt3.Z() + pt0.Z() - c.Z(),
-						sq2);
-					col1->appendCtrlPt( pt0.X(), pt0.Y(), pt0.Z() );
-
-					c.SetCoord(
-						c.X() + pt4.X() - pt0.X(),
-						c.Y() + pt4.Y() - pt0.Y(),
-						c.Z() + pt4.Z() - pt0.Z());
-
-					col0->appendCtrlPt( pt4.X(), pt4.Y(), pt4.Z() );
-					col0->appendCtrlPt(
-						pt4.X() + pt5.X() - c.X(),
-						pt4.Y() + pt5.Y() - c.Y(),
-						pt4.Z() + pt5.Z() - c.Z(),
-						sq2);
-					col0->appendCtrlPt( pt5.X(), pt5.Y(), pt5.Z() );
-					col0->appendCtrlPt(
-						pt5.X() + pt6.X() - c.X(),
-						pt5.Y() + pt6.Y() - c.Y(),
-						pt5.Z() + pt6.Z() - c.Z(),
-						sq2);
-					col0->appendCtrlPt( pt6.X(), pt6.Y(), pt6.Z() );
-
-					col1->appendCtrlPt( pt6.X(), pt6.Y(), pt6.Z() );
-					col1->appendCtrlPt(
-						pt6.X() + pt7.X() - c.X(),
-						pt6.Y() + pt7.Y() - c.Y(),
-						pt6.Z() + pt7.Z() - c.Z(),
-						sq2);
-					col1->appendCtrlPt( pt7.X(), pt7.Y(), pt7.Z() );
-					col1->appendCtrlPt(
-						pt7.X() + pt4.X() - c.X(),
-						pt7.Y() + pt4.Y() - c.Y(),
-						pt7.Z() + pt4.Z() - c.Z(),
-						sq2);
-					col1->appendCtrlPt( pt4.X(), pt4.Y(), pt4.Z() );
-
-					col0->setSurfaceId( face.HashCode( 0x80000000 ) );
-					col1->setSurfaceId( face.HashCode( 0x80000000 ) + 0x80000000 );
-					surfaces.push_back( col0 );
-					surfaces.push_back( col1 );
+					count += getCylindricalSurface(face,surf,surfaces);
 				}else if( surf->IsKind( STANDARD_TYPE(Geom_Plane) ) ){
-					Handle(Geom_Plane) plane =
-						Handle(Geom_Plane)::DownCast(surf);
-					kmb::PlaneSurface3D* p3d = new kmb::PlaneSurface3D();
-					p3d->setBasePoint(
-						plane->Position().Location().X(),
-						plane->Position().Location().Y(),
-						plane->Position().Location().Z()
-						);
-					gp_Pnt u1,v1;
-					plane->D0(1.0,0.0,u1);
-					plane->D0(0.0,1.0,v1);
-					p3d->setAxisVectors(
-						u1.X() - plane->Position().Location().X(),
-						u1.Y() - plane->Position().Location().Y(),
-						u1.Z() - plane->Position().Location().Z(),
-						v1.X() - plane->Position().Location().X(),
-						v1.Y() - plane->Position().Location().Y(),
-						v1.Z() - plane->Position().Location().Z()
-						);
-					p3d->setSurfaceId( face.HashCode( 0x80000000 ) );
-					surfaces.push_back( p3d );
+					count += getPlane(face,surf,surfaces);
 				}else if( surf->IsKind( STANDARD_TYPE(Geom_SphericalSurface) ) ){
-					std::cout << "not supported Geom_SphericalSurface" << std::endl;
-					Handle(Geom_SphericalSurface) sphere =
-						Handle(Geom_SphericalSurface)::DownCast(surf);
-					std::cout << "radius " << sphere->Radius() << std::endl;
-					std::cout << "center (" <<
-						sphere->Position().Location().X() << "," <<
-						sphere->Position().Location().Y() << "," <<
-						sphere->Position().Location().Z() << ")" << std::endl;
-
+					count += getSphericalSurface(face,surf,surfaces);
 				}else if( surf->IsKind( STANDARD_TYPE(Geom_ToroidalSurface) ) ){
 					std::cout << "not supported Geom_ToroidalSurface" << std::endl;
 					Handle(Geom_ToroidalSurface) torus =
@@ -573,7 +708,6 @@ kmb::ShapeData::getSurfaces( std::vector<kmb::Surface3D*> &surfaces) const
 				}
 			}else{
 				std::cout << "not bezier, bspline surface" << std::endl;
-				BRep_Tool::Surface(face)->DynamicType().Dump( std::cout );
 				std::cout << std::endl;
 			}
 		}
@@ -591,46 +725,44 @@ kmb::ShapeData::saveToRNF(const char* filename,bool append) const
 	std::vector< kmb::Surface3D* > surfaces;
 	int surfaceId = 0;
 	getSurfaces( surfaces );
-	if( !append || (output.tellp() == std::ofstream::pos_type(std::ofstream::beg)) ){
+	if( !append ){
 		output << "# REVOCAP Neutral Yaml Format ver 0.1.1" << std::endl;
 		output << "---" << std::endl;
-	}
-	if( surfaces.size() > 0 ){
 		output << "surface:" << std::endl;
-		for( std::vector< kmb::Surface3D* >::iterator sIter = surfaces.begin();
-			sIter != surfaces.end(); ++sIter)
-		{
-			kmb::Surface3D* surface = *sIter;
-			if( surface ){
-				surfaceId = surface->getSurfaceId();
-				switch( surface->getSurfaceType() )
-				{
-				case kmb::Surface3D::BEZIER:
-					output << "  - bezier:" << std::endl;
-					output << "      id: " << surfaceId << std::endl;
-					surface->writeRNF( output, "      " );
-					break;
-				case kmb::Surface3D::BSPLINE:
-					output << "  - bspline:" << std::endl;
-					output << "      id: " << surfaceId << std::endl;
-					surface->writeRNF( output, "      " );
-					break;
-				case kmb::Surface3D::NURBS:
-					output << "  - nurbs:" << std::endl;
-					output << "      id: " << surfaceId << std::endl;
-					surface->writeRNF( output, "      " );
-					break;
-				case kmb::Surface3D::PLANE:
-					output << "  - nurbs:" << std::endl;
-					output << "      id: " << surfaceId << std::endl;
-					surface->writeRNF( output, "      " );
-					break;
-				default:
-					break;
-				}
+	}
+	for( std::vector< kmb::Surface3D* >::iterator sIter = surfaces.begin();
+		sIter != surfaces.end(); ++sIter)
+	{
+		kmb::Surface3D* surface = *sIter;
+		if( surface ){
+			surfaceId = surface->getSurfaceId();
+			switch( surface->getSurfaceType() )
+			{
+			case kmb::Surface3D::BEZIER:
+				output << "  - bezier:" << std::endl;
+				output << "      id: " << surfaceId << std::endl;
+				surface->writeRNF( output, "      " );
+				break;
+			case kmb::Surface3D::BSPLINE:
+				output << "  - bspline:" << std::endl;
+				output << "      id: " << surfaceId << std::endl;
+				surface->writeRNF( output, "      " );
+				break;
+			case kmb::Surface3D::NURBS:
+				output << "  - nurbs:" << std::endl;
+				output << "      id: " << surfaceId << std::endl;
+				surface->writeRNF( output, "      " );
+				break;
+			case kmb::Surface3D::PLANE:
+				output << "  - nurbs:" << std::endl;
+				output << "      id: " << surfaceId << std::endl;
+				surface->writeRNF( output, "      " );
+				break;
+			default:
+				break;
 			}
-			delete surface;
 		}
+		delete surface;
 	}
 	surfaces.clear();
 	output.close();

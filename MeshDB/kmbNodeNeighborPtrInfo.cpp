@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NodeNeighborPtrInfo                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,6 +30,7 @@
 #include "MeshDB/kmbElementRelation.h"
 
 kmb::NodeNeighborPtrInfo::NodeNeighborPtrInfo(void)
+: coboundaries(), admitAnti(true)
 {
 }
 
@@ -41,6 +42,18 @@ void
 kmb::NodeNeighborPtrInfo::clear(void)
 {
 	coboundaries.clear();
+}
+
+bool
+kmb::NodeNeighborPtrInfo::getIgnoreOrientation(void) const
+{
+	return admitAnti;
+}
+
+void
+kmb::NodeNeighborPtrInfo::setIgnoreOrientation(bool f)
+{
+	admitAnti = f;
 }
 
 bool
@@ -203,7 +216,7 @@ kmb::NodeNeighborPtrInfo::getElementNeighbor( const kmb::Element* element, kmb::
 							kmb::ElementRelation::getRelation( *element, index, *coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[i] = coElement;
 							++count;
 						}
@@ -233,7 +246,7 @@ kmb::NodeNeighborPtrInfo::getElementNeighbor( const kmb::Element* element, kmb::
 							kmb::ElementRelation::getRelation( *element, index, *coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[i] = coElement;
 							++count;
 						}
@@ -311,7 +324,7 @@ kmb::NodeNeighborPtrInfo::getElementNeighborFace( const kmb::Element* element, k
 							kmb::ElementRelation::getRelation( *element, index, *coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[i] = coElement;
 							faces[i] = otherIndex;
 							++count;
@@ -343,7 +356,7 @@ kmb::NodeNeighborPtrInfo::getElementNeighborFace( const kmb::Element* element, k
 							kmb::ElementRelation::getRelation( *element, index, *coElement, otherIndex );
 						if( index == i &&
 							( rel == kmb::ElementRelation::ADJACENT ||
-							  rel == kmb::ElementRelation::ANTIADJACENT ) ){
+							  (admitAnti && rel == kmb::ElementRelation::ANTIADJACENT) ) ){
 							neighbors[i] = coElement;
 							faces[i] = otherIndex;
 							++count;
@@ -412,13 +425,13 @@ kmb::NodeNeighborPtrInfo::isConnected( kmb::nodeIdType nodeId0, kmb::nodeIdType 
 }
 
 size_t
-kmb::NodeNeighborPtrInfo::getElementCountAroundNode(nodeIdType nodeId)
+kmb::NodeNeighborPtrInfo::getElementCountAroundNode(nodeIdType nodeId) const
 {
 	return this->coboundaries.count(nodeId);
 }
 
 size_t
-kmb::NodeNeighborPtrInfo::getSize(void)
+kmb::NodeNeighborPtrInfo::getSize(void) const
 {
 	return this->coboundaries.size();
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : PhysicalValue                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,43 +30,51 @@
 kmb::PhysicalValue::valueType
 kmb::PhysicalValue::string2valueType(std::string str)
 {
-	if( str == "NONE" )					return kmb::PhysicalValue::NONE;
-	else if( str == "BOOLEAN" )			return kmb::PhysicalValue::BOOLEAN;
-	else if( str == "INTEGER" )			return kmb::PhysicalValue::INTEGER;
-	else if( str == "SCALAR" )			return kmb::PhysicalValue::SCALAR;
-	else if( str == "VECTOR2" )			return kmb::PhysicalValue::VECTOR2;
-	else if( str == "VECTOR3" )			return kmb::PhysicalValue::VECTOR3;
-	else if( str == "VECTOR4" )			return kmb::PhysicalValue::VECTOR4;
-	else if( str == "POINT3VECTOR3" )	return kmb::PhysicalValue::POINT3VECTOR3;
-	else if( str == "TENSOR6" )			return kmb::PhysicalValue::TENSOR6;
-	else if( str == "VECTOR2WITHINT" )	return kmb::PhysicalValue::VECTOR2WITHINT;
-	else if( str == "ARRAY" )			return kmb::PhysicalValue::ARRAY;
-	else if( str == "HASH" )			return kmb::PhysicalValue::HASH;
-	else if( str == "INTHASH" )			return kmb::PhysicalValue::INTHASH;
-	else if( str == "STRING" )			return kmb::PhysicalValue::STRING;
-	else if( str == "UNDEFINED" )		return kmb::PhysicalValue::UNDEFINED;
-	else								return kmb::PhysicalValue::UNKNOWN;
+	if( str == "NONE" )					return kmb::PhysicalValue::None;
+	else if( str == "BOOLEAN" )			return kmb::PhysicalValue::Boolean;
+	else if( str == "INTEGER" )			return kmb::PhysicalValue::Integer;
+	else if( str == "SCALAR" )			return kmb::PhysicalValue::Scalar;
+	else if( str == "VECTOR2" )			return kmb::PhysicalValue::Vector2;
+	else if( str == "VECTOR3" )			return kmb::PhysicalValue::Vector3;
+	else if( str == "VECTOR4" )			return kmb::PhysicalValue::Vector4;
+	else if( str == "POINT3VECTOR3" )	return kmb::PhysicalValue::Point3Vector3;
+	else if( str == "TENSOR6" )			return kmb::PhysicalValue::Tensor6;
+	else if( str == "NODEID" )			return kmb::PhysicalValue::NodeId;
+	else if( str == "ELEMENTID" )		return kmb::PhysicalValue::ElementId;
+	else if( str == "VECTOR2WITHINT" )	return kmb::PhysicalValue::Vector2withInt;
+	else if( str == "VECTOR3WITHINT" )	return kmb::PhysicalValue::Vector3withInt;
+	else if( str == "VECTOR4WITHINT" )	return kmb::PhysicalValue::Vector4withInt;
+	else if( str == "ARRAY" )			return kmb::PhysicalValue::Array;
+	else if( str == "HASH" )			return kmb::PhysicalValue::Hash;
+	else if( str == "INTHASH" )			return kmb::PhysicalValue::IntHash;
+	else if( str == "STRING" )			return kmb::PhysicalValue::String;
+	else if( str == "UNDEFINED" )		return kmb::PhysicalValue::Undefined;
+	else								return kmb::PhysicalValue::Unknown;
 }
 
 std::string
 kmb::PhysicalValue::valueType2string(kmb::PhysicalValue::valueType t)
 {
 	switch(t){
-		case kmb::PhysicalValue::NONE:			return std::string("NONE");
-		case kmb::PhysicalValue::BOOLEAN:		return std::string("BOOLEAN");
-		case kmb::PhysicalValue::INTEGER:		return std::string("INTEGER");
-		case kmb::PhysicalValue::SCALAR:		return std::string("SCALAR");
-		case kmb::PhysicalValue::VECTOR2:		return std::string("VECTOR2");
-		case kmb::PhysicalValue::VECTOR3:		return std::string("VECTOR3");
-		case kmb::PhysicalValue::VECTOR4:		return std::string("VECTOR4");
-		case kmb::PhysicalValue::POINT3VECTOR3:	return std::string("POINT3VECTOR3");
-		case kmb::PhysicalValue::TENSOR6:		return std::string("TENSOR6");
-		case kmb::PhysicalValue::VECTOR2WITHINT:return std::string("VECTOR2WITHINT");
-		case kmb::PhysicalValue::ARRAY:			return std::string("ARRAY");
-		case kmb::PhysicalValue::HASH:			return std::string("HASH");
-		case kmb::PhysicalValue::INTHASH:		return std::string("INTHASH");
-		case kmb::PhysicalValue::STRING:		return std::string("STRING");
-		case kmb::PhysicalValue::UNDEFINED:		return std::string("UNDEFINED");
+		case kmb::PhysicalValue::None:			return std::string("NONE");
+		case kmb::PhysicalValue::Boolean:		return std::string("BOOLEAN");
+		case kmb::PhysicalValue::Integer:		return std::string("INTEGER");
+		case kmb::PhysicalValue::Scalar:		return std::string("SCALAR");
+		case kmb::PhysicalValue::Vector2:		return std::string("VECTOR2");
+		case kmb::PhysicalValue::Vector3:		return std::string("VECTOR3");
+		case kmb::PhysicalValue::Vector4:		return std::string("VECTOR4");
+		case kmb::PhysicalValue::Point3Vector3:	return std::string("POINT3VECTOR3");
+		case kmb::PhysicalValue::Tensor6:		return std::string("TENSOR6");
+		case kmb::PhysicalValue::NodeId:		return std::string("NODEID");
+		case kmb::PhysicalValue::ElementId:		return std::string("ELEMENTID");
+		case kmb::PhysicalValue::Vector2withInt:return std::string("VECTOR2WITHINT");
+		case kmb::PhysicalValue::Vector3withInt:return std::string("VECTOR3WITHINT");
+		case kmb::PhysicalValue::Vector4withInt:return std::string("VECTOR4WITHINT");
+		case kmb::PhysicalValue::Array:			return std::string("ARRAY");
+		case kmb::PhysicalValue::Hash:			return std::string("HASH");
+		case kmb::PhysicalValue::IntHash:		return std::string("INTHASH");
+		case kmb::PhysicalValue::String:		return std::string("STRING");
+		case kmb::PhysicalValue::Undefined:		return std::string("UNDEFINED");
 		default:								return std::string("UNKNOWN");
 	}
 }
@@ -75,21 +83,23 @@ int
 kmb::PhysicalValue::getDimension(valueType t)
 {
 	switch(t){
-		case kmb::PhysicalValue::NONE:			return 0;
-		case kmb::PhysicalValue::BOOLEAN:		return 0;
-		case kmb::PhysicalValue::INTEGER:		return 0;
-		case kmb::PhysicalValue::SCALAR:		return 1;
-		case kmb::PhysicalValue::VECTOR2:		return 2;
-		case kmb::PhysicalValue::VECTOR3:		return 3;
-		case kmb::PhysicalValue::VECTOR4:		return 4;
-		case kmb::PhysicalValue::POINT3VECTOR3:	return 6;
-		case kmb::PhysicalValue::TENSOR6:		return 6;
-		case kmb::PhysicalValue::VECTOR2WITHINT:return 2;
-		case kmb::PhysicalValue::ARRAY:			return 0;
-		case kmb::PhysicalValue::HASH:			return 0;
-		case kmb::PhysicalValue::INTHASH:		return 0;
-		case kmb::PhysicalValue::STRING:		return 0;
-		case kmb::PhysicalValue::UNDEFINED:		return 0;
+		case kmb::PhysicalValue::None:			return 0;
+		case kmb::PhysicalValue::Boolean:		return 0;
+		case kmb::PhysicalValue::Integer:		return 0;
+		case kmb::PhysicalValue::Scalar:		return 1;
+		case kmb::PhysicalValue::Vector2:		return 2;
+		case kmb::PhysicalValue::Vector3:		return 3;
+		case kmb::PhysicalValue::Vector4:		return 4;
+		case kmb::PhysicalValue::Point3Vector3:	return 6;
+		case kmb::PhysicalValue::Tensor6:		return 6;
+		case kmb::PhysicalValue::Vector2withInt:return 2;
+		case kmb::PhysicalValue::Vector3withInt:return 3;
+		case kmb::PhysicalValue::Vector4withInt:return 4;
+		case kmb::PhysicalValue::Array:			return 0;
+		case kmb::PhysicalValue::Hash:			return 0;
+		case kmb::PhysicalValue::IntHash:		return 0;
+		case kmb::PhysicalValue::String:		return 0;
+		case kmb::PhysicalValue::Undefined:		return 0;
 		default:								return 0;
 	}
 }
@@ -108,7 +118,7 @@ kmb::PhysicalValue::distance(const PhysicalValue* other) const
 double
 kmb::BooleanValue::distanceSq(const PhysicalValue* other) const
 {
-	if( other->getType() == kmb::PhysicalValue::BOOLEAN ){
+	if( other->getType() == kmb::PhysicalValue::Boolean ){
 		const kmb::BooleanValue* bVal = reinterpret_cast<const kmb::BooleanValue*>(other);
 		if( this->getValue() == bVal->getValue() ){
 			return 0.0;
@@ -129,7 +139,7 @@ kmb::BooleanValue::distanceSq(const PhysicalValue* other) const
 double
 kmb::IntegerValue::distanceSq(const PhysicalValue* other) const
 {
-	if( other->getType() == kmb::PhysicalValue::INTEGER ){
+	if( other->getType() == kmb::PhysicalValue::Integer ){
 		const kmb::IntegerValue* iVal = reinterpret_cast<const kmb::IntegerValue*>(other);
 		const int diff = this->value - iVal->getValue();
 		return static_cast<double>(diff*diff);
@@ -141,7 +151,7 @@ kmb::IntegerValue::distanceSq(const PhysicalValue* other) const
 double
 kmb::ScalarValue::distanceSq(const PhysicalValue* other) const
 {
-	if( other->getType() == kmb::PhysicalValue::SCALAR ){
+	if( other->getType() == kmb::PhysicalValue::Scalar ){
 		const kmb::ScalarValue* sVal = reinterpret_cast<const kmb::ScalarValue*>(other);
 		const double diff = this->value - sVal->getValue();
 		return diff*diff;
@@ -153,7 +163,7 @@ kmb::ScalarValue::distanceSq(const PhysicalValue* other) const
 double
 kmb::Vector2Value::distanceSq(const PhysicalValue* other) const
 {
-	if( other->getType() == kmb::PhysicalValue::VECTOR2 ){
+	if( other->getType() == kmb::PhysicalValue::Vector2 ){
 		const kmb::Vector2Value* vVal = reinterpret_cast<const kmb::Vector2Value*>(other);
 		const double d0 = this->getValue(0) - vVal->getValue(0);
 		const double d1 = this->getValue(1) - vVal->getValue(1);
@@ -172,7 +182,7 @@ kmb::Vector2Value::getLength(void) const
 double
 kmb::Vector3Value::distanceSq(const PhysicalValue* other) const
 {
-	if( other->getType() == kmb::PhysicalValue::VECTOR3 ){
+	if( other->getType() == kmb::PhysicalValue::Vector3 ){
 		const kmb::Vector3Value* vVal = reinterpret_cast<const kmb::Vector3Value*>(other);
 		const double d0 = this->getValue(0) - vVal->getValue(0);
 		const double d1 = this->getValue(1) - vVal->getValue(1);
@@ -192,7 +202,7 @@ kmb::Vector3Value::getLength(void) const
 double
 kmb::Vector4Value::distanceSq(const PhysicalValue* other) const
 {
-	if( other->getType() == kmb::PhysicalValue::VECTOR4 ){
+	if( other->getType() == kmb::PhysicalValue::Vector4 ){
 		const kmb::Vector4Value* vVal = reinterpret_cast<const kmb::Vector4Value*>(other);
 		const double d0 = this->getValue(0) - vVal->getValue(0);
 		const double d1 = this->getValue(1) - vVal->getValue(1);

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Element                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -38,9 +38,11 @@
 #include "MeshDB/kmbWedge2.h"
 #include "MeshDB/kmbHexahedron.h"
 #include "MeshDB/kmbHexahedron2.h"
-#include "MeshDB/kmbMeshDB.h"
+#include "MeshDB/kmbQuadInterface.h"
+#include "MeshDB/kmbTriInterface.h"
+#include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbElementRelation.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Common/kmbCalculator.h"
 
 kmb::elementIdType kmb::Element::nullElementId = -1;
 
@@ -81,6 +83,10 @@ kmb::ElementBase::getTypeString(elementType type)
 			return std::string("HEXAHEDRON");
 		case kmb::HEXAHEDRON2:
 			return std::string("HEXAHEDRON2");
+		case kmb::QUADRILATERAL_INTERFACE:
+			return std::string("QUAD_INTERFACE");
+		case kmb::TRIANGLE_INTERFACE:
+			return std::string("TRI_INTERFACE");
 		default:
 			return std::string("OTHERTYPE");
 	}
@@ -93,13 +99,13 @@ kmb::ElementBase::getType(std::string str)
 		return kmb::SEGMENT;
 	else if(str == "SEGMENT2")
 		return kmb::SEGMENT2;
-	else if(str == "TRIANGLE")
+	else if(str == "TRIANGLE" || str == "TRI")
 		return kmb::TRIANGLE;
-	else if(str == "TRIANGLE2")
+	else if(str == "TRIANGLE2" || str == "TRI2")
 		return kmb::TRIANGLE2;
-	else if(str == "QUAD")
+	else if(str == "QUAD" || str == "QUADRILATERAL")
 		return kmb::QUAD;
-	else if(str == "QUAD2")
+	else if(str == "QUAD2" || str == "QUADRILATERAL2")
 		return kmb::QUAD2;
 	else if(str == "TETRAHEDRON")
 		return kmb::TETRAHEDRON;
@@ -117,6 +123,10 @@ kmb::ElementBase::getType(std::string str)
 		return kmb::HEXAHEDRON;
 	else if(str == "HEXAHEDRON2")
 		return kmb::HEXAHEDRON2;
+	else if(str == "QUAD_INTERFACE")
+		return kmb::QUADRILATERAL_INTERFACE;
+	else if(str == "TRI_INTERFACE")
+		return kmb::TRIANGLE_INTERFACE;
 	else if(str == "OTHERTYPE")
 		return kmb::OTHERTYPE;
 	else
@@ -141,6 +151,8 @@ kmb::ElementBase::getNodeCount(elementType type)
 		case kmb::WEDGE2:		return kmb::Wedge2::nodeCount;
 		case kmb::HEXAHEDRON:	return kmb::Hexahedron::nodeCount;
 		case kmb::HEXAHEDRON2:	return kmb::Hexahedron2::nodeCount;
+		case kmb::QUADRILATERAL_INTERFACE:	return kmb::QuadInterface::nodeCount;
+		case kmb::TRIANGLE_INTERFACE:	return kmb::TriInterface::nodeCount;
 		case kmb::VERTEX:		return 1;
 		default:				return -1;
 	}
@@ -171,6 +183,10 @@ kmb::ElementBase::getVertexCount(elementType type)
 		case kmb::HEXAHEDRON:
 		case kmb::HEXAHEDRON2:
 			return kmb::Hexahedron::nodeCount;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return kmb::QuadInterface::nodeCount;
+		case kmb::TRIANGLE_INTERFACE:
+			return kmb::TriInterface::nodeCount;
 		case kmb::VERTEX:
 			return 1;
 		default:
@@ -203,6 +219,10 @@ kmb::ElementBase::getLinearType(kmb::elementType type)
 		case kmb::HEXAHEDRON:
 		case kmb::HEXAHEDRON2:
 			return kmb::HEXAHEDRON;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return kmb::QUADRILATERAL_INTERFACE;
+		case kmb::TRIANGLE_INTERFACE:
+			return kmb::TRIANGLE_INTERFACE;
 		default:
 			return kmb::UNKNOWNTYPE;
 	}
@@ -358,6 +378,10 @@ kmb::ElementBase::getBoundaryCount(kmb::elementType type)
 		case kmb::HEXAHEDRON:
 		case kmb::HEXAHEDRON2:
 			return 6;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return 5;
+		case kmb::TRIANGLE_INTERFACE:
+			return 5;
 		default:
 			return -2;
 	}
@@ -390,6 +414,10 @@ kmb::ElementBase::getEdgeCount(kmb::elementType type)
 		case kmb::HEXAHEDRON:
 		case kmb::HEXAHEDRON2:
 			return 12;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return 16;
+		case kmb::TRIANGLE_INTERFACE:
+			return 12;
 		default:
 			return -2;
 	}
@@ -399,8 +427,11 @@ kmb::elementType
 kmb::ElementBase::getBoundaryType(kmb::elementType type,int index)
 {
 	const int len = getBoundaryCount(type);
-	if( index < 0 || len <= index ){
+	if( index < -1 || len <= index ){
 		return kmb::UNKNOWNTYPE;
+	}else if( index == -1 ){
+
+		return type;
 	}
 	switch(type){
 		case kmb::UNKNOWNTYPE:
@@ -446,6 +477,10 @@ kmb::ElementBase::getBoundaryType(kmb::elementType type,int index)
 			return kmb::QUAD;
 		case kmb::HEXAHEDRON2:
 			return kmb::QUAD2;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return kmb::QUAD;
+		case kmb::TRIANGLE_INTERFACE:
+			return kmb::TRIANGLE;
 		default:
 			return kmb::OTHERTYPE;
 	}
@@ -498,6 +533,10 @@ kmb::ElementBase::getBoundaryNodeCount(kmb::elementType type,int index)
 			return 4;
 		case kmb::HEXAHEDRON2:
 			return 8;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return 4;
+		case kmb::TRIANGLE_INTERFACE:
+			return 3;
 		default:
 			return -2;
 	}
@@ -537,6 +576,10 @@ kmb::ElementBase::getBoundaryVertexCount(kmb::elementType type,int index)
 		case kmb::HEXAHEDRON:
 		case kmb::HEXAHEDRON2:
 			return 4;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return 4;
+		case kmb::TRIANGLE_INTERFACE:
+			return 3;
 		default:
 			return -2;
 	}
@@ -559,6 +602,8 @@ kmb::ElementBase::getEdgeType(kmb::elementType type,int index)
 		case kmb::PYRAMID:
 		case kmb::WEDGE:
 		case kmb::HEXAHEDRON:
+		case kmb::QUADRILATERAL_INTERFACE:
+		case kmb::TRIANGLE_INTERFACE:
 			return kmb::SEGMENT;
 		case kmb::SEGMENT2:
 		case kmb::TRIANGLE2:
@@ -596,6 +641,8 @@ kmb::ElementBase::getEdgeNodeCount(kmb::elementType type,int index)
 		case kmb::PYRAMID:
 		case kmb::WEDGE:
 		case kmb::HEXAHEDRON:
+		case kmb::QUADRILATERAL_INTERFACE:
+		case kmb::TRIANGLE_INTERFACE:
 			return 2;
 		case kmb::SEGMENT2:
 		case kmb::TRIANGLE2:
@@ -630,6 +677,8 @@ kmb::ElementBase::getEdgeVertexCount(kmb::elementType type,int index)
 		case kmb::WEDGE2:
 		case kmb::HEXAHEDRON:
 		case kmb::HEXAHEDRON2:
+		case kmb::QUADRILATERAL_INTERFACE:
+		case kmb::TRIANGLE_INTERFACE:
 			return 2;
 		default:
 			return -2;
@@ -664,6 +713,8 @@ kmb::ElementBase::getDimension(kmb::elementType type)
 		case kmb::WEDGE2:
 		case kmb::HEXAHEDRON:
 		case kmb::HEXAHEDRON2:
+		case kmb::QUADRILATERAL_INTERFACE:
+		case kmb::TRIANGLE_INTERFACE:
 			return 3;
 		default:
 			return -2;
@@ -685,6 +736,8 @@ kmb::ElementBase::getDegree(kmb::elementType type)
 		case kmb::PYRAMID:
 		case kmb::WEDGE:
 		case kmb::HEXAHEDRON:
+		case kmb::QUADRILATERAL_INTERFACE:
+		case kmb::TRIANGLE_INTERFACE:
 			return 1;
 		case kmb::SEGMENT2:
 		case kmb::TRIANGLE2:
@@ -907,9 +960,15 @@ kmb::ElementBase::getBoundaryCellId(int index,int i) const
 			return getCellId( kmb::Hexahedron::faceTable[index][i] );
 		case HEXAHEDRON2:
 			return getCellId( kmb::Hexahedron2::faceTable[index][i] );
+		case QUADRILATERAL_INTERFACE:
+			return getCellId( kmb::QuadInterface::faceTable[index][i] );
+		case TRIANGLE_INTERFACE:
+			return getCellId( kmb::TriInterface::faceTable[index][i] );
 		default:
 			break;
 		}
+	}else if( index == -1 && 0 <= i && i < getNodeCount() ){
+		return getCellId(i);
 	}
 	return kmb::nullNodeId;
 }
@@ -948,6 +1007,10 @@ kmb::ElementBase::getEdgeCellId(int index,int i) const
 			return getCellId( kmb::Hexahedron::edgeTable[index][i] );
 		case HEXAHEDRON2:
 			return getCellId( kmb::Hexahedron2::edgeTable[index][i] );
+		case QUADRILATERAL_INTERFACE:
+			return getCellId( kmb::QuadInterface::edgeTable[index][i] );
+		case TRIANGLE_INTERFACE:
+			return getCellId( kmb::TriInterface::edgeTable[index][i] );
 		default:
 			break;
 		}
@@ -1054,6 +1117,10 @@ kmb::ElementBase::isConnected(int index0,int index1) const
 			return kmb::Hexahedron::connectionTable[index0][index1];
 		case HEXAHEDRON2:
 			return kmb::Hexahedron2::connectionTable[index0][index1];
+		case QUADRILATERAL_INTERFACE:
+			return kmb::QuadInterface::connectionTable[index0][index1];
+		case TRIANGLE_INTERFACE:
+			return kmb::TriInterface::connectionTable[index0][index1];
 		default:
 			break;
 		}
@@ -1073,7 +1140,6 @@ kmb::ElementBase::isFace(const kmb::ElementBase &element, int &faceIndex) const
 			int index1 = this->indexOf( element.getCellId(1) );
 			return this->isFace( index0, index1, faceIndex );
 		}
-		break;
 	case 3:
 		{
 			int index0 = this->indexOf( element.getCellId(0) );
@@ -1081,7 +1147,6 @@ kmb::ElementBase::isFace(const kmb::ElementBase &element, int &faceIndex) const
 			int index2 = this->indexOf( element.getCellId(2) );
 			return this->isFace( index0, index1, index2, faceIndex );
 		}
-		break;
 	case 4:
 		{
 			int index0 = this->indexOf( element.getCellId(0) );
@@ -1090,7 +1155,6 @@ kmb::ElementBase::isFace(const kmb::ElementBase &element, int &faceIndex) const
 			int index3 = this->indexOf( element.getCellId(1) );
 			return this->isFace( index0, index1, index2, index3, faceIndex );
 		}
-		break;
 	default:
 		break;
 	}
@@ -1230,6 +1294,29 @@ kmb::ElementBase::isFace(int index0,int index1,int index2,int &faceIndex) const
 				}
 				break;
 			}
+		case kmb::TRIANGLE_INTERFACE:
+			{
+				for(int i=0;i<len;++i){
+					int vertexCount = this->getBoundaryVertexCount(i);
+					if( vertexCount == 3 ){
+						switch( kmb::ElementRelation::getTriangleRelation(
+								index0,index1,index2,
+								kmb::TriInterface::faceTable[i][0],
+								kmb::TriInterface::faceTable[i][1],
+								kmb::TriInterface::faceTable[i][2],aInd,bInd)){
+						case kmb::ElementRelation::EQUAL:
+							faceIndex = i;
+							return 1;
+						case kmb::ElementRelation::REVERSE:
+							faceIndex = i;
+							return -1;
+						default:
+							break;
+						}
+					}
+				}
+				break;
+			}
 		default:
 			break;
 		}
@@ -1330,12 +1417,38 @@ kmb::ElementBase::isFace(int index0,int index1,int index2,int index3,int &faceIn
 				}
 				break;
 			}
+		case kmb::QUADRILATERAL_INTERFACE:
+			{
+				for(int i=0;i<len;++i){
+					int vertexCount = this->getBoundaryVertexCount(i);
+					if( vertexCount == 4 ){
+						switch( kmb::ElementRelation::getQuadRelation(
+								index0,index1,index2,index3,
+								kmb::QuadInterface::faceTable[i][0],
+								kmb::QuadInterface::faceTable[i][1],
+								kmb::QuadInterface::faceTable[i][2],
+								kmb::QuadInterface::faceTable[i][3],
+								aInd,bInd)){
+						case kmb::ElementRelation::EQUAL:
+							faceIndex = i;
+							return 1;
+						case kmb::ElementRelation::REVERSE:
+							faceIndex = i;
+							return -1;
+						default:
+							break;
+						}
+					}
+				}
+				break;
+			}
 		default:
 			break;
 		}
 	}
 	return ret;
 }
+
 
 int
 kmb::ElementBase::getFaceIndex(int index0,int index1) const
@@ -1596,6 +1709,10 @@ kmb::ElementBase::getFaceIndex(int index0,int index1) const
 				break;
 			}
 			break;
+		case kmb::QUADRILATERAL_INTERFACE:
+			return kmb::QuadInterface::faceIndexTable[index0][index1];
+		case kmb::TRIANGLE_INTERFACE:
+			return kmb::TriInterface::faceIndexTable[index0][index1];
 		default:
 			return -1;
 		}
@@ -1810,6 +1927,36 @@ kmb::ElementBase::reverse(void)
 				);
 			break;
 		}
+	case kmb::QUADRILATERAL_INTERFACE:
+		{
+			kmb::nodeIdType tmp[9];
+			for(int i=0;i<9;++i){
+				tmp[i] = this->getCellId(i);
+			}
+			result = (
+				this->setCellId(1,tmp[3]) &&
+				this->setCellId(3,tmp[1]) &&
+				this->setCellId(4,tmp[7]) &&
+				this->setCellId(5,tmp[6]) &&
+				this->setCellId(6,tmp[5]) &&
+				this->setCellId(7,tmp[4])
+				);
+			break;
+		}
+	case kmb::TRIANGLE_INTERFACE:
+		{
+			kmb::nodeIdType tmp[6];
+			for(int i=0;i<6;++i){
+				tmp[i] = this->getCellId(i);
+			}
+			result = (
+				this->setCellId(0,tmp[2]) &&
+				this->setCellId(2,tmp[0]) &&
+				this->setCellId(3,tmp[5]) &&
+				this->setCellId(5,tmp[3])
+				);
+			break;
+		}
 	default:
 		break;
 	}
@@ -2005,6 +2152,34 @@ kmb::ElementBase::reverse( kmb::elementType etype, kmb::nodeIdType* nodes )
 			nodes[15] = tmp[12];
 			nodes[17] = tmp[19];
 			nodes[19] = tmp[17];
+			result = true;
+			break;
+		}
+	case kmb::QUADRILATERAL_INTERFACE:
+		{
+			kmb::nodeIdType tmp[9];
+			for(int i=0;i<9;++i){
+				tmp[i] = nodes[i];
+			}
+			nodes[1] = tmp[3];
+			nodes[3] = tmp[1];
+			nodes[4] = tmp[7];
+			nodes[5] = tmp[6];
+			nodes[6] = tmp[5];
+			nodes[7] = tmp[4];
+			result = true;
+			break;
+		}
+	case kmb::TRIANGLE_INTERFACE:
+		{
+			kmb::nodeIdType tmp[6];
+			for(int i=0;i<6;++i){
+				tmp[i] = nodes[i];
+			}
+			nodes[0] = tmp[2];
+			nodes[2] = tmp[0];
+			nodes[3] = tmp[5];
+			nodes[5] = tmp[3];
 			result = true;
 			break;
 		}
@@ -2219,6 +2394,12 @@ kmb::Element::create(kmb::elementType type, kmb::nodeIdType* ary)
 		case HEXAHEDRON2:
 			element = new kmb::Hexahedron2(ary);
 			break;
+		case kmb::QUADRILATERAL_INTERFACE:
+			element = new kmb::QuadInterface(ary);
+			break;
+		case kmb::TRIANGLE_INTERFACE:
+			element = new kmb::TriInterface(ary);
+			break;
 		default:
 			break;
 	}
@@ -2301,6 +2482,12 @@ kmb::Element::getCellId(int index) const
 
 kmb::nodeIdType
 kmb::Element::operator[](const int i) const
+{
+	return cell[i];
+}
+
+kmb::nodeIdType&
+kmb::Element::operator[](const int i)
 {
 	return cell[i];
 }

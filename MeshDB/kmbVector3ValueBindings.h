@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Vector3ValueBindings                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -20,7 +20,9 @@ namespace kmb{
 class Vector3ValueBindings : public kmb::DataBindings
 {
 public:
-	Vector3ValueBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE);
+	Vector3ValueBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
+
+	Vector3ValueBindings(size_t count,double* values,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
 	virtual ~Vector3ValueBindings(void);
 	virtual const char* getContainerType(void) const{
 		return "Vector3ValueBindings";
@@ -29,6 +31,7 @@ public:
 	virtual bool setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val);
 	virtual bool setPhysicalValue(kmb::idType id, double *value);
 	virtual bool setValue(kmb::idType id, double value,int index=0);
+	virtual bool scalar(double r);
 	virtual kmb::PhysicalValue* getPhysicalValue(kmb::idType id) const;
 	virtual bool getPhysicalValue(kmb::idType id, double *val) const;
 	virtual bool hasId(kmb::idType id) const;
@@ -59,6 +62,7 @@ public:
 private:
 	int size;
 	double* values;
+	bool deletable;
 };
 
 }

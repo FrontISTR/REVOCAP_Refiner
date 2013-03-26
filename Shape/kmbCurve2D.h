@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Curve2D                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,12 +14,16 @@
 ----------------------------------------------------------------------*/
 #pragma once
 
-#include "Geometry/kmb_Geometry2D.h"
+#include "Geometry/kmbGeometry2D.h"
 
 namespace kmb{
 
 class Curve2D
 {
+protected:
+
+	double epsilon;
+	int iterMax;
 public:
 	Curve2D(void);
 	virtual ~Curve2D(void);
@@ -32,6 +36,11 @@ public:
 
 
 	virtual bool getNearest( const kmb::Point2D& point, double& t ) const;
+
+	double getEpsilon(void) const;
+	void setEpsilon(double e);
+	int getIterMax(void) const;
+	void setIterMax(int m);
 };
 
 }

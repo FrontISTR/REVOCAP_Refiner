@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TriangleOrientedSet                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -128,7 +128,7 @@ kmb::TriangleOrientedSet::initialize(size_t size)
 	clear();
 }
 
-int
+kmb::Triangle*
 kmb::TriangleOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2)
 {
 	NodeTriMap::iterator tIter = triangles.lower_bound(n0);
@@ -139,15 +139,19 @@ kmb::TriangleOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb
 		triangles.insert( NodeTriPair(n1,tri) );
 		triangles.insert( NodeTriPair(n2,tri) );
 		++(typeCounter[ kmb::TRIANGLE ]);
-		return 1;
+		return tri;
 	}else{
 		while( tIter != endIter ){
 			kmb::Triangle* other = tIter->second;
+			if( other == NULL ){
+				++tIter;
+				continue;
+			}
 			switch( kmb::Triangle::isCoincident( n0, n1, n2, other->getCellId(0), other->getCellId(1), other->getCellId(2) ) )
 			{
 			case 1:
 
-				return 0;
+				return NULL;
 			case -1:
 			{
 
@@ -180,7 +184,7 @@ kmb::TriangleOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb
 				}
 				--(typeCounter[ kmb::TRIANGLE ]);
 				delete other;
-				return -1;
+				return NULL;
 			}
 			default:
 				break;
@@ -192,31 +196,31 @@ kmb::TriangleOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb
 		triangles.insert( NodeTriPair(n1,tri) );
 		triangles.insert( NodeTriPair(n2,tri) );
 		++(typeCounter[ kmb::TRIANGLE ]);
-		return 1;
+		return tri;
 	}
 }
 
-bool
+kmb::Triangle*
 kmb::TriangleOrientedSet::include(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2)
 {
 	NodeTriMap::iterator tIter = triangles.lower_bound(n0);
 	NodeTriMap::iterator endIter = triangles.upper_bound(n0);
 	if( tIter == triangles.end() ){
-		return false;
+		return NULL;
 	}else{
 		while( tIter != endIter ){
 			kmb::Triangle* other = tIter->second;
 			switch( kmb::Triangle::isCoincident( n0, n1, n2, other->getCellId(0), other->getCellId(1), other->getCellId(2) ) )
 			{
 			case 1:
-				return true;
+				return other;
 			default:
 				break;
 			}
 			++tIter;
 		}
 	}
-	return false;
+	return NULL;
 }
 
 int
@@ -379,8 +383,20 @@ kmb::TriangleOrientedSet::beginNodeIterator(void)
 	return this->triangles.begin();
 }
 
+kmb::TriangleOrientedSet::NodeTriMap::const_iterator
+kmb::TriangleOrientedSet::beginNodeIterator(void) const
+{
+	return this->triangles.begin();
+}
+
 kmb::TriangleOrientedSet::NodeTriMap::iterator
 kmb::TriangleOrientedSet::nextNodeIterator(kmb::nodeIdType nodeId)
+{
+	return this->triangles.upper_bound(nodeId);
+}
+
+kmb::TriangleOrientedSet::NodeTriMap::const_iterator
+kmb::TriangleOrientedSet::nextNodeIterator(kmb::nodeIdType nodeId) const
 {
 	return this->triangles.upper_bound(nodeId);
 }
@@ -391,12 +407,18 @@ kmb::TriangleOrientedSet::endNodeIterator(void)
 	return this->triangles.end();
 }
 
+kmb::TriangleOrientedSet::NodeTriMap::const_iterator
+kmb::TriangleOrientedSet::endNodeIterator(void) const
+{
+	return this->triangles.end();
+}
+
 size_t
-kmb::TriangleOrientedSet::getNodeCount(void)
+kmb::TriangleOrientedSet::getNodeCount(void) const
 {
 	size_t nCount = 0;
-	NodeTriMap::iterator nIter = beginNodeIterator();
-	NodeTriMap::iterator endIter = endNodeIterator();
+	NodeTriMap::const_iterator nIter = beginNodeIterator();
+	NodeTriMap::const_iterator endIter = endNodeIterator();
 	while( nIter != endIter ){
 		++nCount;
 		nIter = nextNodeIterator( nIter->first );
@@ -477,6 +499,12 @@ kmb::TriangleOrientedSet::_iterator::getElement(kmb::elementType &etype,kmb::nod
 
 kmb::Element*
 kmb::TriangleOrientedSet::_iterator::getElement(void)
+{
+	return tIter->second;
+}
+
+const kmb::Element*
+kmb::TriangleOrientedSet::_iterator::getElement(void) const
 {
 	return tIter->second;
 }

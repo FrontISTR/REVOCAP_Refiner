@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 1.0                          #
+# Software Name : REVOCAP_Refiner version 1.1                          #
 # Sample Program By C Language                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -93,51 +93,6 @@ int main(void)
 	int32_t i = 0;
 	int32_t j = 0;
 
-	printf("----- Environmental Information -----\n");
-	/* C Version check */
-#ifdef __STDC__
-  printf("__STDC__ = %d\n",__STDC__);
-#else
-  printf("__STDC__ is undefined\n");
-#endif
-
-#ifdef __STDC_HOSTED__
-  printf("__STDC_HOSTED__ = %d\n",__STDC_HOSTED__);
-#else
-  printf("__STDC_HOSTED__ is undefined\n");
-#endif
-
-#ifdef __STDC_IEC_559__
-  printf("__STDC_IEC_559__ = %d\n",__STDC_IEC_559__);
-#else
-  printf("__STDC_IEC_559__ is undefined\n");
-#endif
-
-#ifdef __STDC_IEC_559_COMPLEX__
-  printf("__STDC_IEC_559_COMPLEX__ = %d\n",__STDC_IEC_559_COMPLEX__);
-#else
-  printf("__STDC_IEC_559_COMPLEX__ is undefined\n");
-#endif
-
-#ifdef __STDC_ISO_10646__
-  printf("__STDC_ISO_10646__ = %ld\n",__STDC_ISO_10646__);
-#else
-  printf("__STDC_ISO_10646__ is undefined\n");
-#endif
-
-#ifdef __STDC_VERSION__
-	printf("__STDC_VERSION__ = %ld\n",__STDC_VERSION__);
-#else
-	printf("__STDC_VERSION__ is undefined\n");
-#endif
-
-	/* サイズのチェック */
-	printf("sizeof(int) = %"PRIsz"\n", sizeof(int) );
-	printf("sizeof(long) = %"PRIsz"\n", sizeof(long) );
-	printf("sizeof(size_t) = %"PRIsz"\n", sizeof(size_t) );
-	printf("sizeof(float) = %"PRIsz"\n", sizeof(float) );
-	printf("sizeof(double) = %"PRIsz"\n", sizeof(double) );
-
 	assert( sizeof(int8_t) == 1 );
 	assert( sizeof(uint8_t) == 1 );
 	assert( sizeof(int16_t) == 2 );
@@ -151,6 +106,7 @@ int main(void)
 	rcapInitRefiner( nodeOffset, elementOffset );
 
 	printf("----- Original Model -----\n");
+	printf("---\n");
 	/*
 	 * globalId と座標値を Refiner に教える
 	 * localIds は NULL をあたえると coords は nodeOffset から順番に並んでいるものと解釈する
@@ -159,43 +115,61 @@ int main(void)
 	/* 細分前の節点数 */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 5 );
-	printf("Node : Count = %"PRIsz"\n", nodeCount );
+	printf("node:\n");
+	printf("  size: %zu\n", nodeCount );
+	printf("  coordinate:\n");
 	for(i=0;(size_t)i<nodeCount;++i){
-		printf("%d : %f, %f, %f\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
+		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
 	/* 細分前の要素数 */
 	assert( elementCount == 2 );
-	printf("Element : Count = %"PRIsz"\n", elementCount );
-	for(i=0;i<2;++i){
-		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
+	printf("element:\n");
+	printf("  - size: %zu\n", elementCount );
+	printf("    connectivity:\n");
+	for(i=0;i<elementCount;++i){
+		printf("      - [%d, TETRAHEDRON, %d, %d, %d, %d]\n", i+elementOffset,
+			tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
 	}
 	/* 節点グループの登録 */
 	rcapAppendNodeGroup("innovate",ngCount,ng0);
 	ngCount = rcapGetNodeGroupCount("innovate");
 	assert( ngCount == 3 );
-	printf("Node Group : Count = %"PRIsz"\n", ngCount );
-	for(i=0;i<3;++i){
-		printf("%d\n", ng0[i]);
+	printf("data:\n");
+	printf("  - name: innovate\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",ngCount);
+	printf("    id:\n");
+	for(i=0;(size_t)i<ngCount;++i){
+		printf("    - %d\n", ng0[i]);
 	}
 	/* 面グループの登録 */
 	rcapAppendFaceGroup("revolute",fgCount,fg0);
 	fgCount = rcapGetFaceGroupCount("revolute");
 	assert( fgCount == 2 );
-	printf("Face Group : Count = %"PRIsz"\n", fgCount );
-	for(i=0;i<2;++i){
-		printf("%d, %d\n", fg0[2*i], fg0[2*i+1]);
+	printf("  - name: revolute\n");
+	printf("    mode: FACEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",fgCount);
+	printf("    id:\n");
+	for(i=0;(size_t)i<fgCount;++i){
+		printf("    - [%d, %d]\n", fg0[2*i], fg0[2*i+1]);
 	}
 	/* 要素グループの登録 */
 	rcapAppendElementGroup("eg",egCount,eg0);
 	egCount = rcapGetElementGroupCount("eg");
 	assert( egCount == 1 );
-	printf("Element Group : Count = %"PRIsz"\n", egCount );
-	for(i=0;i<1;++i){
-		printf("%d\n", eg0[i]);
+	printf("  - name: eg\n");
+	printf("    mode: ELEMENTGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",egCount);
+	printf("    id:\n");
+	for(i=0;(size_t)i<egCount;++i){
+		printf("    - %d\n", eg0[i]);
 	}
 
 	/* 要素の細分 */
-	refineElementCount = rcapRefineElement( elementCount, etype, tetras, NULL );
+	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	assert( refineElementCount == 16 );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
 	refineElementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras );
@@ -203,15 +177,17 @@ int main(void)
 	rcapCommit();
 
 	printf("----- Refined Model -----\n");
+	printf("---\n");
 
 	/* 細分後の節点 */
 	refineNodeCount = rcapGetNodeCount();
-	printf("Node : Count = %"PRIsz"\n", refineNodeCount );
-
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
+	printf("node:\n");
+	printf("  size: %zu\n", refineNodeCount );
+	printf("  coordinate:\n");
 	for(j=0;(size_t)j<refineNodeCount;++j){
-		printf("%d : %f, %f, %f\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
+		printf("  - [%d, %f, %f, %f]\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
 		orgtype = rcapGetOriginal( j+nodeOffset, seg );
 		if( orgtype == RCAP_SEGMENT ){
 			assert( coords[3*(seg[0]-nodeOffset)] + coords[3*(seg[1]-nodeOffset)] == 2.0 * resultCoords[3*j] );
@@ -234,17 +210,26 @@ int main(void)
 	}
 
 	/* 細分後の要素 */
-	printf("Element : Count = %"PRIsz"\n", refineElementCount );
+	printf("element:\n");
+	printf("  - size: %zu\n", refineElementCount );
+	printf("    connectivity:\n");
 	for(i=0;(size_t)i<refineElementCount;++i){
-		printf("%d : (%d) %d, %d, %d, %d\n", i+elementOffset, etype, refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
+		printf("      - [%d, TETRAHEDRON, %d, %d, %d, %d]\n", i+elementOffset,
+			refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
 	}
 
 	/* 細分後の節点グループの更新 */
 	ngCount = rcapGetNodeGroupCount("innovate");
-	printf("Node Group : Count = %"PRIsz"\n", ngCount );
 	assert( ngCount > 0 );
 	result_ng0 = (int32_t*)calloc( ngCount, sizeof(int32_t) );
 	rcapGetNodeGroup("innovate",ngCount,result_ng0);
+	printf("data:\n");
+	printf("  - name: innovate\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %d\n",ngCount);
+	printf("    id:\n");
+
 	/* 細分後の節点グループのチェック */
 	/* 元の節点グループを含む */
 	for(i=0;i<3;++i){
@@ -258,7 +243,7 @@ int main(void)
 	}
 	/* 細分後の節点グループの確認 */
 	for(j=0;(size_t)j<ngCount;++j){
-		printf("%d\n", result_ng0[j]);
+		printf("    - %d\n", result_ng0[j]);
 		orgtype = rcapGetOriginal( result_ng0[j], seg );
 		if( orgtype == RCAP_SEGMENT ){
 			/* 中間節点 => 元の両端 */
@@ -291,27 +276,35 @@ int main(void)
 
 	/* 細分後の面グループの更新 */
 	fgCount = rcapGetFaceGroupCount("revolute");
-	printf("Face Group : Count = %"PRIsz"\n", fgCount );
+	printf("  - name: revolute\n");
+	printf("    mode: FACEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",fgCount);
+	printf("    id:\n");
 	if( fgCount > 0 ){
 		result_fg0 = (int32_t*)calloc( fgCount*2, sizeof(int32_t) );
 		rcapGetFaceGroup("revolute",fgCount,result_fg0);
 		assert( fgCount == 8 );
 		for(i=0;(size_t)i<fgCount;++i){
-			printf("%d, %d\n", result_fg0[2*i], result_fg0[2*i+1]);
+			printf("    - [%d, %d]\n", result_fg0[2*i], result_fg0[2*i+1]);
 		}
 		free( result_fg0 );
 	}
 
 	/* 細分後の要素グループの更新 */
 	egCount = rcapGetElementGroupCount("eg");
-	printf("Element Group : Count = %"PRIsz"\n", egCount );
+	printf("  - name: eg\n");
+	printf("    mode: ELEMENTGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",egCount);
+	printf("    id:\n");
 	if( egCount > 0 ){
 		result_eg0 = (int32_t*)calloc( egCount, sizeof(int32_t) );
 		rcapGetElementGroup("eg",egCount,result_eg0);
 		assert( egCount == 8 );
 		flag = 1;
-		for(i=0;i<8;++i){
-			printf("%d\n", result_eg0[i]);
+		for(i=0;i<egCount;++i){
+			printf("    - %d\n", result_eg0[i]);
 			if( result_eg0[i] != 9+i ){
 				flag = 0;
 			}

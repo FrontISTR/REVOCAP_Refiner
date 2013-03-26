@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : SurfaceMatching                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -21,8 +21,8 @@
 #include "MeshDB/kmbNodeNeighborFaceInfo.h"
 #include "MeshDB/kmbElementRelation.h"
 #include "Matrix/kmbMatrix_DoubleArray.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Permutation.h"
+#include "Common/kmbCalculator.h"
+#include "Common/kmbPermutation.h"
 
 kmb::SurfaceMatching::SurfaceMatching(void)
 : mesh(NULL)
@@ -95,7 +95,7 @@ kmb::SurfaceMatching::setMesh(kmb::MeshData* m,const char* insNodes)
 		}else{
 			this->insertedNodes = this->mesh->getDataBindingsPtr( insNodes );
 			if( this->insertedNodes == NULL ){
-				this->insertedNodes = mesh->createDataBindings( insNodes, kmb::DataBindings::NODEGROUP, kmb::PhysicalValue::NONE );
+				this->insertedNodes = mesh->createDataBindings( insNodes, kmb::DataBindings::NodeGroup, kmb::PhysicalValue::None );
 			}
 		}
 	}
@@ -114,7 +114,7 @@ kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 		}
 		slaveName = faceGroup;
 		slaveFaceGroup = mesh->getDataBindingsPtr(faceGroup);
-		if( slaveFaceGroup == NULL || slaveFaceGroup->getBindingMode() != kmb::DataBindings::FACEGROUP ){
+		if( slaveFaceGroup == NULL || slaveFaceGroup->getBindingMode() != kmb::DataBindings::FaceGroup ){
 			masterSurf = NULL;
 			slaveFaceGroup = NULL;
 			return;
@@ -310,7 +310,7 @@ kmb::SurfaceMatching::constructDummyElements(void)
 kmb::elementIdType
 kmb::SurfaceMatching::getMatchingElementId(kmb::Face f,int &index)
 {
-	std::map< kmb::Face, kmb::SurfaceMatching::rotatedElement >::iterator mIter = mapping.find(f);
+	std::map< kmb::Face, kmb::SurfaceMatching::rotatedElement >::const_iterator mIter = mapping.find(f);
 	if( mIter == mapping.end() ){
 
 		kmb::elementIdType elementId = appendDummyElement(f);

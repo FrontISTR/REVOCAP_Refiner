@@ -40,10 +40,7 @@ C
 C
       ITYPE (1)=RCAP_HEXAHEDRON
       NER      = 0
-      ITYPER(1)=-1
-      NODER (1)=-1
-      NEDUM=RCAPREFINEELEMENTMULTI(NE ,ITYPE ,NODE,
-     *                             NER,ITYPER,NODER)
+      NEDUM=RCAPGETREFINEELEMENTMULTICOUNT(NE,ITYPE,NER)
       WRITE(6,*) 'AFTER 1st CALL'
       WRITE(6,*) 'NEDUM',NEDUM
       WRITE(6,*) 'NER  ',NER

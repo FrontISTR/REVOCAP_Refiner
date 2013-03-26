@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NodeNeighborPtrInfo                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -21,6 +21,7 @@
 
 #include "MeshDB/kmbTypes.h"
 #include <map>
+#include <cstddef>
 
 namespace kmb{
 
@@ -40,6 +41,8 @@ public:
 	virtual ~NodeNeighborPtrInfo(void);
 
 	void clear(void);
+	bool getIgnoreOrientation(void) const;
+	void setIgnoreOrientation(bool f);
 private:
 
 	bool append( kmb::nodeIdType nodeId, kmb::Element* element );
@@ -64,9 +67,9 @@ public:
 
 	bool isConnected( kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1 ) const;
 
-	size_t getElementCountAroundNode(kmb::nodeIdType nodeId);
+	size_t getElementCountAroundNode(kmb::nodeIdType nodeId) const;
 
-	size_t getSize(void);
+	size_t getSize(void) const;
 
 
 	NodeNeighborPtr::iterator beginIteratorAt(kmb::nodeIdType nodeId){
@@ -81,6 +84,7 @@ public:
 	NodeNeighborPtr::iterator endNodeIterator(void);
 private:
 	NodeNeighborPtr	coboundaries;
+	bool admitAnti;
 };
 
 }

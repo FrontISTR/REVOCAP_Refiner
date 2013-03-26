@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Matrix_DoubleArray                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -35,6 +35,20 @@ kmb::Matrix_DoubleArray::Matrix_DoubleArray(int rSize, int cSize,double* ary)
 	m = new double[rowSize*colSize];
 	for(int i=0;i<rowSize*colSize;++i){
 		m[i] = ary[i];
+	}
+}
+
+kmb::Matrix_DoubleArray::Matrix_DoubleArray(const kmb::Matrix& mat)
+: Matrix(mat.getRowSize(),mat.getColSize())
+, m(NULL)
+, rowSize(mat.getRowSize())
+, colSize(mat.getColSize())
+{
+	m = new double[rowSize*colSize];
+	for(int j=0;j<colSize;++j){
+		for(int i=0;i<rowSize;++i){
+			m[i+j*rowSize] = mat.get(i,j);
+		}
 	}
 }
 
@@ -151,6 +165,18 @@ kmb::SquareMatrix_DoubleArray::SquareMatrix_DoubleArray(int size,double* ary)
 	m = new double[size*size];
 	for(int i=0;i<size*size;++i){
 		m[i] = ary[i];
+	}
+}
+
+kmb::SquareMatrix_DoubleArray::SquareMatrix_DoubleArray(const kmb::SquareMatrix& mat)
+: SquareMatrix(mat.getSize())
+, m(NULL)
+{
+	m = new double[mSize*mSize];
+	for(int j=0;j<mSize;++j){
+		for(int i=0;i<mSize;++i){
+			m[i+j*mSize] = mat.get(i,j);
+		}
 	}
 }
 
@@ -285,6 +311,12 @@ kmb::ColumnVector_DoubleArray::getSize(void) const
 	return size;
 }
 
+int
+kmb::ColumnVector_DoubleArray::getRowSize(void) const
+{
+	return size;
+}
+
 double
 kmb::ColumnVector_DoubleArray::getRow(int i) const
 {
@@ -301,6 +333,14 @@ void
 kmb::ColumnVector_DoubleArray::addRow(int i,double val)
 {
 	m[i] += val;
+}
+
+double& kmb::ColumnVector_DoubleArray::operator()(int i,int j){
+	return m[i];
+}
+
+const double& kmb::ColumnVector_DoubleArray::operator()(int i,int j) const{
+	return m[i];
 }
 
 kmb::ColumnVector_DoubleArray&
@@ -402,6 +442,14 @@ void
 kmb::RowVector_DoubleArray::addColumn(int i,double val)
 {
 	m[i] += val;
+}
+
+double& kmb::RowVector_DoubleArray::operator()(int i,int j){
+	return m[j];
+}
+
+const double& kmb::RowVector_DoubleArray::operator()(int i,int j) const{
+	return m[j];
 }
 
 kmb::RowVector_DoubleArray&

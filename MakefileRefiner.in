@@ -1,5 +1,6 @@
 Refiner: force
-	OPENCASCADE=
+	OPENCASCADEFLAG=
+	cd Common && $(MAKE) static
 	cd Matrix && $(MAKE) static
 	cd Geometry && $(MAKE) static
 	cd MeshDB && $(MAKE) static
@@ -7,6 +8,7 @@ Refiner: force
 	cd RevocapIO && $(MAKE) static
 	cd Shape && $(MAKE) static
 	cd Refiner && $(MAKE) static
+	cd Refiner && $(MAKE) preFitting
 
 RefinerSampleC: force
 	cd Refiner && $(MAKE) sampleC
@@ -26,8 +28,9 @@ RefinerDoc: force
 	cd Refiner && $(MAKE) doc
 
 RefinerClean:
+	cd Common && $(MAKE) clean
 	cd Matrix && $(MAKE) clean
-	cd Geomety && $(MAKE) clean
+	cd Geometry && $(MAKE) clean
 	cd MeshDB && $(MAKE) clean
 	cd MeshGen && $(MAKE) clean
 	cd RevocapIO && $(MAKE) clean

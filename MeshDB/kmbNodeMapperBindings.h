@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NodeMapperBindings                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -36,10 +36,10 @@ class NodeMapperBindings : public DataBindings
 private:
 	typename std::map<kmb::nodeIdType,T> mapper;
 public:
-	NodeMapperBindings(kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE)
+	NodeMapperBindings(kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable)
 		: kmb::DataBindings()
 	{
-		this->type = kmb::PhysicalValue::INTEGER;
+		this->type = kmb::PhysicalValue::Integer;
 		this->bMode = bmode;
 	}
 	virtual ~NodeMapperBindings(void)
@@ -55,7 +55,7 @@ public:
 	}
 	virtual bool setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val)
 	{
-		if( val && val->getType() == kmb::PhysicalValue::INTEGER ){
+		if( val && val->getType() == kmb::PhysicalValue::Integer ){
 			int v = reinterpret_cast<kmb::IntegerValue*>(val)->getValue();
 			mapper.insert( std::pair< kmb::nodeIdType, T >
 				( static_cast<kmb::nodeIdType>(id), static_cast<T>(v) ) );

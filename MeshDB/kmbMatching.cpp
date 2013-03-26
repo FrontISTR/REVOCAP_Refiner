@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Matching                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -34,8 +34,8 @@
 #include "MeshDB/kmbDataBindings.h"
 #include "MeshDB/kmbTriangle.h"
 #include "MeshDB/kmbPolygon.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Common/kmbCalculator.h"
 
 kmb::Matching::Matching(void)
 {
@@ -45,7 +45,8 @@ kmb::Matching::~Matching(void)
 {
 }
 
-double kmb::Matching::getDistanceEdgeToNode( kmb::MeshDB* mesh, kmb::bodyIdType bodyId, kmb::nodeIdType nodeId )
+double
+kmb::Matching::getDistanceEdgeToNode( kmb::MeshDB* mesh, kmb::bodyIdType bodyId, kmb::nodeIdType nodeId ) const
 {
 	kmb::elementIdType nearestId = kmb::Element::nullElementId;
 	double param = 0.0;
@@ -60,7 +61,7 @@ double kmb::Matching::getDistanceEdgeToNode( kmb::MeshDB* mesh, kmb::bodyIdType 
 }
 
 double
-kmb::Matching::getDistanceEdgeToEdge( kmb::MeshDB* mesh, kmb::bodyIdType edgeId0, kmb::bodyIdType edgeId1 )
+kmb::Matching::getDistanceEdgeToEdge( kmb::MeshDB* mesh, kmb::bodyIdType edgeId0, kmb::bodyIdType edgeId1 ) const
 {
 	kmb::AverageCalculator ave0, ave1;
 	kmb::ElementContainer* edges0 = NULL;
@@ -92,7 +93,7 @@ kmb::Matching::getDistanceEdgeToEdge( kmb::MeshDB* mesh, kmb::bodyIdType edgeId0
 }
 
 double
-kmb::Matching::getDistanceEdgeToEdge( kmb::MeshDB* mesh0, kmb::bodyIdType edgeId0, kmb::MeshDB* mesh1, kmb::bodyIdType edgeId1 )
+kmb::Matching::getDistanceEdgeToEdge( kmb::MeshDB* mesh0, kmb::bodyIdType edgeId0, kmb::MeshDB* mesh1, kmb::bodyIdType edgeId1 ) const
 {
 	kmb::AverageCalculator ave0, ave1;
 	kmb::ElementContainer* edges0 = NULL;
@@ -257,8 +258,8 @@ kmb::Matching::getFaceRelation
 	}
 	const kmb::DataBindings::bindingMode mode0 = face0->getBindingMode();
 	const kmb::DataBindings::bindingMode mode1 = face1->getBindingMode();
-	if( ( mode0 != kmb::DataBindings::FACEGROUP && mode0 != kmb::DataBindings::FACEVARIABLE ) ||
-		( mode1 != kmb::DataBindings::FACEGROUP && mode1 != kmb::DataBindings::FACEVARIABLE ) )
+	if( ( mode0 != kmb::DataBindings::FaceGroup && mode0 != kmb::DataBindings::FaceVariable ) ||
+		( mode1 != kmb::DataBindings::FaceGroup && mode1 != kmb::DataBindings::FaceVariable ) )
 	{
 		return kmb::ElementRelation::UNKNOWNRELATION;
 	}
@@ -538,8 +539,8 @@ kmb::Matching::nodeMatchingBetweenBodies(kmb::MeshDB* mesh0, kmb::bodyIdType bod
 	kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* coupleData = NULL;
 	kmb::DataBindings* data = mesh0->getDataBindingsPtr(coupleName);
 	if( data ){
-		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-				data->getValueType() == kmb::PhysicalValue::INTEGER ){
+		if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+				data->getValueType() == kmb::PhysicalValue::Integer ){
 			coupleData =
 				reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >(data);
 		}
@@ -548,8 +549,8 @@ kmb::Matching::nodeMatchingBetweenBodies(kmb::MeshDB* mesh0, kmb::bodyIdType bod
 			reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >
 			( mesh0->createDataBindings
 				(coupleName,
-				 kmb::DataBindings::NODEVARIABLE,
-				 kmb::PhysicalValue::INTEGER,
+				 kmb::DataBindings::NodeVariable,
+				 kmb::PhysicalValue::Integer,
 				 "import", bodyId0 ) );
 	}
 
@@ -594,8 +595,8 @@ kmb::Matching::nodeMatchingOnBody(kmb::MeshDB* mesh0, kmb::bodyIdType bodyId0, k
 	kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* coupleData = NULL;
 	kmb::DataBindings* data = mesh0->getDataBindingsPtr(coupleName);
 	if( data ){
-		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-				data->getValueType() == kmb::PhysicalValue::INTEGER ){
+		if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+				data->getValueType() == kmb::PhysicalValue::Integer ){
 			coupleData =
 				reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >(data);
 		}
@@ -604,8 +605,8 @@ kmb::Matching::nodeMatchingOnBody(kmb::MeshDB* mesh0, kmb::bodyIdType bodyId0, k
 			reinterpret_cast< kmb::DataVariable<kmb::nodeIdType,kmb::IntegerValue>* >
 			( mesh0->createDataBindings
 				(coupleName,
-				 kmb::DataBindings::NODEVARIABLE,
-				 kmb::PhysicalValue::INTEGER,
+				 kmb::DataBindings::NodeVariable,
+				 kmb::PhysicalValue::Integer,
 				 "import", bodyId0 ) );
 	}
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerMixedArray                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -25,7 +25,7 @@
 
 namespace kmb{
 
-class ElementContainerMixedArray : public ElementContainer
+class ElementContainerMixedArray : public ElementContainerDirectAccessable
 {
 public:
 	static const char* CONTAINER_TYPE;
@@ -54,6 +54,8 @@ public:
 
 
 	ElementContainerMixedArray(size_t eSize,char* etype, kmb::nodeIdType *nodeTable, bool writable=false, kmb::nodeIdType offset=0 );
+
+	ElementContainerMixedArray(size_t eSize,char *etype,kmb::nodeIdType offset=0);
 	virtual ~ElementContainerMixedArray(void);
 	virtual kmb::elementIdType addElement(kmb::elementType etype, const kmb::nodeIdType *nodes);
 	virtual kmb::elementIdType addElement(kmb::elementType etype, const kmb::nodeIdType *nodes, const kmb::elementIdType id);
@@ -93,10 +95,16 @@ public:
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
 
-	size_t getNodeTableSize(void);
+	size_t getNodeTableSize(void) const;
+	kmb::elementType getElementType(kmb::elementIdType id) const;
+
+
+
+	kmb::nodeIdType operator()(kmb::elementIdType elementId,kmb::idType localId) const;
+	kmb::nodeIdType& operator()(kmb::elementIdType elementId,kmb::idType localId);
 private:
-	static size_t getRequiredNodeTableSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
-	static size_t getRequiredElementSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
+	static size_t getRequiredNodeTableSize(const size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
+	static size_t getRequiredElementSize(const size_t typeCounter[kmb::ELEMENT_TYPE_NUM]);
 };
 
 }

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : DataEvaluator                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -17,8 +17,8 @@
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbElementEvaluator.h"
 #include "MeshDB/kmbPhysicalValue.h"
-#include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Point3DContainer.h"
+#include "Geometry/kmbPoint2DContainer.h"
+#include "Geometry/kmbPoint3DContainer.h"
 
 kmb::DataEvaluator::DataEvaluator(const kmb::Point3DContainer* points)
 : points(NULL)
@@ -39,9 +39,9 @@ kmb::DataEvaluator::~DataEvaluator(void)
 }
 
 bool
-kmb::DataEvaluator::getMinMax(const kmb::DataBindings* data, kmb::BoundingBox1D &bbox)
+kmb::DataEvaluator::getMinMax(const kmb::DataBindings* data, kmb::BoundingBox1D &bbox) const
 {
-	if( data != NULL && data->getValueType() == kmb::PhysicalValue::SCALAR ){
+	if( data != NULL && data->getValueType() == kmb::PhysicalValue::Scalar ){
 		double value = 0.0;
 		kmb::DataBindings::const_iterator pIter = data->begin();
 		while( !pIter.isFinished() ){
@@ -51,7 +51,7 @@ kmb::DataEvaluator::getMinMax(const kmb::DataBindings* data, kmb::BoundingBox1D 
 			++pIter;
 		}
 		return true;
-	}else if( data != NULL && data->getValueType() == kmb::PhysicalValue::VECTOR3 ){
+	}else if( data != NULL && data->getValueType() == kmb::PhysicalValue::Vector3 ){
 		double value[3] = { 0.0, 0.0, 0.0 };
 		kmb::DataBindings::const_iterator pIter = data->begin();
 		while( !pIter.isFinished() ){
@@ -66,10 +66,10 @@ kmb::DataEvaluator::getMinMax(const kmb::DataBindings* data, kmb::BoundingBox1D 
 }
 
 bool
-kmb::DataEvaluator::getMinMaxWithId(const kmb::DataBindings* data, kmb::MinMaxWithId &minmax,int comp)
+kmb::DataEvaluator::getMinMaxWithId(const kmb::DataBindings* data, kmb::MinMaxWithId<kmb::idType> &minmax,int comp) const
 {
 	if( data ){
-		if( data->getValueType() == kmb::PhysicalValue::SCALAR )
+		if( data->getValueType() == kmb::PhysicalValue::Scalar )
 		{
 			minmax.initialize();
 			kmb::DataBindings::const_iterator dIter = data->begin();
@@ -82,7 +82,7 @@ kmb::DataEvaluator::getMinMaxWithId(const kmb::DataBindings* data, kmb::MinMaxWi
 			}
 			return true;
 		}
-		else if( data->getValueType() == kmb::PhysicalValue::VECTOR3 )
+		else if( data->getValueType() == kmb::PhysicalValue::Vector3 )
 		{
 			minmax.initialize();
 			kmb::DataBindings::const_iterator dIter = data->begin();
@@ -104,7 +104,7 @@ kmb::DataEvaluator::getMinMaxWithId(const kmb::DataBindings* data, kmb::MinMaxWi
 			}
 			return true;
 		}
-		else if( data->getValueType() == kmb::PhysicalValue::TENSOR6 )
+		else if( data->getValueType() == kmb::PhysicalValue::Tensor6 )
 		{
 			minmax.initialize();
 			kmb::DataBindings::const_iterator dIter = data->begin();
@@ -119,7 +119,7 @@ kmb::DataEvaluator::getMinMaxWithId(const kmb::DataBindings* data, kmb::MinMaxWi
 			}
 			return true;
 		}
-		else if( data->getValueType() == kmb::PhysicalValue::VECTOR2 )
+		else if( data->getValueType() == kmb::PhysicalValue::Vector2 )
 		{
 			minmax.initialize();
 			kmb::DataBindings::const_iterator dIter = data->begin();
@@ -141,7 +141,7 @@ kmb::DataEvaluator::getMinMaxWithId(const kmb::DataBindings* data, kmb::MinMaxWi
 			}
 			return true;
 		}
-		else if( data->getValueType() == kmb::PhysicalValue::VECTOR2WITHINT )
+		else if( data->getValueType() == kmb::PhysicalValue::Vector2withInt )
 		{
 			minmax.initialize();
 			kmb::DataBindings::const_iterator dIter = data->begin();
@@ -169,9 +169,9 @@ kmb::DataEvaluator::getMinMaxWithId(const kmb::DataBindings* data, kmb::MinMaxWi
 }
 
 bool
-kmb::DataEvaluator::getAbsMinMax(const kmb::DataBindings* data, kmb::BoundingBox1D &bbox)
+kmb::DataEvaluator::getAbsMinMax(const kmb::DataBindings* data, kmb::BoundingBox1D &bbox) const
 {
-	if( data != NULL && data->getValueType() == kmb::PhysicalValue::VECTOR3 ){
+	if( data != NULL && data->getValueType() == kmb::PhysicalValue::Vector3 ){
 		double value[3] = { 0.0, 0.0, 0.0 };
 		kmb::DataBindings::const_iterator pIter = data->begin();
 		while( !pIter.isFinished() ){
@@ -186,9 +186,9 @@ kmb::DataEvaluator::getAbsMinMax(const kmb::DataBindings* data, kmb::BoundingBox
 }
 
 bool
-kmb::DataEvaluator::getMinMax(const kmb::DataBindings* data, kmb::BoundingBox &bbox)
+kmb::DataEvaluator::getMinMax(const kmb::DataBindings* data, kmb::BoundingBox &bbox) const
 {
-	if( data != NULL && data->getValueType() == kmb::PhysicalValue::VECTOR3 ){
+	if( data != NULL && data->getValueType() == kmb::PhysicalValue::Vector3 ){
 		double value[3] = { 0.0, 0.0, 0.0 };
 		kmb::DataBindings::const_iterator pIter = data->begin();
 		while( !pIter.isFinished() ){
@@ -203,11 +203,11 @@ kmb::DataEvaluator::getMinMax(const kmb::DataBindings* data, kmb::BoundingBox &b
 }
 
 bool
-kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox& bbox)
+kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox& bbox) const
 {
-	if( data != NULL && data->getValueType() == kmb::PhysicalValue::VECTOR3 && elements != NULL ){
+	if( data != NULL && data->getValueType() == kmb::PhysicalValue::Vector3 && elements != NULL ){
 		double value[3] = {0.0, 0.0, 0.0};
-		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE ){
+		if( data->getBindingMode() == kmb::DataBindings::NodeVariable ){
 			kmb::ElementContainer::const_iterator eIter = elements->begin();
 			while( !eIter.isFinished() ){
 				const int nodeCount = eIter.getNodeCount();
@@ -219,7 +219,7 @@ kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::El
 				++eIter;
 			}
 			return true;
-		}else if( data->getBindingMode() == kmb::DataBindings::ELEMENTVARIABLE ){
+		}else if( data->getBindingMode() == kmb::DataBindings::ElementVariable ){
 			kmb::ElementContainer::const_iterator eIter = elements->begin();
 			while( !eIter.isFinished() ){
 				if( data->getPhysicalValue( eIter.getId(), value ) ){
@@ -234,11 +234,11 @@ kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::El
 }
 
 bool
-kmb::DataEvaluator::getAbsMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox1D& bbox)
+kmb::DataEvaluator::getAbsMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox1D& bbox) const
 {
-	if( data != NULL && data->getValueType() == kmb::PhysicalValue::VECTOR3 && elements != NULL ){
+	if( data != NULL && data->getValueType() == kmb::PhysicalValue::Vector3 && elements != NULL ){
 		double value[3] = {0.0, 0.0, 0.0};
-		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE ){
+		if( data->getBindingMode() == kmb::DataBindings::NodeVariable ){
 			kmb::ElementContainer::const_iterator eIter = elements->begin();
 			while( !eIter.isFinished() ){
 				const int nodeCount = eIter.getNodeCount();
@@ -250,7 +250,7 @@ kmb::DataEvaluator::getAbsMinMaxOnBody(const kmb::DataBindings* data, const kmb:
 				++eIter;
 			}
 			return true;
-		}else if( data->getBindingMode() == kmb::DataBindings::ELEMENTVARIABLE ){
+		}else if( data->getBindingMode() == kmb::DataBindings::ElementVariable ){
 			kmb::ElementContainer::const_iterator eIter = elements->begin();
 			while( !eIter.isFinished() ){
 				if( data->getPhysicalValue( eIter.getId(), value ) ){
@@ -265,11 +265,11 @@ kmb::DataEvaluator::getAbsMinMaxOnBody(const kmb::DataBindings* data, const kmb:
 }
 
 bool
-kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox1D& bbox)
+kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox1D& bbox) const
 {
-	if( data != NULL && data->getValueType() == kmb::PhysicalValue::SCALAR && elements != NULL ){
+	if( data != NULL && data->getValueType() == kmb::PhysicalValue::Scalar && elements != NULL ){
 		double value = 0.0;
-		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE ){
+		if( data->getBindingMode() == kmb::DataBindings::NodeVariable ){
 			kmb::ElementContainer::const_iterator eIter = elements->begin();
 			while( !eIter.isFinished() ){
 				const int nodeCount = eIter.getNodeCount();
@@ -281,7 +281,7 @@ kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::El
 				++eIter;
 			}
 			return true;
-		}else if( data->getBindingMode() == kmb::DataBindings::ELEMENTVARIABLE ){
+		}else if( data->getBindingMode() == kmb::DataBindings::ElementVariable ){
 			kmb::ElementContainer::const_iterator eIter = elements->begin();
 			while( !eIter.isFinished() ){
 				if( data->getPhysicalValue( eIter.getId(), &value ) ){
@@ -296,12 +296,12 @@ kmb::DataEvaluator::getMinMaxOnBody(const kmb::DataBindings* data, const kmb::El
 }
 
 bool
-kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, double* average)
+kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, double* average) const
 {
 	if( data != NULL && elements != NULL && average != NULL && this->points != NULL )
 	{
-		if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			data->getValueType() == kmb::PhysicalValue::SCALAR &&
+		if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			data->getValueType() == kmb::PhysicalValue::Scalar &&
 			elements->isUniqueDim(2) )
 		{
 
@@ -328,8 +328,8 @@ kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::E
 			*average = sum / sumArea;
 			return true;
 		}
-		else if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			data->getValueType() == kmb::PhysicalValue::VECTOR3 &&
+		else if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			data->getValueType() == kmb::PhysicalValue::Vector3 &&
 			elements->isUniqueDim(2) )
 		{
 
@@ -367,8 +367,8 @@ kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::E
 			average[2] = sum[2] / sumArea;
 			return true;
 		}
-		else if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			data->getValueType() == kmb::PhysicalValue::SCALAR &&
+		else if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			data->getValueType() == kmb::PhysicalValue::Scalar &&
 			elements->isUniqueDim(3) )
 		{
 
@@ -395,8 +395,8 @@ kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::E
 			*average = sum / sumVolume;
 			return true;
 		}
-		else if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			data->getValueType() == kmb::PhysicalValue::VECTOR3 &&
+		else if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			data->getValueType() == kmb::PhysicalValue::Vector3 &&
 			elements->isUniqueDim(3) )
 		{
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Curve3D                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,16 +13,41 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "Shape/kmbCurve3D.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbOptimization.h"
 #include <cmath>
 
 kmb::Curve3D::Curve3D(void)
+: epsilon(1.0e-8), iterMax(1000)
 {
 }
 
 kmb::Curve3D::~Curve3D(void)
 {
+}
+
+double
+kmb::Curve3D::getEpsilon(void) const
+{
+	return epsilon;
+}
+
+void
+kmb::Curve3D::setEpsilon(double e)
+{
+	this->epsilon = e;
+}
+
+int
+kmb::Curve3D::getIterMax(void) const
+{
+	return iterMax;
+}
+
+void
+kmb::Curve3D::setIterMax(int m)
+{
+	this->iterMax = m;
 }
 
 #ifdef _MSC_VER
@@ -117,6 +142,8 @@ kmb::Curve3D::getNearest( const kmb::Point3D& point, double& t ) const
 	};
 	opt_local opt_obj(this,point);
 	kmb::Optimization opt;
+	opt.setEpsilon(epsilon);
+	opt.setIterMax(iterMax);
 	double min_t, max_t;
 	getDomain(min_t,max_t);
 	double t0 = 0.0;

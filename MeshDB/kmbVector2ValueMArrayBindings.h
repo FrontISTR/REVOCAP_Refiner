@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Vector2ValueMArrayBindings                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,7 +14,7 @@
 ----------------------------------------------------------------------*/
 #pragma once
 #include "MeshDB/kmbDataBindings.h"
-#include "Geometry/kmb_BLArray.h"
+#include "Common/kmbBLArray.h"
 
 namespace kmb{
 
@@ -25,7 +25,7 @@ private:
 	BLArrayIndex aIndex;
 	size_t count;
 public:
-	Vector2ValueMArrayBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE);
+	Vector2ValueMArrayBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
 	virtual ~Vector2ValueMArrayBindings(void);
 	virtual const char* getContainerType(void) const{
 		return "Vector2ValueMArrayBindings";
@@ -34,6 +34,7 @@ public:
 	virtual bool setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val);
 	virtual bool setPhysicalValue(kmb::idType id,double* val);
 	virtual bool setValue(kmb::idType id, double value,int index=0);
+	virtual bool scalar(double r);
 	virtual kmb::PhysicalValue* getPhysicalValue(kmb::idType id) const;
 	virtual bool getPhysicalValue(kmb::idType id,double *val) const;
 	virtual bool hasId(kmb::idType id) const;

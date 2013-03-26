@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,7 +27,7 @@
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbSegment.h"
 #include "MeshDB/kmbTriangle.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Common/kmbCalculator.h"
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbElementRelation.h"
@@ -134,7 +134,7 @@ kmb::MeshDB::convertToLinearBody( kmb::bodyIdType bodyId )
 
 
 kmb::bodyIdType
-kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const char* coupleName,kmb::coupleType ctype)
+kmb::MeshDB::importBody(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, const char* coupleName,kmb::coupleType ctype)
 {
 	kmb::ElementContainer* otherBody = otherMesh.getBodyPtr( bodyId );
 	if( otherBody == NULL ){
@@ -157,8 +157,8 @@ kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const ch
 		if( ctype == kmb::MASTER || ctype == kmb::BOTH ){
 			kmb::DataBindings* data = this->getDataBindingsPtr(coupleName);
 			if( data ){
-				if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-					data->getValueType() == kmb::PhysicalValue::INTEGER ){
+				if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+					data->getValueType() == kmb::PhysicalValue::Integer ){
 					masterCoupleData = data;
 				}
 			}else{
@@ -170,8 +170,8 @@ kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const ch
 		if( ctype == kmb::SLAVE || ctype == kmb::BOTH ){
 			kmb::DataBindings* data = otherMesh.getDataBindingsPtr(coupleName);
 			if( data ){
-				if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-					data->getValueType() == kmb::PhysicalValue::INTEGER ){
+				if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+					data->getValueType() == kmb::PhysicalValue::Integer ){
 					slaveCoupleData = data;
 				}
 			}else{
@@ -276,7 +276,7 @@ kmb::MeshDB::importBody(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, const ch
 }
 
 kmb::bodyIdType
-kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, double tolerance, const char* coupleName)
+kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, double tolerance, const char* coupleName)
 {
 	kmb::ElementContainer* otherBody = otherMesh.getBodyPtr( bodyId );
 	if( otherBody == NULL ){
@@ -295,8 +295,8 @@ kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshDB& otherMesh, kmb::bodyIdType 
 	if( coupleName != NULL ){
 		kmb::DataBindings* data = otherMesh.getDataBindingsPtr(coupleName);
 		if( data ){
-			if( data->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			    data->getValueType() == kmb::PhysicalValue::INTEGER ){
+			if( data->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			    data->getValueType() == kmb::PhysicalValue::Integer ){
 				coupleData = data;
 			}
 		}else{
@@ -375,10 +375,8 @@ kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshDB& otherMesh, kmb::bodyIdType 
 
 
 
-
-
 kmb::bodyIdType
-kmb::MeshDB::importBody(kmb::MeshDB& otherMesh,kmb::bodyIdType bodyID,std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper)
+kmb::MeshDB::importBody(kmb::MeshData& otherMesh,kmb::bodyIdType bodyID,std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper)
 {
 	kmb::ElementContainer* otherBody = otherMesh.getBodyPtr( bodyID );
 	if( otherBody == NULL ){

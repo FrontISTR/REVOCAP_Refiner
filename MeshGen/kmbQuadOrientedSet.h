@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : QuadOrientedSet                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -65,18 +65,23 @@ public:
 	size_t getElementCountAroundNode(kmb::nodeIdType nodeId) const;
 
 
-	kmb::Quad* getAdjacent( const kmb::Quad* quad, const int edgeNum, int &adjEdge );
+	kmb::Quad* getAdjacent( const kmb::Quad* quad, const int edgeNum, int &adjEdge ) const;
 
-	kmb::Quad* getSharedThreeNodes(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, int& restIndex);
+	kmb::Quad* getSharedThreeNodes(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, int& restIndex) const;
 
 
 	NodeQuadMap::iterator beginNodeIterator(void);
+	NodeQuadMap::const_iterator beginNodeIterator(void) const;
 
 	NodeQuadMap::iterator findNodeIterator(kmb::nodeIdType nodeId);
+	NodeQuadMap::const_iterator findNodeIterator(kmb::nodeIdType nodeId) const;
 
 	NodeQuadMap::iterator nextNodeIterator(kmb::nodeIdType nodeId);
+	NodeQuadMap::const_iterator nextNodeIterator(kmb::nodeIdType nodeId) const;
+
 	NodeQuadMap::iterator endNodeIterator(void);
-	size_t getNodeCount(void);
+	NodeQuadMap::const_iterator endNodeIterator(void) const;
+	size_t getNodeCount(void) const;
 
 	class _iterator : public ElementContainer::_iterator
 	{
@@ -85,6 +90,7 @@ public:
 		virtual kmb::elementIdType getId(void) const;
 		virtual bool getElement(kmb::elementType &etype,kmb::nodeIdType *nodes) const;
 		virtual kmb::Element* getElement(void);
+		virtual const kmb::Element* getElement(void) const;
 		virtual kmb::elementType getType(void) const;
 		virtual kmb::nodeIdType getCellId(int cellIndex) const;
 		virtual bool setCellId(int cellIndex, kmb::nodeIdType nodeId);

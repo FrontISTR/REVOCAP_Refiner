@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshRefiner                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -14,7 +14,7 @@
 ----------------------------------------------------------------------*/
 #include "MeshGen/kmbMeshRefiner.h"
 
-#include "Geometry/kmb_Calculator.h"
+#include "Common/kmbCalculator.h"
 #include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbHexahedron.h"
@@ -140,8 +140,8 @@ kmb::MeshRefiner::setSecondNodesByData(const char* name,const char* stype)
 	if( data ){
 		switch( data->getBindingMode() )
 		{
-			case kmb::DataBindings::ELEMENTGROUP:
-			case kmb::DataBindings::ELEMENTVARIABLE:
+			case kmb::DataBindings::ElementGroup:
+			case kmb::DataBindings::ElementVariable:
 				{
 					kmb::bodyIdType bodyId = data->getTargetBodyId();
 					kmb::DataBindings::iterator eIter = data->begin();
@@ -193,7 +193,7 @@ kmb::MeshRefiner::convertToSecondBody(kmb::bodyIdType bodyId)
 		}
 
 		if( data != NULL && dIter->refinedData == NULL ){
-			if( data->getBindingMode() == kmb::DataBindings::NODEGROUP || data->getBindingMode() == kmb::DataBindings::NODEVARIABLE ){
+			if( data->getBindingMode() == kmb::DataBindings::NodeGroup || data->getBindingMode() == kmb::DataBindings::NodeVariable ){
 				dIter->refinedData = kmb::DataBindings::createDataBindings(
 					data->getBindingMode(),
 					data->getValueType(),
@@ -227,11 +227,11 @@ kmb::MeshRefiner::convertToSecondBody(kmb::bodyIdType bodyId)
 				std::vector< kmb::MeshRefiner::DataPair >::iterator pIter = dataPairs.begin();
 				while( pIter != dataPairs.end() ){
 					if( pIter->originalData && pIter->refinedData ){
-						if( pIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+						if( pIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 							nodeGroupUpdate( n0, n1, n01, pIter->originalData, pIter->refinedData );
 						}
-						else if( pIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-							pIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+						else if( pIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+							pIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 						{
 							nodeVariableUpdate( n0, n1, n01, pIter->originalData, pIter->refinedData );
 						}
@@ -322,6 +322,7 @@ kmb::MeshRefiner::commitData(void)
 					delete dIter->refinedData;
 					dIter->refinedData = NULL;
 				}else{
+					delete dIter->originalData;
 					dIter->originalData = NULL;
 				}
 			}else{
@@ -343,8 +344,7 @@ kmb::MeshRefiner::refineBody(kmb::bodyIdType orgBodyId)
 {
 	kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
 	const kmb::ElementContainer* orgBody = NULL;
-	if( mesh &&
-		(orgBody=mesh->getBodyPtr( orgBodyId )) != NULL )
+	if( mesh && (orgBody=mesh->getBodyPtr( orgBodyId )) != NULL )
 	{
 		size_t eCount = getRefinedElementCount( orgBody );
 		bodyId = mesh->beginElement( eCount );
@@ -361,7 +361,7 @@ kmb::MeshRefiner::refineBody(kmb::bodyIdType orgBodyId)
 
 		std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 		while( dIter != dataPairs.end() ){
-			if( dIter->refinedData && dIter->refinedData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+			if( dIter->refinedData && dIter->refinedData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 				if( dIter->refinedData->getTargetBodyId() == orgBodyId ){
 					dIter->refinedData->setTargetBodyId( bodyId );
 				}
@@ -453,15 +453,15 @@ kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, kmb::ElementBase 
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			nodeGroupUpdate( segment.getCellId(0), segment.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			nodeVariableUpdate( segment.getCellId(0), segment.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -471,7 +471,7 @@ kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, kmb::ElementBase 
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<2;++i){
 					dIter->refinedData->addId( e[i] );
@@ -517,17 +517,17 @@ kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, kmb::ElementBase
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			nodeGroupUpdate( segment2.getCellId(0), segment2.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( segment2.getCellId(1), segment2.getCellId(2), n12, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			nodeVariableUpdate( segment2.getCellId(0), segment2.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( segment2.getCellId(1), segment2.getCellId(2), n12, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -537,7 +537,7 @@ kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, kmb::ElementBase
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<2;++i){
 					dIter->refinedData->addId( e[i] );
@@ -596,21 +596,21 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 
 			nodeGroupUpdate( triangle.getCellId(0), triangle.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle.getCellId(0), triangle.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle.getCellId(1), triangle.getCellId(2), n12, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 
 			nodeVariableUpdate( triangle.getCellId(0), triangle.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle.getCellId(0), triangle.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle.getCellId(1), triangle.getCellId(2), n12, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
@@ -635,7 +635,7 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
@@ -731,7 +731,7 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 
 			nodeGroupUpdate( triangle2.getCellId(0), triangle2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle2.getCellId(0), triangle2.getCellId(5), n05, dIter->originalData, dIter->refinedData );
@@ -743,8 +743,8 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 			nodeGroupUpdate( triangle2.getCellId(3), triangle2.getCellId(5), n35, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle2.getCellId(4), triangle2.getCellId(5), n45, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 
 			nodeVariableUpdate( triangle2.getCellId(0), triangle2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
@@ -757,7 +757,7 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 			nodeVariableUpdate( triangle2.getCellId(3), triangle2.getCellId(5), n35, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle2.getCellId(4), triangle2.getCellId(5), n45, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
@@ -782,7 +782,7 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
@@ -843,7 +843,7 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 
 			nodeGroupUpdate( quad, 0, n01, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad, 1, n12, dIter->originalData, dIter->refinedData );
@@ -851,8 +851,8 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 			nodeGroupUpdate( quad, 3, n30, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad, c, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 
 			nodeVariableUpdate( quad, 0, n01, dIter->originalData, dIter->refinedData );
@@ -861,7 +861,7 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 			nodeVariableUpdate( quad, 3, n30, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad, c, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
@@ -890,7 +890,7 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
@@ -1005,7 +1005,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 
 			nodeGroupUpdate( quad2, c, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad2.getCellId(0), quad2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
@@ -1021,8 +1021,8 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 			nodeGroupUpdate( quad2.getCellId(6), c, n6c, dIter->refinedData, dIter->refinedData );
 			nodeGroupUpdate( quad2.getCellId(7), c, n7c, dIter->refinedData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 
 			nodeVariableUpdate( quad2, c, dIter->originalData, dIter->refinedData );
@@ -1039,7 +1039,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 			nodeVariableUpdate( quad2.getCellId(6), c, n6c, dIter->refinedData, dIter->refinedData );
 			nodeVariableUpdate( quad2.getCellId(7), c, n7c, dIter->refinedData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
@@ -1069,7 +1069,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
@@ -1235,7 +1235,7 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			nodeGroupUpdate( tetra.getCellId(1), tetra.getCellId(2), n12, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra.getCellId(0), tetra.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra.getCellId(0), tetra.getCellId(1), n01, dIter->originalData, dIter->refinedData );
@@ -1243,8 +1243,8 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 			nodeGroupUpdate( tetra.getCellId(1), tetra.getCellId(3), n13, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra.getCellId(2), tetra.getCellId(3), n23, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			nodeVariableUpdate( tetra.getCellId(1), tetra.getCellId(2), n12, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra.getCellId(0), tetra.getCellId(2), n02, dIter->originalData, dIter->refinedData );
@@ -1253,7 +1253,7 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 			nodeVariableUpdate( tetra.getCellId(1), tetra.getCellId(3), n13, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra.getCellId(2), tetra.getCellId(3), n23, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -1268,7 +1268,7 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
 					dIter->refinedData->addId( e[i] );
@@ -1615,7 +1615,7 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			nodeGroupUpdate( tetra2.getCellId(0), tetra2.getCellId(5), n05, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra2.getCellId(0), tetra2.getCellId(6), n06, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra2.getCellId(0), tetra2.getCellId(7), n07, dIter->originalData, dIter->refinedData );
@@ -1646,8 +1646,8 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeGroupUpdate( tetra2.getCellId(5), tetra2.getCellId(8), n58, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra2.getCellId(6), tetra2.getCellId(9), n69, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			nodeVariableUpdate( tetra2.getCellId(0), tetra2.getCellId(5), n05, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra2.getCellId(0), tetra2.getCellId(6), n06, dIter->originalData, dIter->refinedData );
@@ -1679,7 +1679,7 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeVariableUpdate( tetra2.getCellId(5), tetra2.getCellId(8), n58, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra2.getCellId(6), tetra2.getCellId(9), n69, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -1694,7 +1694,7 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
 					dIter->refinedData->addId( e[i] );
@@ -1850,7 +1850,7 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			nodeGroupUpdate( hexa, 0, nf0, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( hexa, 1, nf1, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( hexa, 2, nf2, dIter->originalData, dIter->refinedData );
@@ -1862,8 +1862,8 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 			}
 			nodeGroupUpdate( hexa, c, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			nodeVariableUpdate( hexa, 0, nf0, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( hexa, 1, nf1, dIter->originalData, dIter->refinedData );
@@ -1876,7 +1876,7 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 			}
 			nodeVariableUpdate( hexa, c, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -1890,7 +1890,7 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<8;++i){
 					dIter->refinedData->addId( e[i] );
@@ -2317,7 +2317,7 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			for(int i=0;i<12;++i){
 				nodeGroupUpdate( hexa2.getEdgeCellId(i,0), hexa2.getEdgeCellId(i,2), ne0[i], dIter->originalData, dIter->refinedData );
 				nodeGroupUpdate( hexa2.getEdgeCellId(i,2), hexa2.getEdgeCellId(i,1), ne1[i], dIter->originalData, dIter->refinedData );
@@ -2366,8 +2366,8 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 			nodeGroupUpdate( nf5, hexa2.getCellId(19), nf5_19, dIter->refinedData, dIter->refinedData );
 			nodeGroupUpdate( nf5, c, nf5_c, dIter->refinedData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			for(int i=0;i<12;++i){
 				nodeVariableUpdate( hexa2.getEdgeCellId(i,0), hexa2.getEdgeCellId(i,2), ne0[i], dIter->originalData, dIter->refinedData );
@@ -2417,7 +2417,7 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 			nodeVariableUpdate( nf5, hexa2.getCellId(19), nf5_19, dIter->refinedData, dIter->refinedData );
 			nodeVariableUpdate( nf5, c, nf5_c, dIter->refinedData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -2431,7 +2431,7 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<8;++i){
 					dIter->refinedData->addId( e[i] );
@@ -2564,7 +2564,7 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 	const int faceNum = kmb::Element::getBoundaryCount( kmb::WEDGE );
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			nodeGroupUpdate( wedge, 2, nf2, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( wedge, 3, nf3, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( wedge, 4, nf4, dIter->originalData, dIter->refinedData );
@@ -2572,8 +2572,8 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 				nodeGroupUpdate( wedge.getEdgeCellId(i,0), wedge.getEdgeCellId(i,1), ne[i], dIter->originalData, dIter->refinedData );
 			}
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			nodeVariableUpdate( wedge, 2, nf2, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( wedge, 3, nf3, dIter->originalData, dIter->refinedData );
@@ -2582,7 +2582,7 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 				nodeVariableUpdate( wedge.getEdgeCellId(i,0), wedge.getEdgeCellId(i,1), ne[i], dIter->originalData, dIter->refinedData );
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -2601,7 +2601,7 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<8;++i){
 					dIter->refinedData->addId( e[i] );
@@ -2918,7 +2918,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 	const int faceNum = kmb::Element::getBoundaryCount( kmb::WEDGE );
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			for(int i=0;i<9;++i){
 				nodeGroupUpdate( wedge2.getEdgeCellId(i,0), wedge2.getEdgeCellId(i,2), ne0[i], dIter->originalData, dIter->refinedData );
 				nodeGroupUpdate( wedge2.getEdgeCellId(i,2), wedge2.getEdgeCellId(i,1), ne0[i], dIter->originalData, dIter->refinedData );
@@ -2955,8 +2955,8 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 			nodeGroupUpdate( wedge2.getCellId(9),  wedge2.getCellId(11), n9_11, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( wedge2.getCellId(10), wedge2.getCellId(11), n10_11, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			for(int i=0;i<9;++i){
 				nodeVariableUpdate( wedge2.getEdgeCellId(i,0), wedge2.getEdgeCellId(i,2), ne0[i], dIter->originalData, dIter->refinedData );
@@ -2994,7 +2994,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 			nodeVariableUpdate( wedge2.getCellId(9),  wedge2.getCellId(11), n9_11, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( wedge2.getCellId(10), wedge2.getCellId(11), n10_11, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
@@ -3013,7 +3013,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 				}
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<8;++i){
 					dIter->refinedData->addId( e[i] );
@@ -3144,21 +3144,21 @@ kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase 
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			nodeGroupUpdate( pyramid, 4, nf4, dIter->originalData, dIter->refinedData );
 			for(int i=0;i<8;++i){
 				nodeGroupUpdate( pyramid.getEdgeCellId(i,0), pyramid.getEdgeCellId(i,1), ne[i], dIter->originalData, dIter->refinedData );
 			}
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			nodeVariableUpdate( pyramid, 4, nf4, dIter->originalData, dIter->refinedData );
 			for(int i=0;i<8;++i){
 				nodeVariableUpdate( pyramid.getEdgeCellId(i,0), pyramid.getEdgeCellId(i,1), ne[i], dIter->originalData, dIter->refinedData );
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 
 			kmb::Face f0(elementId,0);
 			kmb::Face f1(elementId,1);
@@ -3196,7 +3196,7 @@ kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase 
 				dIter->refinedData->addId( kmb::Face(e[4],4) );
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<10;++i){
 					dIter->refinedData->addId( e[i] );
@@ -3504,7 +3504,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
-		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEGROUP ){
+		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
 			for(int i=0;i<8;++i){
 				nodeGroupUpdate( pyramid2.getEdgeCellId(i,0), pyramid2.getEdgeCellId(i,2), ne0[i], dIter->originalData, dIter->refinedData );
 				nodeGroupUpdate( pyramid2.getEdgeCellId(i,2), pyramid2.getEdgeCellId(i,1), ne1[i], dIter->originalData, dIter->refinedData );
@@ -3537,8 +3537,8 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 			nodeGroupUpdate( pyramid2.getCellId(5), pyramid2.getCellId(12),  n5_12, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( pyramid2.getCellId(8), pyramid2.getCellId(12),  n8_12, dIter->originalData, dIter->refinedData );
 		}
-		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NODEVARIABLE &&
-			dIter->originalData->getValueType() == kmb::PhysicalValue::INTEGER )
+		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
+			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
 			for(int i=0;i<8;++i){
 				nodeVariableUpdate( pyramid2.getEdgeCellId(i,0), pyramid2.getEdgeCellId(i,2), ne0[i], dIter->originalData, dIter->refinedData );
@@ -3572,7 +3572,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 			nodeVariableUpdate( pyramid2.getCellId(5), pyramid2.getCellId(12),  n5_12, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( pyramid2.getCellId(8), pyramid2.getCellId(12),  n8_12, dIter->originalData, dIter->refinedData );
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
 
 			kmb::Face f0(elementId,0);
 			kmb::Face f1(elementId,1);
@@ -3610,7 +3610,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 				dIter->refinedData->addId( kmb::Face(e[4],4) );
 			}
 		}
-		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ELEMENTGROUP ){
+		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<10;++i){
 					dIter->refinedData->addId( e[i] );
@@ -3622,7 +3622,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 }
 
 kmb::elementType
-kmb::MeshRefiner::getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* originalNodes)
+kmb::MeshRefiner::getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* originalNodes) const
 {
 	kmb::nodeIdType a=kmb::nullNodeId,b=kmb::nullNodeId;
 	if( middleMan && mesh ){
@@ -3667,7 +3667,7 @@ kmb::MeshRefiner::getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* ori
 
 
 kmb::nodeIdType
-kmb::MeshRefiner::getMiddle(kmb::ElementBase &element)
+kmb::MeshRefiner::getMiddle(kmb::ElementBase &element) const
 {
 	kmb::nodeIdType middle = kmb::nullNodeId;
 	int minIndex = element.getIndexMinNodeId();

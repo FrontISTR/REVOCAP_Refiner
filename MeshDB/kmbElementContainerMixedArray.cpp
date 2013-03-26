@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerMixedArray                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,7 +30,7 @@
 const char* kmb::ElementContainerMixedArray::CONTAINER_TYPE = "mixed_array";
 
 kmb::ElementContainerMixedArray::ElementContainerMixedArray(size_t typeCounter[kmb::ELEMENT_TYPE_NUM])
-: ElementContainer()
+: ElementContainerDirectAccessable()
 , size(0)
 , nodeTable(NULL)
 , etypeTable(NULL)
@@ -47,7 +47,7 @@ kmb::ElementContainerMixedArray::ElementContainerMixedArray(size_t typeCounter[k
 }
 
 kmb::ElementContainerMixedArray::ElementContainerMixedArray(size_t eSize)
-: ElementContainer()
+: ElementContainerDirectAccessable()
 , size(0)
 , nodeTable(NULL)
 , etypeTable(NULL)
@@ -64,7 +64,7 @@ kmb::ElementContainerMixedArray::ElementContainerMixedArray(size_t eSize)
 }
 
 kmb::ElementContainerMixedArray::ElementContainerMixedArray(size_t eSize,char* etype, kmb::nodeIdType *nodeTable, bool writable, kmb::nodeIdType offset )
-: ElementContainer()
+: ElementContainerDirectAccessable()
 , size(0)
 , nodeTable(NULL)
 , etypeTable(NULL)
@@ -94,9 +94,36 @@ kmb::ElementContainerMixedArray::ElementContainerMixedArray(size_t eSize,char* e
 		this->index = size;
 		this->count = size;
 	}else{
-		std::fill_n( indexTable, size, 0 );
-		std::fill_n( etypeTable, size, static_cast<char>(kmb::UNKNOWNTYPE) );
+		std::fill( indexTable, indexTable+size, 0 );
+		std::fill( etypeTable, etypeTable+size, static_cast<char>(kmb::UNKNOWNTYPE) );
 	}
+}
+
+#define _DEBUG_ 1
+
+kmb::ElementContainerMixedArray::ElementContainerMixedArray(size_t eSize,char *etype,kmb::nodeIdType offset)
+: ElementContainerDirectAccessable()
+, size(eSize)
+, nodeTable(NULL)
+, etypeTable(etype)
+, indexTable(NULL)
+, nodeTableDeletable(true)
+, etypeTableDeletable(true)
+, indexTableDeletable(true)
+, nodeOffset(offset)
+, index(eSize)
+, nindex(0)
+, count(eSize)
+{
+	this->indexTable = new size_t[size];
+	for(size_t i=0;i<size;++i){
+		this->indexTable[i] = nindex;
+		kmb::elementType et = static_cast<kmb::elementType>(this->etypeTable[i]);
+		++(this->typeCounter[ et ]);
+		nindex += kmb::Element::getNodeCount( et );
+	}
+	nodeTable = new kmb::nodeIdType[nindex];
+	std::fill( nodeTable, nodeTable+nindex, kmb::nullNodeId );
 }
 
 kmb::ElementContainerMixedArray::~ElementContainerMixedArray(void)
@@ -135,9 +162,9 @@ kmb::ElementContainerMixedArray::initialize(size_t eSize)
 	nodeTable = new kmb::nodeIdType[nCount];
 	etypeTable = new char[eCount];
 	indexTable = new size_t[eCount];
-	std::fill_n( nodeTable, nCount, kmb::nullNodeId );
-	std::fill_n( etypeTable, eCount, static_cast<char>(kmb::UNKNOWNTYPE) );
-	std::fill_n( indexTable, eCount, 0 );
+	std::fill( nodeTable, nodeTable+nCount, kmb::nullNodeId );
+	std::fill( etypeTable, etypeTable+eCount, static_cast<char>(kmb::UNKNOWNTYPE) );
+	std::fill( indexTable, indexTable+eCount, 0 );
 	size = eCount;
 }
 
@@ -153,9 +180,9 @@ kmb::ElementContainerMixedArray::initialize(size_t typeCounter[kmb::ELEMENT_TYPE
 	nodeTable = new kmb::nodeIdType[nCount];
 	etypeTable = new char[eCount];
 	indexTable = new size_t[eCount];
-	std::fill_n( nodeTable, nCount, kmb::nullNodeId );
-	std::fill_n( etypeTable, eCount, static_cast<char>(kmb::UNKNOWNTYPE) );
-	std::fill_n( indexTable, eCount, 0 );
+	std::fill( nodeTable, nodeTable+nCount, kmb::nullNodeId );
+	std::fill( etypeTable, etypeTable+eCount, static_cast<char>(kmb::UNKNOWNTYPE) );
+	std::fill( indexTable, indexTable+eCount, 0 );
 	size = eCount;
 }
 
@@ -166,13 +193,13 @@ kmb::ElementContainerMixedArray::getContainerType(void) const
 }
 
 size_t
-kmb::ElementContainerMixedArray::getNodeTableSize(void)
+kmb::ElementContainerMixedArray::getNodeTableSize(void) const
 {
 	return kmb::ElementContainerMixedArray::getRequiredNodeTableSize(this->typeCounter);
 }
 
 size_t
-kmb::ElementContainerMixedArray::getRequiredNodeTableSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM])
+kmb::ElementContainerMixedArray::getRequiredNodeTableSize(const size_t typeCounter[kmb::ELEMENT_TYPE_NUM])
 {
 	size_t nSize = 0;
 	for(int i=0;i<kmb::ELEMENT_TYPE_NUM;++i){
@@ -185,7 +212,7 @@ kmb::ElementContainerMixedArray::getRequiredNodeTableSize(size_t typeCounter[kmb
 }
 
 size_t
-kmb::ElementContainerMixedArray::getRequiredElementSize(size_t typeCounter[kmb::ELEMENT_TYPE_NUM])
+kmb::ElementContainerMixedArray::getRequiredElementSize(const size_t typeCounter[kmb::ELEMENT_TYPE_NUM])
 {
 	size_t eSize = 0;
 	for(int i=0;i<kmb::ELEMENT_TYPE_NUM;++i){
@@ -308,6 +335,25 @@ size_t
 kmb::ElementContainerMixedArray::getCount(void) const
 {
 	return this->count;
+}
+
+kmb::elementType kmb::ElementContainerMixedArray::getElementType(kmb::elementIdType elementId) const
+{
+	return static_cast<kmb::elementType>(etypeTable[elementId - offsetId]);
+}
+
+kmb::nodeIdType kmb::ElementContainerMixedArray::operator()(kmb::elementIdType elementId,kmb::idType localId) const
+{
+	int i = elementId - offsetId;
+	size_t ni = indexTable[i];
+	return nodeTable[ni+localId];
+}
+
+kmb::nodeIdType& kmb::ElementContainerMixedArray::operator()(kmb::elementIdType elementId,kmb::idType localId)
+{
+	int i = elementId - offsetId;
+	size_t ni = indexTable[i];
+	return nodeTable[ni+localId];
 }
 
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 1.0                          #
+# Software Name : REVOCAP_Refiner version 1.1                          #
 # Sample Program Hexahedron                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,6 +16,7 @@
  *
  * サンプル実行例＆テスト用プログラム
  * 六面体の細分チェック用
+ * 節点グループと境界節点グループの細分機能
  *
  */
 
@@ -73,66 +74,89 @@ int main(void)
 	size_t bng0Count = 3;
 
 	/* カウンタ */
-	int32_t i,j;
+	int32_t i;
 
 	/* 節点番号のオフセット値を与える */
 	rcapInitRefiner( nodeOffset, elementOffset );
+
+	printf("REVOCAP_Refiner sample program : Hexa Refine\n");
 	printf("----- Original Model -----\n");
+	printf("---\n");
 	/* 座標値を Refiner に与える */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
 	/* 細分前の節点数 */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 12 );
-	printf("Node : Count = %"PRIsz"\n", nodeCount );
+	printf("node:\n");
+	printf("  size: %zu\n", nodeCount );
+	printf("  coordinate:\n");
 	for(i=0;(size_t)i<nodeCount;++i){
-		printf("%d : %f, %f, %f\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
+		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
+
 	/* 細分前の要素数 */
-	assert( elementCount == 2 );
-	printf("Element : Count = %"PRIsz"\n", elementCount );
+	printf("element:\n");
+	printf("  - size: %zu\n", elementCount );
+	printf("    connectivity:\n");
 	for(i=0;(size_t)i<elementCount;++i){
-		printf("%d : (%d) %d, %d, %d, %d, %d, %d, %d, %d\n", i+elementOffset, etype,
+		printf("      - [%d, HEXAHEDRON, %d, %d, %d, %d, %d, %d, %d, %d]\n", i+elementOffset,
 			hexas[8*i], hexas[8*i+1], hexas[8*i+2], hexas[8*i+3],
-			hexas[8*i+4], hexas[8*i+5], hexas[8*i+6], hexas[8*i+7] );
+			hexas[8*i+4], hexas[8*i+5], hexas[8*i+6], hexas[8*i+7]);
 	}
+
 	/* 節点グループの登録 */
 	rcapAppendNodeGroup("ng0",ng0Count,ng0);
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	assert( ng0Count == 4 );
-	printf("Node Group : Count = %"PRIsz"\n", ng0Count );
+	printf("data:\n");
+	printf("  - name: ng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",ng0Count);
+	printf("    id:\n");
 	for(i=0;(size_t)i<ng0Count;++i){
-		printf("%d\n", ng0[i]);
+		printf("    - %d\n", ng0[i]);
 	}
+
 	rcapAppendBNodeGroup("bng0",bng0Count,bng0);
 	bng0Count = rcapGetBNodeGroupCount("bng0");
 	assert( bng0Count == 3 );
-	printf("Boundary Node Group : Count = %"PRIsz"\n", bng0Count );
+	printf("  - name: bng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %zu\n",ng0Count);
+	printf("    id:\n");
 	for(i=0;(size_t)i<bng0Count;++i){
-		printf("%d\n", bng0[i]);
+		printf("    - %d\n", bng0[i]);
 	}
 
 	printf("----- Refined Model -----\n");
+	printf("---\n");
 
 	/* 要素の細分 */
-	refineElementCount = rcapRefineElement( elementCount, etype, hexas, NULL );
+	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	refineHexas = (int32_t*)calloc( 8*refineElementCount, sizeof(int32_t) );
 	elementCount = rcapRefineElement( elementCount, etype, hexas, refineHexas );
 	rcapCommit();
 
 	/* 細分後の節点 */
 	refineNodeCount = rcapGetNodeCount();
-	printf("Node : Count = %"PRIsz"\n", refineNodeCount );
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
-	for(j=0;(size_t)j<refineNodeCount;++j){
-		printf("%d : %f, %f, %f\n", j+nodeOffset, resultCoords[3*j], resultCoords[3*j+1], resultCoords[3*j+2] );
+	printf("node:\n");
+	printf("  size: %zu\n", refineNodeCount );
+	printf("  coordinate:\n");
+	for(i=0;(size_t)i<refineNodeCount;++i){
+		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, resultCoords[3*i], resultCoords[3*i+1], resultCoords[3*i+2] );
 	}
 	free( resultCoords );
 
 	/* 細分後の要素 */
-	printf("Element : Count = %"PRIsz"\n", refineElementCount );
+	printf("element:\n");
+	printf("  - size: %zu\n", refineElementCount );
+	printf("    connectivity:\n");
 	for(i=0;(size_t)i<refineElementCount;++i){
-		printf("%d : (%d) %d, %d, %d, %d, %d, %d, %d, %d\n", i+elementOffset, etype,
+		printf("      - [%d, HEXAHEDRON, %d, %d, %d, %d, %d, %d, %d, %d]\n", i+elementOffset,
 			refineHexas[8*i], refineHexas[8*i+1], refineHexas[8*i+2], refineHexas[8*i+3],
 			refineHexas[8*i+4], refineHexas[8*i+5], refineHexas[8*i+6], refineHexas[8*i+7] );
 	}
@@ -140,19 +164,29 @@ int main(void)
 	/* 細分後の節点グループの更新 */
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
-	printf("Refined Node Group : Count = %"PRIsz"\n", ng0Count );
 	rcapGetNodeGroup("ng0",ng0Count,result_ng0);
+	printf("Refined Node Group : Count = %zu\n", ng0Count );
+	printf("data:\n");
+	printf("  - name: ng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %d\n",ng0Count);
+	printf("    id:\n");
 	for(i=0;(size_t)i<ng0Count;++i){
-		printf("%d\n", result_ng0[i]);
+		printf("    - %d\n", result_ng0[i]);
 	}
 	free( result_ng0 );
 
 	bng0Count = rcapGetBNodeGroupCount("bng0");
 	result_bng0 = (int32_t*)calloc( bng0Count, sizeof(int32_t) );
-	printf("Refined Boundary Node Group : Count = %"PRIsz"\n", bng0Count );
 	rcapGetBNodeGroup("bng0",bng0Count,result_bng0);
+	printf("  - name: bng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %d\n",bng0Count);
+	printf("    id:\n");
 	for(i=0;(size_t)i<bng0Count;++i){
-		printf("%d\n", result_bng0[i]);
+		printf("    - %d\n", result_bng0[i]);
 	}
 	free( result_bng0 );
 

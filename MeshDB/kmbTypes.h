@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Types                                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -33,9 +33,9 @@
 #include <set>
 #include <map>
 
-#include "Geometry/kmb_Common.h"       /* SIZE NULL PI */
-#include "Geometry/kmb_idTypes.h"      /* nodeIdType */
-#include "Geometry/kmb_Geometry3D.h"   /* for Point3D */
+#include "Common/kmbCommon.h"       /* SIZE NULL PI */
+#include "Geometry/kmbIdTypes.h"      /* nodeIdType */
+#include "Geometry/kmbGeometry3D.h"   /* for Point3D */
 
 namespace kmb{
 

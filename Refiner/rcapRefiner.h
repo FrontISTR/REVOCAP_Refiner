@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 1.0                          #
+# Software Name : REVOCAP_Refiner version 1.1                          #
 # Program Name : rcapRefiner                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -189,6 +189,10 @@ void rcapTermRefiner( void );
  * rcapSetNode32 rcapSetNode64 または rcapSetPartitionFilename で与える場合には
  * rcapInitRefiner で与える nodeOffset だけずれるので注意する。
  *
+ * @remark 細分前の事前補正を行う場合は rcapSetNode32/64 で節点座標を与える前に
+ * この関数を呼ぶ必要があります。
+ * この関数を先に呼んだ場合も細分時の形状適合は行いますが、細分前の事前補正をしません。
+ *
  * @param[in] filename ファイル名
  */
 void rcapSetCADFilename( const char* filename );
@@ -199,6 +203,13 @@ void rcapSetCADFilename( const char* filename );
  *
  */
 void rcapSetSecondFitting( int32_t flag );
+
+/**
+ * @brief 中間節点を Laplacian Smoothing するかどうかを設定する。
+ * @param[in] flag 非零の時に有効にし、零の時に無効にします
+ *
+ */
+void rcapSetSmoothing( int32_t flag );
 
 /**
  * @brief 節点の globalID と localID の対応関係を記述したファイルを指定する。\n
@@ -293,8 +304,9 @@ void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords );
  * @param[out] resultNodeArray 細分結果の要素の節点配列
  * @return 細分した結果の要素の個数
  *
+ * @note nodeArray はローカル節点IDで記述したものを与えてください。
+ *
  * @note resultNodeArray を NULL または -1 として呼び出すと、細分した場合の個数だけを計算して返す。
- * ただし細分が実際に行われたかどうかについてはわからない。\n
  * 例えば４面体ならば入力要素の個数の８倍を返す。\n
  *
  * @code
@@ -388,6 +400,13 @@ void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords );
  * 最後の1個は全ての面が埋め込まれている
  */
 size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t* resultNodeArray );
+/**
+ * @brief 細分した要素の個数を計算する（実際には細分はしない）
+ * @param[in] num 要素の個数
+ * @param[in] etype 入力要素の型
+ * @return 細分した結果の要素の個数
+ */
+size_t rcapGetRefineElementCount( size_t num, int8_t etype );
 
 /**
  * @brief 複数の種類の型が混在しているモデルを一度に細分する
@@ -399,6 +418,7 @@ size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t*
  * @param[out] resultNodeArray 細分結果の要素の節点配列
  * @return 細分した結果を格納するのに[必要な/使用した]節点配列の大きさ
  *
+ * @note nodeArray はローカル節点IDで記述したものを与えてください。
  * @note rcapClearRefiner を呼ぶまでは etypeArray, nodeArray, resultETypeArray, resultNodeArray を解放しないでください。
  *
  * @note この関数は実際に細分する機能と、節点配列の大きさを調べるだけの機能とを兼ねています。
@@ -437,6 +457,14 @@ size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t*
  * @remark *** 戻り値の仕様が 2010/2/9 バージョンから変更しています ***
  */
 size_t rcapRefineElementMulti( size_t num, int8_t* etypeArray, int32_t* nodeArray, size_t* refinedNum, int8_t* resultEtypeArray, int32_t* resultNodeArray );
+/**
+ * @brief 複数の種類の型が混在しているモデルを細分したときの要素の個数を計算する（実際には細分しない）
+ * @param[in] num 要素の個数
+ * @param[in] etypeArray 入力要素の型の配列
+ * @param[out] refinedNum 細分結果の要素の個数
+ * @return 細分した結果を格納するのに必要な節点配列の大きさ
+ */
+size_t rcapGetRefineElementMultiCount( size_t num, int8_t* etypeArray, size_t* refinedNum );
 
 /**
  * @brief
@@ -732,6 +760,7 @@ void rcapclearrefiner_( void );
 void rcaptermrefiner_( void );
 void rcapsetcadfilename_( const char* filename );
 void rcapsetsecondfitting_( int32_t* flag );
+void rcapsetsmoothing_( int32_t* flag );
 void rcapsetpartitionfilename_( const char* filename );
 
 void rcapsetnode64_( int32_t* num, float64_t* coords, int32_t* globalIds, int32_t* localIds );
@@ -742,7 +771,9 @@ void rcapgetnode32_( int32_t* num, int32_t* localIds, float32_t* coords );
 void rcapgetnodeseq64_( int32_t* num, int32_t* initId, float64_t* coords );
 void rcapgetnodeseq32_( int32_t* num, int32_t* initId, float32_t* coords );
 
+int32_t rcapgetrefineelementcount_( int32_t* num, int8_t* etype );
 int32_t rcaprefineelement_( int32_t* num, int8_t* etype, int32_t* nodeArray, int32_t* resultNodeArray );
+int32_t rcapgetrefineelementmulticount_( int32_t* num, int8_t* etypeArray, int32_t* refinedNum );
 int32_t rcaprefineelementmulti_( int32_t* num, int8_t* etypeArray, int32_t* nodeArray, int32_t* refinedNum, int8_t* resultEtypeArray, int32_t* resultNodeArray );
 void rcapcommit_( void );
 
@@ -788,6 +819,7 @@ int32_t rcapsavernffile_( const char* rnffile );
 #define rcaptermrefiner_ rcaptermrefiner__
 #define rcapsetcadfilename_ rcapsetcadfilename__
 #define rcapsetsecondfitting_ rcapsetsecondfitting__
+#define rcapsetsmoothing_ rcapsetsmoothing__
 #define rcapsetpartitionfilename_ rcapsetpartitionfilename__
 #define rcapsetnode64_ rcapsetnode64__
 #define rcapsetnode32_ rcapsetnode32__
@@ -796,7 +828,9 @@ int32_t rcapsavernffile_( const char* rnffile );
 #define rcapgetnode32_ rcapgetnode32__
 #define rcapgetnodeseq64_ rcapgetnodeseq64__
 #define rcapgetnodeseq32_ rcapgetnodeseq32__
+#define rcapgetrefineelementcount_ rcapgetrefineelementcount__
 #define rcaprefineelement_ rcaprefineelement__
+#define rcapgetrefineelementmulticount_ rcapgetrefineelementmulticount__
 #define rcaprefineelementmulti_ rcaprefineelementmulti__
 #define rcapcommit_ rcapcommit__
 #define rcapappendnodegroup_ rcapappendnodegroup__
@@ -833,6 +867,7 @@ int32_t rcapsavernffile_( const char* rnffile );
 #define rcaptermrefiner_ RCAPTERMREFINER
 #define rcapsetcadfilename_ RCAPSETCADFILENAME
 #define rcapsetsecondfitting_ RCAPSETSECONDFITTING
+#define rcapsetsmoothing_ RCAPSETSMOOTHING
 #define rcapsetpartitionfilename_ RCAPSETPARTITIONFILENAME
 #define rcapsetnode64_ RCAPSETNODE64
 #define rcapsetnode32_ RCAPSETNODE32
@@ -841,7 +876,9 @@ int32_t rcapsavernffile_( const char* rnffile );
 #define rcapgetnode32_ RCAPGETNODE32
 #define rcapgetnodeseq64_ RCAPGETNODESEQ64
 #define rcapgetnodeseq32_ RCAPGETNODESEQ32
+#define rcapgetrefineelementcount_ RCAPGETREFINEELEMENTCOUNT
 #define rcaprefineelement_ RCAPREFINEELEMENT
+#define rcapgetrefineelementmulticount_ RCAPGETREFINEELEMENTMULTICOUNT
 #define rcaprefineelementmulti_ RCAPREFINEELEMENTMULTI
 #define rcapcommit_ RCAPCOMMIT
 #define rcapappendnodegroup_ RCAPAPPENDNODEGROUP
@@ -878,6 +915,7 @@ int32_t rcapsavernffile_( const char* rnffile );
 #define rcaptermrefiner_ RCAPTERMREFINER_
 #define rcapsetcadfilename_ RCAPSETCADFILENAME_
 #define rcapsetsecondfitting_ RCAPSETSECONDFITTING_
+#define rcapsetsmoothing_ RCAPSETSMOOTHING_
 #define rcapsetpartitionfilename_ RCAPSETPARTITIONFILENAME_
 #define rcapsetnode64_ RCAPSETNODE64_
 #define rcapsetnode32_ RCAPSETNODE32_
@@ -886,7 +924,9 @@ int32_t rcapsavernffile_( const char* rnffile );
 #define rcapgetnode32_ RCAPGETNODE32_
 #define rcapgetnodeseq64_ RCAPGETNODESEQ64_
 #define rcapgetnodeseq32_ RCAPGETNODESEQ32_
+#define rcapgetrefineelementcount_ RCAPGETREFINEELEMENTCOUNT_
 #define rcaprefineelement_ RCAPREFINEELEMENT_
+#define rcapgetrefineelementmulticount_ RCAPGETREFINEELEMENTMULTICOUNT_
 #define rcaprefineelementmulti_ RCAPREFINEELEMENTMULTI_
 #define rcapcommit_ RCAPCOMMIT_
 #define rcapappendnodegroup_ RCAPAPPENDNODEGROUP_

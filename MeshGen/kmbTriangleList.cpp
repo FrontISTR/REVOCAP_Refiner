@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TriangleList                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -279,6 +279,12 @@ kmb::TriangleList::_iterator::getElement(kmb::elementType &etype,kmb::nodeIdType
 
 kmb::Element*
 kmb::TriangleList::_iterator::getElement(void)
+{
+	return tri;
+}
+
+const kmb::Element*
+kmb::TriangleList::_iterator::getElement(void) const
 {
 	return tri;
 }

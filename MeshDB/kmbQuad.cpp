@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Quad                                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,14 +24,14 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbQuad.h"
-#include "Geometry/kmb_Geometry2D.h"
-#include "Geometry/kmb_Geometry3D.h"
+#include "Geometry/kmbGeometry2D.h"
+#include "Geometry/kmbGeometry3D.h"
 #include <cfloat>
 
 #include "Matrix/kmbMatrix.h"
 #include "Matrix/kmbVector.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbOptimization.h"
 
 /********************************************************************************
 =begin
@@ -114,6 +114,14 @@ kmb::Quad::shapeFunction(double s,double t,double* coeff)
 	coeff[3] = 0.25*(1.0-s)*(1.0+t);
 }
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4100)
+#endif
+#ifdef __INTEL_COMPILER
+#pragma warning(push)
+#pragma warning(disable:869)
+#endif
 void
 kmb::Quad::shapeFunction_ds(double s,double t,double* coeff)
 {
@@ -158,6 +166,9 @@ kmb::Quad::shapeFunction_dtdt(double s,double t,double* coeff)
 	coeff[2] = 0.0;
 	coeff[3] = 0.0;
 }
+#if defined _MSC_VER || defined __INTEL_COMPILER
+#pragma warning(pop)
+#endif
 
 double
 kmb::Quad::checkShapeFunctionDomain(double s,double t)

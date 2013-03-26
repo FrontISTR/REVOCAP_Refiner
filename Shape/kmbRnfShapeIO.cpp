@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : RnfShapeIO                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -118,6 +118,15 @@ kmb::RnfShapeIO::readNurbs(std::ifstream &input,kmb::NurbsSurface3D* nurbs)
 			break;
 		}
 	}
+	return 0;
+}
+
+int
+kmb::RnfShapeIO::appendSurfaceHeaderToFile(const char* filename)
+{
+	std::ofstream output( filename, std::ios_base::app );
+	output << "surface:" << std::endl;
+	output.close();
 	return 0;
 }
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ColumnVector, RowVector                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -105,11 +105,39 @@ public:
 		}
 		return true;
 	}
+	ColumnVector& operator+=(const ColumnVector& other){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			this->setRow(i,this->getRow(i)+other.getRow(i));
+		}
+		return *this;
+	}
+	bool add(const ColumnVector& v){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			this->setRow(i,getRow(i)+v.getRow(i));
+		}
+		return true;
+	}
 
 	bool setDifference(const ColumnVector& v0,const ColumnVector& v1){
 		int size = getSize();
 		for(int i=0;i<size;++i){
 			setRow(i,v0.getRow(i)-v1.getRow(i));
+		}
+		return true;
+	}
+	ColumnVector& operator-=(const ColumnVector& other){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			this->setRow(i,this->getRow(i)-other.getRow(i));
+		}
+		return *this;
+	}
+	bool substract(const ColumnVector& v){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			this->setRow(i,getRow(i)-v.getRow(i));
 		}
 		return true;
 	}
@@ -267,11 +295,39 @@ public:
 		}
 		return true;
 	}
+	RowVector& operator+=(const RowVector& other){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			setColumn(i,this->getColumn(i)+other.getColumn(i));
+		}
+		return *this;
+	}
+	bool add(const RowVector& v){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			this->setColumn(i,getColumn(i)+v.getColumn(i));
+		}
+		return true;
+	}
 
 	bool setDifference(const RowVector& v0,const RowVector& v1){
 		int size = getSize();
 		for(int i=0;i<size;++i){
 			setColumn(i,v0.getColumn(i)-v1.getColumn(i));
+		}
+		return true;
+	}
+	RowVector& operator-=(const RowVector& other){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			setColumn(i,this->getColumn(i)-other.getColumn(i));
+		}
+		return *this;
+	}
+	bool substract(const RowVector& v){
+		int size = getSize();
+		for(int i=0;i<size;++i){
+			this->setColumn(i,getColumn(i)+v.getColumn(i));
 		}
 		return true;
 	}

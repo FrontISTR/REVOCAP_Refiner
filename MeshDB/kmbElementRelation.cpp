@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementRelation                                         #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -563,7 +563,6 @@ kmb::ElementRelation::getSegmentRelation
 	switch( rel ){
 	case 0x21:
 		return kmb::ElementRelation::EQUAL;
-		break;
 	case 0x12:
 		return kmb::ElementRelation::REVERSE;
 	case 0x00:
@@ -819,6 +818,113 @@ kmb::ElementRelation::getQuadRelation
 		return kmb::ElementRelation::ADJACENT;
 	case 0x8001:
 		aIndex = 3;	bIndex = 3;
+		return kmb::ElementRelation::ADJACENT;
+	default:
+		return kmb::ElementRelation::OTHERRELATION;
+	}
+}
+
+kmb::ElementRelation::relationType
+kmb::ElementRelation::getTriangleQuadRelation
+(int a0,int a1,int a2,int b0,int b1,int b2,int b3,int &aIndex,int &bIndex)
+{
+	aIndex = -1;
+	bIndex = -1;
+	unsigned int rel = 0;
+	int count = 0;
+	if( a0 == b0 ){	rel |= 0x100;	++count;	}
+	if( a0 == b1 ){	rel |= 0x200;	++count;	}
+	if( a0 == b2 ){	rel |= 0x400;	++count;	}
+	if( a0 == b3 ){	rel |= 0x800;	++count;	}
+	if( a1 == b0 ){	rel |= 0x010;	++count;	}
+	if( a1 == b1 ){	rel |= 0x020;	++count;	}
+	if( a1 == b2 ){	rel |= 0x040;	++count;	}
+	if( a1 == b3 ){	rel |= 0x080;	++count;	}
+	if( a2 == b0 ){	rel |= 0x001;	++count;	}
+	if( a2 == b1 ){	rel |= 0x002;	++count;	}
+	if( a2 == b2 ){	rel |= 0x004;	++count;	}
+	if( a2 == b3 ){	rel |= 0x008;	++count;	}
+	if( count == 0 ){
+		return kmb::ElementRelation::NOCOMMON;
+	}else if( count == 1 ){
+		return kmb::ElementRelation::COMMONNODE;
+	}else if( count == 3 ){
+		return kmb::ElementRelation::OTHERRELATION;
+	}
+	switch( rel ){
+
+	case 0x012:
+		aIndex = 0;	bIndex = 0;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x024:
+		aIndex = 0;	bIndex = 1;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x048:
+		aIndex = 0;	bIndex = 2;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x081:
+		aIndex = 0;	bIndex = 3;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x201:
+		aIndex = 1;	bIndex = 0;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x402:
+		aIndex = 1;	bIndex = 1;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x804:
+		aIndex = 1;	bIndex = 2;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x108:
+		aIndex = 1;	bIndex = 3;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x120:
+		aIndex = 2;	bIndex = 0;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x240:
+		aIndex = 2;	bIndex = 1;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x480:
+		aIndex = 2;	bIndex = 2;
+		return kmb::ElementRelation::ANTIADJACENT;
+	case 0x810:
+		aIndex = 2;	bIndex = 3;
+		return kmb::ElementRelation::ANTIADJACENT;
+
+	case 0x021:
+		aIndex = 0;	bIndex = 0;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x042:
+		aIndex = 0;	bIndex = 1;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x084:
+		aIndex = 0;	bIndex = 2;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x018:
+		aIndex = 0;	bIndex = 3;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x102:
+		aIndex = 1;	bIndex = 0;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x204:
+		aIndex = 1;	bIndex = 1;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x408:
+		aIndex = 1;	bIndex = 2;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x801:
+		aIndex = 1;	bIndex = 3;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x210:
+		aIndex = 2;	bIndex = 0;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x420:
+		aIndex = 2;	bIndex = 1;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x840:
+		aIndex = 2;	bIndex = 2;
+		return kmb::ElementRelation::ADJACENT;
+	case 0x180:
+		aIndex = 2;	bIndex = 3;
 		return kmb::ElementRelation::ADJACENT;
 	default:
 		return kmb::ElementRelation::OTHERRELATION;

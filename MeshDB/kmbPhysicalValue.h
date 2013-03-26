@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : PhysicalValue                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -49,24 +49,26 @@ class PhysicalValue
 {
 public:
 	enum valueType{
-		NONE,
-		BOOLEAN,
-		INTEGER,
-		SCALAR,
-		VECTOR2,
-		VECTOR3,
-		VECTOR4,
-		POINT3VECTOR3,
-		TENSOR6,
-		NODEID,
-		ELEMENTID,
-		VECTOR2WITHINT,
-		ARRAY,
-		HASH,
-		STRING,
-		INTHASH,
-		UNDEFINED,
-		UNKNOWN
+		None,
+		Boolean,
+		Integer,
+		Scalar,
+		Vector2,
+		Vector3,
+		Vector4,
+		Point3Vector3,
+		Tensor6,
+		NodeId,
+		ElementId,
+		Vector2withInt,
+		Vector3withInt,
+		Vector4withInt,
+		Array,
+		Hash,
+		String,
+		IntHash,
+		Undefined,
+		Unknown
 	};
 	static valueType string2valueType(std::string str);
 	static std::string valueType2string(valueType t);
@@ -86,10 +88,10 @@ public:
 	virtual kmb::PhysicalValue* clone(void) = 0;
 	virtual bool getValue(double* v) const { return false; }
 	virtual bool getValue(long* k) const { return false; }
-	virtual void setValue(double* v){}
-	virtual void setValue(long* v){}
-	virtual void setValue(double v,int i=0){}
-	virtual void setValue(long k,int i=0){}
+	virtual bool setValue(double* v){ return false; }
+	virtual bool setValue(long* v){ return false; }
+	virtual bool setValue(double v,int i=0){ return false; }
+	virtual bool setValue(long k,int i=0){ return false; }
 	virtual int getDimension(void) const { return 0; };
 };
 
@@ -98,13 +100,13 @@ class BooleanValue : public PhysicalValue
 private:
 	bool value;
 public:
-	static const valueType vType = kmb::PhysicalValue::BOOLEAN;
+	static const valueType vType = kmb::PhysicalValue::Boolean;
 	BooleanValue(void) : value(false){}
 	BooleanValue(bool v) : value(v){}
 	virtual ~BooleanValue(void){}
-	bool getValue() const { return value; }
-	void setValue(bool v){ this->value = v; }
-	virtual valueType getType(void) const { return BOOLEAN; }
+	bool getValue(void) const { return value; }
+	bool setValue(bool v){ this->value = v; return true; }
+	virtual valueType getType(void) const { return Boolean; }
 	virtual double distanceSq(const PhysicalValue* other) const;
 	virtual kmb::PhysicalValue* clone(void){
 		return new BooleanValue( this->value );
@@ -116,13 +118,13 @@ class IntegerValue : public PhysicalValue
 private:
 	int value;
 public:
-	static const valueType vType = kmb::PhysicalValue::INTEGER;
+	static const valueType vType = kmb::PhysicalValue::Integer;
 	IntegerValue(void) : value(0){}
 	IntegerValue(int v) : value(v){}
 	virtual ~IntegerValue(void){}
-	int getValue() const { return value; }
-	void setIValue(int v){ this->value = v; }
-	virtual valueType getType(void) const { return INTEGER; }
+	int getValue(void) const { return value; }
+	bool setIValue(int v){ this->value = v; return true; }
+	virtual valueType getType(void) const { return Integer; }
 	virtual double distanceSq(const PhysicalValue* other) const;
 	virtual kmb::PhysicalValue* clone(void){
 		return new IntegerValue( this->value );
@@ -131,11 +133,13 @@ public:
 		k[0] = static_cast<long>(value);
 		return true;
 	}
-	virtual void setValue(long* v){
+	virtual bool setValue(long* v){
 		value = static_cast<int>(*v);
+		return true;
 	}
-	virtual void setValue(long k,int i=0){
+	virtual bool setValue(long k,int i=0){
 		value = static_cast<int>(k);
+		return true;
 	}
 };
 
@@ -144,14 +148,14 @@ class ScalarValue : public PhysicalValue
 private:
 	double value;
 public:
-	static const valueType vType = kmb::PhysicalValue::SCALAR;
+	static const valueType vType = kmb::PhysicalValue::Scalar;
 	ScalarValue(void) : value(0.0){}
 	ScalarValue(double v) : value(v){}
 	ScalarValue(double* v) : value(*v){}
 	virtual ~ScalarValue(void){}
-	double getValue() const { return value; }
-	void setValue(double v,int i=0){ this->value = v; }
-	virtual valueType getType(void) const { return SCALAR; }
+	double getValue(void) const { return value; }
+	bool setValue(double v,int i=0){ this->value = v; return true; }
+	virtual valueType getType(void) const { return Scalar; }
 	virtual double distanceSq(const PhysicalValue* other) const;
 	virtual kmb::PhysicalValue* clone(void){
 		return new ScalarValue( this->value );
@@ -160,7 +164,7 @@ public:
 		*v = value;
 		return true;
 	}
-	void setValue(double* v){ this->value = *v; }
+	bool setValue(double* v){ this->value = *v; return true; }
 	int getDimension(void) const { return 1; };
 };
 
@@ -169,7 +173,7 @@ class Vector2Value : public PhysicalValue
 private:
 	double value[2];
 public:
-	static const valueType vType = kmb::PhysicalValue::VECTOR2;
+	static const valueType vType = kmb::PhysicalValue::Vector2;
 	Vector2Value(void){
 		for(int i=0;i<2;++i){
 			this->value[i] = 0.0;
@@ -187,8 +191,8 @@ public:
 	virtual ~Vector2Value(void){}
 	double getValue(int i) const{ return value[i]; }
 	double getLength(void) const;
-	void setValue(double v,int i){ this->value[i] = v; }
-	virtual valueType getType(void) const { return VECTOR2; }
+	bool setValue(double v,int i){ this->value[i] = v; return true; }
+	virtual valueType getType(void) const { return Vector2; }
 	virtual double distanceSq(const PhysicalValue* other) const;
 	virtual kmb::PhysicalValue* clone(void){
 		return new Vector2Value( this->value );
@@ -198,9 +202,10 @@ public:
 		v[1] = value[1];
 		return true;
 	}
-	void setValue(double* v){
+	bool setValue(double* v){
 		this->value[0] = v[0];
 		this->value[1] = v[1];
+		return true;
 	}
 	int getDimension(void) const { return 2; };
 };
@@ -210,7 +215,7 @@ class Vector3Value : public PhysicalValue
 private:
 	double value[3];
 public:
-	static const valueType vType = kmb::PhysicalValue::VECTOR3;
+	static const valueType vType = kmb::PhysicalValue::Vector3;
 	Vector3Value(void){
 		for(int i=0;i<3;++i){
 			this->value[i] = 0.0;
@@ -229,8 +234,8 @@ public:
 	virtual ~Vector3Value(void){}
 	double getValue(int i) const{ return value[i]; }
 	double getLength(void) const;
-	void setValue(double v,int i){ this->value[i] = v; }
-	virtual valueType getType(void) const { return VECTOR3; }
+	bool setValue(double v,int i){ this->value[i] = v; return true; }
+	virtual valueType getType(void) const { return Vector3; }
 	virtual double distanceSq(const PhysicalValue* other) const;
 	virtual kmb::PhysicalValue* clone(void){
 		return new Vector3Value( this->value );
@@ -241,10 +246,11 @@ public:
 		v[2] = value[2];
 		return true;
 	}
-	void setValue(double* v){
+	bool setValue(double* v){
 		this->value[0] = v[0];
 		this->value[1] = v[1];
 		this->value[2] = v[2];
+		return true;
 	}
 	int getDimension(void) const { return 3; };
 };
@@ -254,7 +260,7 @@ class Vector4Value : public PhysicalValue
 private:
 	double value[4];
 public:
-	static const valueType vType = kmb::PhysicalValue::VECTOR4;
+	static const valueType vType = kmb::PhysicalValue::Vector4;
 	Vector4Value(void){
 		for(int i=0;i<4;++i){
 			this->value[i] = 0.0;
@@ -274,8 +280,8 @@ public:
 	virtual ~Vector4Value(void){}
 	double getValue(int i) const{ return value[i]; }
 	double getLength(void) const;
-	void setValue(double v,int i){ this->value[i] = v; }
-	virtual valueType getType(void) const { return VECTOR4; }
+	bool setValue(double v,int i){ this->value[i] = v; return true; }
+	virtual valueType getType(void) const { return Vector4; }
 	virtual double distanceSq(const PhysicalValue* other) const;
 	virtual kmb::PhysicalValue* clone(void){
 		return new Vector4Value( this->value );
@@ -287,11 +293,12 @@ public:
 		v[3] = value[3];
 		return true;
 	}
-	void setValue(double* v){
+	bool setValue(double* v){
 		this->value[0] = v[0];
 		this->value[1] = v[1];
 		this->value[2] = v[2];
 		this->value[3] = v[3];
+		return true;
 	}
 	int getDimension(void) const { return 4; };
 };
@@ -302,7 +309,7 @@ private:
 	double value[2];
 	long ival;
 public:
-	static const valueType vType = kmb::PhysicalValue::VECTOR2WITHINT;
+	static const valueType vType = kmb::PhysicalValue::Vector2withInt;
 	Vector2WithInt(void){
 		this->value[0] = 0.0;
 		this->value[1] = 0.0;
@@ -317,26 +324,127 @@ public:
 	double getValue(int i) const{ return value[i]; }
 	long getIValue(void) const{ return ival; };
 	void setValue(double u,double v){ this->value[0] = u; this->value[1] = v; }
-	void setValue(double u,int i){ this->value[i] = u; }
+	bool setValue(double u,int i){ this->value[i] = u; return true; }
 	void setIValue(long id){ this->ival = ival; }
 	virtual bool getValue(double* v) const {
 		v[0] = value[0];
 		v[1] = value[1];
 		return true;
 	}
-	void setValue(double* v){
+	bool setValue(double* v){
 		this->value[0] = v[0];
 		this->value[1] = v[1];
+		return true;
 	}
 	virtual bool getValue(long* k) const {
 		*k = ival;
 		return true;
 	}
-	virtual valueType getType(void) const { return VECTOR2WITHINT; }
+	virtual valueType getType(void) const { return Vector2withInt; }
 	virtual kmb::PhysicalValue* clone(void){
 		return new Vector2WithInt( this->value[0], this->value[1], this->ival );
 	}
 	int getDimension(void) const { return 2; };
+};
+
+class Vector3WithInt : public PhysicalValue
+{
+private:
+	double value[3];
+	long ival;
+public:
+	static const valueType vType = kmb::PhysicalValue::Vector3withInt;
+	Vector3WithInt(void){
+		this->value[0] = 0.0;
+		this->value[1] = 0.0;
+		this->value[2] = 0.0;
+		this->ival = 0;
+	}
+	Vector3WithInt(double u, double v, double w, long i){
+		this->value[0] = u;
+		this->value[1] = v;
+		this->value[2] = w;
+		this->ival = i;
+	}
+	virtual ~Vector3WithInt(void){}
+	double getValue(int i) const{ return value[i]; }
+	long getIValue(void) const{ return ival; };
+	void setValue(double u,double v,double w){ this->value[0] = u; this->value[1] = v; this->value[2] = w; }
+	bool setValue(double u,int i){ this->value[i] = u; return true; }
+	void setIValue(long id){ this->ival = ival; }
+	virtual bool getValue(double* v) const {
+		v[0] = value[0];
+		v[1] = value[1];
+		v[2] = value[2];
+		return true;
+	}
+	bool setValue(double* v){
+		this->value[0] = v[0];
+		this->value[1] = v[1];
+		this->value[2] = v[2];
+		return true;
+	}
+	virtual bool getValue(long* k) const {
+		*k = ival;
+		return true;
+	}
+	virtual valueType getType(void) const { return Vector3withInt; }
+	virtual kmb::PhysicalValue* clone(void){
+		return new Vector3WithInt( this->value[0], this->value[1], this->value[2], this->ival );
+	}
+	int getDimension(void) const { return 3; };
+};
+
+class Vector4WithInt : public PhysicalValue
+{
+private:
+	double value[4];
+	long ival;
+public:
+	static const valueType vType = kmb::PhysicalValue::Vector4withInt;
+	Vector4WithInt(void){
+		this->value[0] = 0.0;
+		this->value[1] = 0.0;
+		this->value[2] = 0.0;
+		this->value[3] = 0.0;
+		this->ival = 0;
+	}
+	Vector4WithInt(double u, double v, double w, double z, long i){
+		this->value[0] = u;
+		this->value[1] = v;
+		this->value[2] = w;
+		this->value[3] = z;
+		this->ival = i;
+	}
+	virtual ~Vector4WithInt(void){}
+	double getValue(int i) const{ return value[i]; }
+	long getIValue(void) const{ return ival; };
+	void setValue(double u,double v,double w,double z){ this->value[0] = u; this->value[1] = v; this->value[2] = w; this->value[3] = z; }
+	bool setValue(double u,int i){ this->value[i] = u; return true; }
+	void setIValue(long id){ this->ival = ival; }
+	virtual bool getValue(double* v) const {
+		v[0] = value[0];
+		v[1] = value[1];
+		v[2] = value[2];
+		v[3] = value[3];
+		return true;
+	}
+	bool setValue(double* v){
+		this->value[0] = v[0];
+		this->value[1] = v[1];
+		this->value[2] = v[2];
+		this->value[3] = v[3];
+		return true;
+	}
+	virtual bool getValue(long* k) const {
+		*k = ival;
+		return true;
+	}
+	virtual valueType getType(void) const { return Vector4withInt; }
+	virtual kmb::PhysicalValue* clone(void){
+		return new Vector4WithInt( this->value[0], this->value[1], this->value[2], this->value[3], this->ival );
+	}
+	int getDimension(void) const { return 4; };
 };
 
 
@@ -350,7 +458,7 @@ private:
 	double point[3];
 	double vector[3];
 public:
-	static const valueType vType = kmb::PhysicalValue::POINT3VECTOR3;
+	static const valueType vType = kmb::PhysicalValue::Point3Vector3;
 	Point3Vector3Value(void){
 		for(int i=0;i<3;++i){
 			this->point[i] = 0.0;
@@ -385,14 +493,15 @@ public:
 			return DBL_MAX;
 		}
 	}
-	void setValue(double v,int i){
+	bool setValue(double v,int i){
 		if( 0 <= i && i < 3 ){
 			point[i] = v;
 		}else if( 3 <= i && i < 6 ){
 			vector[i-3] = v;
 		}
+		return true;
 	}
-	virtual valueType getType(void) const { return POINT3VECTOR3; }
+	virtual valueType getType(void) const { return Point3Vector3; }
 	virtual kmb::PhysicalValue* clone(void){
 		return new Point3Vector3Value( this->point, this->vector );
 	}
@@ -405,13 +514,14 @@ public:
 		v[5] = vector[2];
 		return true;
 	}
-	void setValue(double* v){
+	bool setValue(double* v){
 		this->point[0] = v[0];
 		this->point[1] = v[1];
 		this->point[2] = v[2];
 		this->vector[0] = v[3];
 		this->vector[1] = v[4];
 		this->vector[2] = v[5];
+		return true;
 	}
 	int getDimension(void) const { return 6; };
 };
@@ -421,7 +531,7 @@ class Tensor6Value : public PhysicalValue
 private:
 	double value[6];
 public:
-	static const valueType vType = kmb::PhysicalValue::TENSOR6;
+	static const valueType vType = kmb::PhysicalValue::Tensor6;
 	Tensor6Value(void){
 		for(int i=0;i<6;++i){
 			this->value[i] = 0.0;
@@ -442,8 +552,8 @@ public:
 	}
 	virtual ~Tensor6Value(void){}
 	double getValue(int i) const { return value[i]; }
-	void setValue(double v,int i){ this->value[i] = v; }
-	virtual valueType getType(void) const { return TENSOR6; }
+	bool setValue(double v,int i){ this->value[i] = v; return true; }
+	virtual valueType getType(void) const { return Tensor6; }
 	virtual kmb::PhysicalValue* clone(void){
 		return new Tensor6Value( this->value );
 	}
@@ -456,13 +566,14 @@ public:
 		v[5] = value[5];
 		return true;
 	}
-	void setValue(double* v){
+	bool setValue(double* v){
 		this->value[0] = v[0];
 		this->value[1] = v[1];
 		this->value[2] = v[2];
 		this->value[3] = v[3];
 		this->value[4] = v[4];
 		this->value[5] = v[5];
+		return true;
 	}
 	int getDimension(void) const { return 6; };
 };
@@ -473,15 +584,15 @@ class TextValue : public PhysicalValue
 private:
 	std::string str;
 public:
-	static const valueType vType = kmb::PhysicalValue::STRING;
+	static const valueType vType = kmb::PhysicalValue::String;
 	TextValue(){}
 	TextValue(const char* t){
 		str = t;
 	}
 	virtual ~TextValue(){}
 	std::string getValue(void) const { return str; }
-	void setValue(const char* t){ str = t; }
-	virtual valueType getType(void) const { return STRING; }
+	bool setValue(const char* t){ str = t; return true; }
+	virtual valueType getType(void) const { return String; }
 	virtual kmb::PhysicalValue* clone(void){
 		return new TextValue( str.c_str() );
 	}
@@ -490,7 +601,7 @@ public:
 class ArrayValue : public PhysicalValue
 {
 public:
-	static const valueType vType = kmb::PhysicalValue::ARRAY;
+	static const valueType vType = kmb::PhysicalValue::Array;
 	ArrayValue(){}
 	ArrayValue( std::vector< PhysicalValue* >& v){
 		std::vector< PhysicalValue* >::iterator pIter = v.begin();
@@ -512,9 +623,9 @@ public:
 		}
 	}
 	kmb::PhysicalValue* getValue(int i) const { return values[i]; }
-	void setValue(int i,kmb::PhysicalValue* v){ values[i] = v; }
+	bool setValue(int i,kmb::PhysicalValue* v){ values[i] = v; return true; }
 	void appendValue(kmb::PhysicalValue* v){ values.push_back( v ); }
-	virtual valueType getType(void) const { return ARRAY; }
+	virtual valueType getType(void) const { return Array; }
 	size_t getSize(void) const { return values.size(); }
 	virtual kmb::PhysicalValue* clone(void){
 		return new ArrayValue( this->values );
@@ -524,7 +635,7 @@ public:
 	bool checkType(unsigned int i,valueType vType,size_t size=0) const {
 		kmb::PhysicalValue* val = this->getValue(i);
 		if( val && val->getType() == vType ){
-			if( vType == ARRAY && size > 0 ){
+			if( vType == Array && size > 0 ){
 				if( reinterpret_cast< kmb::ArrayValue* >(val)->getSize() == size ){
 					return true;
 				}
@@ -541,7 +652,7 @@ private:
 class HashValue : public PhysicalValue
 {
 public:
-	static const valueType vType = kmb::PhysicalValue::HASH;
+	static const valueType vType = kmb::PhysicalValue::Hash;
 	HashValue(){}
 	HashValue( std::map< std::string, PhysicalValue* >& v){
 		std::map< std::string, PhysicalValue* >::iterator pIter = v.begin();
@@ -570,7 +681,7 @@ public:
 			return NULL;
 		}
 	}
-	void setValue(std::string k,kmb::PhysicalValue* v){
+	bool setValue(std::string k,kmb::PhysicalValue* v){
 		if( v != NULL ){
 
 			std::map< std::string, kmb::PhysicalValue* >::iterator f = values.find(k);
@@ -580,8 +691,9 @@ public:
 			}
 			values.insert( std::pair<std::string, kmb::PhysicalValue* >(k,v) );
 		}
+		return true;
 	}
-	virtual valueType getType(void) const { return HASH; }
+	virtual valueType getType(void) const { return Hash; }
 	size_t getSize(void) const { return values.size(); }
 	std::map< std::string, kmb::PhysicalValue* >::const_iterator begin(void) const{ return values.begin(); }
 	std::map< std::string, kmb::PhysicalValue* >::const_iterator end(void) const{ return values.end(); }
@@ -591,7 +703,7 @@ public:
 	bool checkType(const char* key,valueType vType,size_t size=0) const {
 		kmb::PhysicalValue* val = this->getValue(key);
 		if( val && val->getType() == vType ){
-			if( vType == ARRAY && size > 0 ){
+			if( vType == Array && size > 0 ){
 				if( reinterpret_cast< kmb::ArrayValue* >(val)->getSize() == size ){
 					return true;
 				}
@@ -608,7 +720,7 @@ private:
 class IntHashValue : public PhysicalValue
 {
 public:
-	static const valueType vType = kmb::PhysicalValue::INTHASH;
+	static const valueType vType = kmb::PhysicalValue::IntHash;
 	IntHashValue(){}
 	IntHashValue( std::map< int, PhysicalValue* >& v){
 		std::map< int, PhysicalValue* >::const_iterator pIter = v.begin();
@@ -637,12 +749,13 @@ public:
 			return NULL;
 		}
 	}
-	void setValue(int n,kmb::PhysicalValue* v){
+	bool setValue(int n,kmb::PhysicalValue* v){
 		if( v != NULL ){
 			values.insert( std::pair<int, kmb::PhysicalValue* >(n,v) );
 		}
+		return true;
 	}
-	virtual valueType getType(void) const { return INTHASH; }
+	virtual valueType getType(void) const { return IntHash; }
 	size_t getSize(void) const { return values.size(); }
 	std::map< int, kmb::PhysicalValue* >::const_iterator begin(void) const{ return values.begin(); }
 	std::map< int, kmb::PhysicalValue* >::const_iterator end(void) const{ return values.end(); }
@@ -652,7 +765,7 @@ public:
 	bool checkType(unsigned int i,valueType vType,size_t size=0) const {
 		const kmb::PhysicalValue* val = this->getValue(i);
 		if( val && val->getType() == vType ){
-			if( vType == ARRAY && size > 0 ){
+			if( vType == Array && size > 0 ){
 				if( reinterpret_cast< const kmb::ArrayValue* >(val)->getSize() == size ){
 					return true;
 				}

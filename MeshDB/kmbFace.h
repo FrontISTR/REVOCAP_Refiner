@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Face                                                    #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -27,8 +27,8 @@
 
 #include "MeshDB/kmbTypes.h"
 #include "MeshDB/kmbElement.h"
-#include "Geometry/kmb_Geometry3D.h"
-#include "Geometry/kmb_Point3DContainer.h"
+#include "Geometry/kmbGeometry3D.h"
+#include "Geometry/kmbPoint3DContainer.h"
 #include <vector>
 
 
@@ -53,7 +53,6 @@ namespace kmb{
 
 class ElementContainer;
 class MeshData;
-class NodeNeighborInfo;
 class ElementBase;
 
 class Face

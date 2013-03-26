@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerNArray                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -29,7 +29,7 @@
 const char* kmb::ElementContainerNArray::CONTAINER_TYPE = "node_array";
 
 kmb::ElementContainerNArray::ElementContainerNArray( kmb::elementType etype, size_t size )
-: ElementContainer()
+: ElementContainerDirectAccessable()
 , index(0)
 , size(0)
 , etype(kmb::UNKNOWNTYPE)
@@ -44,8 +44,10 @@ kmb::ElementContainerNArray::ElementContainerNArray( kmb::elementType etype, siz
 	initialize( size );
 }
 
+#define _DEBUG_ 1
+
 kmb::ElementContainerNArray::ElementContainerNArray( kmb::elementType etype, size_t size, kmb::nodeIdType *nodeTable, bool writable, kmb::nodeIdType offset )
-: ElementContainer()
+: ElementContainerDirectAccessable()
 , index(0)
 , size(0)
 , etype(kmb::UNKNOWNTYPE)
@@ -57,15 +59,25 @@ kmb::ElementContainerNArray::ElementContainerNArray( kmb::elementType etype, siz
 	this->etype = etype;
 	this->size = size;
 	this->ncount = kmb::Element::getNodeCount( etype );
-	this->nodeTable = nodeTable;
-	this->nodeTableDeletable = false;
+
+
+	if( nodeTable ){
+		this->nodeTable = nodeTable;
+		this->nodeTableDeletable = false;
+		if( writable ){
+			std::fill( this->nodeTable, this->nodeTable+(ncount*size), kmb::nullNodeId );
+		}
+	}else{
+		this->nodeTable = new kmb::nodeIdType[ ncount*size ];
+		std::fill( this->nodeTable, this->nodeTable + (ncount*size), kmb::nullNodeId );
+		this->nodeTableDeletable = true;
+	}
 	this->nodeOffset = offset;
+
+
 	if( !writable ){
 		this->typeCounter[ etype ] = size;
 		this->index = size;
-	}else{
-		std::fill_n( nodeTable, ncount*size, kmb::nullNodeId );
-
 	}
 }
 
@@ -95,8 +107,8 @@ kmb::ElementContainerNArray::initialize(size_t size)
 	if( nodeTableDeletable && nodeTable == NULL ){
 		this->size = size;
 		nodeTable = new kmb::nodeIdType[ ncount*size ];
-		std::fill_n( nodeTable, ncount*size, kmb::nullNodeId );
 
+		std::fill( nodeTable, nodeTable + (ncount*size), kmb::nullNodeId );
 	}
 }
 
@@ -263,6 +275,22 @@ kmb::ElementContainerNArray::find(kmb::elementIdType id) const
 	}else{
 		return kmb::ElementContainer::const_iterator(NULL);
 	}
+}
+
+kmb::elementType kmb::ElementContainerNArray::getElementType(kmb::elementIdType elementId) const
+{
+	return etype;
+}
+
+
+kmb::nodeIdType kmb::ElementContainerNArray::operator()(kmb::elementIdType elementId,kmb::idType localId) const
+{
+	return nodeTable[ncount*(elementId-offsetId)+localId];
+}
+
+kmb::nodeIdType& kmb::ElementContainerNArray::operator()(kmb::elementIdType elementId,kmb::idType localId)
+{
+	return nodeTable[ncount*(elementId-offsetId)+localId];
 }
 
 

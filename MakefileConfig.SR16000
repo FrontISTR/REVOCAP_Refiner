@@ -1,0 +1,28 @@
+#
+# This is the configuration file for makefile of REVOCAP_Refiner depending on environments.
+# 
+# If Ruby is installed in your system, please give RUBY_PLATFORM to ARCH variable.
+# Otherwise ARCH variable should be a platform string (ex, i686-linux, etc)
+
+###########################
+# for Hitachi SR16000 AIX #
+###########################
+
+ARCH = hitachi_sr-aix
+DEBUGFLAG = -DNDEBUG -DF2C001
+CC = xlc -DFORTRAN90 -q64
+CFLAGS = -O $(DEBUGFLAG)
+CXX = xlC -DFORTRAN90 -q64
+CXXFLAGS = -O $(DEBUGFLAG)
+F90 = f90
+FFLAGS = $(DEBUGFLAG)
+AR = ar -X64
+ARFLAGS = rsv
+LD = $(F90)
+LDFLAGS = $(FFLAGS)
+LIBPATH =
+LIBS = -lstdc++
+RM = rm -f
+DOXYGEN = doxygen
+TAR = tar
+

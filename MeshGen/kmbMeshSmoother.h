@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
-# Class Name : AFTetraMesher                                           #
+# Software Name : REVOCAP_PrePost version 1.6                          #
+# Class Name : MeshSmoother                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -15,6 +15,9 @@
 #pragma once
 
 #include "MeshDB/kmbTypes.h"
+
+#include <map>
+#include <cstddef>
 
 namespace kmb{
 
@@ -28,22 +31,33 @@ class DataBindings;
 class MeshSmoother
 {
 protected:
-	kmb::Point3DContainer* points;
-	kmb::ElementContainer* elements;
-	kmb::ElementContainer* boundary;
-	kmb::ElementEvaluator* evaluator;
-	kmb::NodeNeighborInfo* neighborInfo;
-	kmb::NodeNeighborInfo* neighborInfoSurf;
+	kmb::MeshData* mesh;
 	kmb::Point3DContainer* shiftPoints;
+	std::multimap< kmb::nodeIdType, kmb::nodeIdType > nodeConnectTable;
+
+	double relax;
 public:
-	MeshSmoother(kmb::MeshData* mesh,kmb::bodyIdType bodyId);
+	MeshSmoother(kmb::MeshData* mesh);
 	virtual ~MeshSmoother(void);
+	void clear(void);
+
+
+	size_t appendBody(kmb::bodyIdType bodyId);
+	size_t appendBody(const kmb::ElementContainer* body);
+
 
 	void init(void);
-	void smoothingAtNode(kmb::nodeIdType nodeId);
-	void smoothingOnFaceAtNode(kmb::nodeIdType nodeId);
+
+
+
+	int smoothingNode(kmb::nodeIdType nodeId);
+	int smoothingAllNode(void);
+	int smoothingNodeGroup(const char* name,const char* stype=NULL);
 
 	void commit(void);
+private:
+
+	bool appendConnectNode(kmb::nodeIdType n0,kmb::nodeIdType n1);
 };
 
 }

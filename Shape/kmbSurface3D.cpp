@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Surface3D                                               #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,17 +13,41 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "Shape/kmbSurface3D.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbOptimization.h"
 #include "Matrix/kmbVector.h"
 
 kmb::Surface3D::Surface3D(void)
-: surfaceId(-1)
+: epsilon(1.0e-8), iterMax(1000), surfaceId(-1)
 {
 }
 
 kmb::Surface3D::~Surface3D(void)
 {
+}
+
+double
+kmb::Surface3D::getEpsilon(void) const
+{
+	return epsilon;
+}
+
+void
+kmb::Surface3D::setEpsilon(double e)
+{
+	this->epsilon = e;
+}
+
+int
+kmb::Surface3D::getIterMax(void) const
+{
+	return iterMax;
+}
+
+void
+kmb::Surface3D::setIterMax(int m)
+{
+	this->iterMax = m;
 }
 
 long
@@ -64,6 +88,7 @@ kmb::Surface3D::getMiddlePointByNearest( double u0, double v0, double u1, double
 	bool res = false;
 	double um = 0.5*(u0+u1);
 	double vm = 0.5*(v0+v1);
+
 	if( getPoint(um,vm,pt) && minimizer.update( pm.distanceSq(pt) ) ){
 		u = um;
 		v = vm;
@@ -191,6 +216,8 @@ kmb::Surface3D::getNearest( const kmb::Point3D& point, double &u, double &v ) co
 	};
 	opt_local opt_obj(this,point);
 	kmb::Optimization opt;
+	opt.setEpsilon(epsilon);
+	opt.setIterMax(iterMax);
 	double min_t[2]={0.0,0.0}, max_t[2]={0.0,0.0};
 	getDomain(min_t[0],max_t[0],min_t[1],max_t[1]);
 	double t0[2] = {0.0,0.0};

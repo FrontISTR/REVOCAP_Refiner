@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : PolygonPartitioner                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -30,7 +30,7 @@
 #include "MeshDB/kmbSegment.h"
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbTypes.h"
-#include "Geometry/kmb_Geometry.h"
+#include "Geometry/kmbGeometry.h"
 
 #include <map>
 #include <vector>
@@ -99,7 +99,7 @@ kmb::PolygonPartitioner::setInitialPolygon(kmb::ElementContainer* edges)
 }
 
 size_t
-kmb::PolygonPartitioner::getCount(void)
+kmb::PolygonPartitioner::getCount(void) const
 {
 	if( initialPolygon != NULL )
 		return this->initialPolygon->getSize();
@@ -156,7 +156,7 @@ kmb::PolygonPartitioner::getVertexType(const kmb::Point2D& previousPoint,const k
 }
 
 kmb::PolygonPartitioner::vertexType
-kmb::PolygonPartitioner::getVertexType(kmb::Polygon* polygon,kmb::nodeIdType nodeId)
+kmb::PolygonPartitioner::getVertexType(kmb::Polygon* polygon,kmb::nodeIdType nodeId) const
 {
 	if( points == NULL || polygon == NULL || !polygon->include(nodeId) )
 		return kmb::PolygonPartitioner::UNKNOWN;
@@ -177,7 +177,7 @@ kmb::PolygonPartitioner::getVertexType(kmb::Polygon* polygon,kmb::nodeIdType nod
 }
 
 kmb::elementIdType
-kmb::PolygonPartitioner::getNearestSegmentWithSameLevel(kmb::nodeIdType nodeId, bool left)
+kmb::PolygonPartitioner::getNearestSegmentWithSameLevel(kmb::nodeIdType nodeId, bool left) const
 {
 	kmb::elementIdType nearSegment = kmb::Element::nullElementId;
 	const kmb::ElementContainer* edges = initialPolygon->getEdges();
@@ -226,7 +226,7 @@ kmb::PolygonPartitioner::getNearestSegmentWithSameLevel(kmb::nodeIdType nodeId, 
 }
 
 kmb::nodeIdType
-kmb::PolygonPartitioner::getHelperNode( kmb::nodeIdType nodeID, kmb::elementIdType leftID, kmb::elementIdType rightID, kmb::PolygonPartitioner::vertexType vType)
+kmb::PolygonPartitioner::getHelperNode( kmb::nodeIdType nodeID, kmb::elementIdType leftID, kmb::elementIdType rightID, kmb::PolygonPartitioner::vertexType vType) const
 {
 	kmb::nodeIdType helperNodeId = kmb::nullNodeId;
 	const kmb::ElementContainer* eCon = NULL;

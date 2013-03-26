@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : SurfaceOperation                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,7 +24,7 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbSurfaceOperation.h"
-#include "MeshDB/kmbMeshDB.h"
+#include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbElementContainerMap.h"
 #include "MeshDB/kmbElementContainerOpenGLDraw.h"
@@ -32,7 +32,7 @@
 #include "MeshDB/kmbNodeNeighborFaceInfo.h"
 #include "MeshDB/kmbElementRelation.h"
 #include "MeshDB/kmbElementEvaluator.h"
-#include "Geometry/kmb_Classification.h"
+#include "Common/kmbClassification.h"
 
 #include <cmath>
 
@@ -67,7 +67,7 @@ kmb::SurfaceOperation::clear(void)
 }
 
 void
-kmb::SurfaceOperation::setMesh(kmb::MeshDB* mesh)
+kmb::SurfaceOperation::setMesh(kmb::MeshData* mesh)
 {
 	clear();
 	this->mesh = mesh;
@@ -80,7 +80,7 @@ kmb::SurfaceOperation::setPermitReverse(bool f)
 }
 
 void
-kmb::SurfaceOperation::setSurface(kmb::MeshDB* mesh,kmb::bodyIdType bodyId)
+kmb::SurfaceOperation::setSurface(kmb::MeshData* mesh,kmb::bodyIdType bodyId)
 {
 	this->mesh = mesh;
 	if( this->mesh ){
@@ -192,7 +192,7 @@ kmb::SurfaceOperation::divideFaceGroup(std::string name,double angle,std::vector
 	for(size_t i=0;i<dividedNum;++i){
 		std::string subfaceName = mesh->getUniqueDataName(name, static_cast<int>(i) );
 		kmb::DataBindings* fdata =
-			mesh->createDataBindings( subfaceName.c_str(), kmb::DataBindings::FACEGROUP, kmb::PhysicalValue::NONE,
+			mesh->createDataBindings( subfaceName.c_str(), kmb::DataBindings::FaceGroup, kmb::PhysicalValue::None,
 			"Brep", data->getTargetBodyId() );
 		this->getDividedFaceGroup(face,fdata);
 		this->dividedFacesInfo.next( face );
@@ -226,7 +226,7 @@ kmb::SurfaceOperation::divideFaceGroupWithRidge(std::string name,double angle,st
 	for(size_t i=0;i<dividedNum;++i){
 		std::string subfaceName = mesh->getUniqueDataName(name, static_cast<int>(i) );
 		kmb::DataBindings* fdata =
-			mesh->createDataBindings( subfaceName.c_str(), kmb::DataBindings::FACEGROUP, kmb::PhysicalValue::NONE,
+			mesh->createDataBindings( subfaceName.c_str(), kmb::DataBindings::FaceGroup, kmb::PhysicalValue::None,
 			"Brep", data->getTargetBodyId() );
 		kmb::ElementContainerMap* ridge = new kmb::ElementContainerMap();
 		this->getDividedFaceGroup(face,fdata);
@@ -279,14 +279,13 @@ kmb::SurfaceOperation::decomposeByElementContainer(kmb::ElementContainer* elemen
 		kmb::Element::nullElementId };
 
 
-	kmb::Classification2<kmb::elementIdType> classification;
+	kmb::Classification<kmb::elementIdType> classification;
 
 	kmb::ElementContainer::iterator eIter = elements->begin();
 	while( eIter != elements->end() )
 	{
 		const kmb::elementIdType id = eIter.getId();
 		classification.add( id );
-
 		const int neiNum = neighborInfo.getNeighborElements( id, neighbors, elements);
 		++eIter;
 		for(int i=0;i<neiNum;++i)
@@ -298,23 +297,21 @@ kmb::SurfaceOperation::decomposeByElementContainer(kmb::ElementContainer* elemen
 		}
 	}
 
-	std::multimap<kmb::elementIdType,kmb::elementIdType>::iterator fIter = classification.equivalentTable.begin();
-	while( fIter != classification.equivalentTable.end() )
-	{
+	size_t compNum = classification.getClassCount();
+	kmb::elementIdType firstElemId = kmb::Element::nullElementId;
+	classification.first( firstElemId );
+	for(size_t i=0;i<compNum;++i){
 		kmb::ElementContainer* container = NULL;
 		container = new kmb::ElementContainerMap();
-
-		std::pair< std::multimap<kmb::elementIdType,kmb::elementIdType>::iterator, std::multimap<kmb::elementIdType,kmb::elementIdType>::iterator >
-			tIterPair = classification.equivalentTable.equal_range( fIter->first );
-		std::multimap<kmb::elementIdType,kmb::elementIdType>::iterator tIter = tIterPair.first;
-
-		while( tIter != tIterPair.second ){
-			kmb::elementIdType elemID = tIter->second;
-			container->addElement( elements->eraseElement(elemID), elemID );
-			++tIter;
+		kmb::Classification< kmb::elementIdType >::iterator eIter = classification.begin( firstElemId );
+		kmb::Classification< kmb::elementIdType >::iterator eEnd = classification.end( firstElemId );
+		while( eIter != eEnd ){
+			kmb::elementIdType elemId = eIter.getValue();
+			container->addElement( elements->eraseElement( elemId ), elemId );
+			++eIter;
 		}
-		fIter = tIterPair.second;
-		components.insert(container);
+		components.insert( container );
+		classification.next( firstElemId );
 	}
 }
 
@@ -338,7 +335,7 @@ kmb::SurfaceOperation::decomposeFaceGroup(std::string faceGroup, std::vector<std
 	for(size_t i=0;i<dividedNum;++i){
 		std::string subfaceName = mesh->getUniqueDataName(faceGroup, static_cast<int>(i) );
 		kmb::DataBindings* fdata =
-			mesh->createDataBindings( subfaceName.c_str(), kmb::DataBindings::FACEGROUP, kmb::PhysicalValue::NONE,
+			mesh->createDataBindings( subfaceName.c_str(), kmb::DataBindings::FaceGroup, kmb::PhysicalValue::None,
 			data->getSpecType().c_str(), data->getTargetBodyId() );
 		this->getDividedFaceGroup(face,fdata);
 		this->dividedFacesInfo.next( face );
@@ -348,10 +345,10 @@ kmb::SurfaceOperation::decomposeFaceGroup(std::string faceGroup, std::vector<std
 }
 
 kmb::SurfaceOperation::vertexType
-kmb::SurfaceOperation::getVertexType(kmb::nodeIdType nodeId, kmb::MeshDB* mesh, kmb::ElementContainer* elements, kmb::NodeNeighborInfo* neighborInfo)
+kmb::SurfaceOperation::getVertexType(kmb::nodeIdType nodeId, kmb::MeshData* mesh, kmb::ElementContainer* elements, kmb::NodeNeighborInfo* neighborInfo)
 {
 	if( mesh==NULL || elements==NULL || neighborInfo==NULL ){
-		return kmb::SurfaceOperation::UNKNOWN;
+		return kmb::SurfaceOperation::Unknown;
 	}
 	kmb::ElementEvaluator evaluator( mesh->getNodes() );
 	double angleSum = 0.0;
@@ -383,12 +380,12 @@ kmb::SurfaceOperation::getVertexType(kmb::nodeIdType nodeId, kmb::MeshDB* mesh, 
 			return kmb::SurfaceOperation::FLAT;
 		}
 	}else{
-		return kmb::SurfaceOperation::UNKNOWN;
+		return kmb::SurfaceOperation::Unknown;
 	}
 }
 
 kmb::SurfaceOperation::vertexType
-kmb::SurfaceOperation::getVertexType(kmb::nodeIdType nodeId)
+kmb::SurfaceOperation::getVertexType(kmb::nodeIdType nodeId) const
 {
 	return kmb::SurfaceOperation::getVertexType
 		(nodeId,this->mesh,this->elements,this->neighborInfo);
@@ -401,7 +398,7 @@ kmb::SurfaceOperation::faceGroup2Surface(const char* name)
 	kmb::Body* parentBody = NULL;
 	if( mesh == NULL
 		|| (data = mesh->getDataBindingsPtr(name)) == NULL
-		|| data->getBindingMode() != kmb::DataBindings::FACEGROUP
+		|| data->getBindingMode() != kmb::DataBindings::FaceGroup
 		|| (parentBody = mesh->getBodyPtr( data->getTargetBodyId() )) == NULL
 		)
 	{
@@ -447,8 +444,8 @@ kmb::SurfaceOperation::surface2FaceGroup(kmb::bodyIdType bodyId,kmb::bodyIdType 
 		= reinterpret_cast< kmb::DataBindingsGroup<kmb::Face>* >(
 			mesh->createDataBindings
 				(name,
-				 kmb::DataBindings::FACEGROUP,
-				 kmb::PhysicalValue::NONE,
+				 kmb::DataBindings::FaceGroup,
+				 kmb::PhysicalValue::None,
 				 "", parentBodyId ) );
 	int index = -1;
 	int otherindex = -1;
@@ -458,7 +455,7 @@ kmb::SurfaceOperation::surface2FaceGroup(kmb::bodyIdType bodyId,kmb::bodyIdType 
 	kmb::ElementContainer::iterator eEnd = body->end();
 	while( eIter != eEnd )
 	{
-		kmb::nodeIdType n0 = eIter.getCellId(0);
+		kmb::nodeIdType n0 = eIter[0];
 		kmb::NodeNeighbor::iterator neiIter = neighborInfo.beginIteratorAt(n0);
 		kmb::NodeNeighbor::iterator neiEnd = neighborInfo.endIteratorAt(n0);
 		while( neiIter != neiEnd ){
@@ -487,7 +484,7 @@ kmb::SurfaceOperation::surface2FaceGroup(kmb::bodyIdType bodyId,const char* pare
 	}
 	kmb::DataBindings* parentFg = mesh->getDataBindingsPtr( parentFaceGroup );
 	if( parentFg == NULL ||
-		parentFg->getBindingMode() != kmb::DataBindings::FACEGROUP )
+		parentFg->getBindingMode() != kmb::DataBindings::FaceGroup )
 	{
 		return false;
 	}
@@ -515,8 +512,8 @@ kmb::SurfaceOperation::surface2FaceGroup(kmb::bodyIdType bodyId,const char* pare
 		= reinterpret_cast< kmb::DataBindingsGroup<kmb::Face>* >(
 			mesh->createDataBindings
 				(name,
-				 kmb::DataBindings::FACEGROUP,
-				 kmb::PhysicalValue::NONE,
+				 kmb::DataBindings::FaceGroup,
+				 kmb::PhysicalValue::None,
 				 "", parentBodyId ) );
 	int index = -1;
 	int otherindex = -1;
@@ -602,7 +599,7 @@ kmb::SurfaceOperation::divideSurface(const kmb::ElementContainer* elements,const
 }
 
 bool
-kmb::SurfaceOperation::getDividedSurfaceElementCount(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,size_t &triCount,size_t &quadCount)
+kmb::SurfaceOperation::getDividedSurfaceElementCount(const kmb::ElementContainer* orgSurf,kmb::elementIdType initElementId,size_t &triCount,size_t &quadCount) const
 {
 	if( orgSurf != NULL ){
 		triCount = 0;
@@ -741,7 +738,7 @@ kmb::SurfaceOperation::getSurfaceRidge(const kmb::ElementContainer* elements,kmb
 size_t
 kmb::SurfaceOperation::divideFaceGroup(const kmb::DataBindings* data, const kmb::ElementContainer* elements, const kmb::Point3DContainer* points, double angle)
 {
-	if( data != NULL && data->getBindingMode() == kmb::DataBindings::FACEGROUP && elements != NULL ){
+	if( data != NULL && data->getBindingMode() == kmb::DataBindings::FaceGroup && elements != NULL ){
 
 		kmb::ElementEvaluator evaluator( points );
 		double cosThres = cos(angle*PI/180.0);
@@ -784,7 +781,7 @@ kmb::SurfaceOperation::divideFaceGroup(const kmb::DataBindings* data, const kmb:
 size_t
 kmb::SurfaceOperation::divideComponentsFaceGroup(const kmb::DataBindings* data, const kmb::ElementContainer* elements)
 {
-	if( data != NULL && data->getBindingMode() == kmb::DataBindings::FACEGROUP && elements != NULL ){
+	if( data != NULL && data->getBindingMode() == kmb::DataBindings::FaceGroup && elements != NULL ){
 
 		kmb::NodeNeighborFaceInfo nodeNeighborInfo;
 		nodeNeighborInfo.appendCoboundary( data, elements );
@@ -810,7 +807,7 @@ size_t
 kmb::SurfaceOperation::getDividedFaceGroup(kmb::Face initFace,kmb::DataBindings* data) const
 {
 	size_t count = 0;
-	if( data != NULL && data->getBindingMode() == kmb::DataBindings::FACEGROUP ){
+	if( data != NULL && data->getBindingMode() == kmb::DataBindings::FaceGroup ){
 		kmb::Classification< kmb::Face >::iterator fIter = this->dividedFacesInfo.begin( initFace );
 		kmb::Classification< kmb::Face >::iterator fEnd = this->dividedFacesInfo.end( initFace );
 		while( fIter != fEnd ){

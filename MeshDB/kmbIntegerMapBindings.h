@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : IntegerMapBindings                                      #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -25,7 +25,7 @@ namespace kmb{
 class IntegerMapBindings : public kmb::DataBindings
 {
 public:
-	IntegerMapBindings(kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NODEVARIABLE);
+	IntegerMapBindings(kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
 	virtual ~IntegerMapBindings(void);
 	virtual void clear(void);
 	virtual size_t getIdCount(void) const;
@@ -34,6 +34,7 @@ public:
 	virtual bool replaceId(kmb::idType old_id,kmb::idType new_id);
 	virtual bool setPhysicalValue(kmb::idType id, kmb::PhysicalValue* value);
 	virtual bool setPhysicalValue(kmb::idType id, long *value);
+	virtual bool setValue(kmb::idType id, long value,int index=0);
 	virtual bool getPhysicalValue(kmb::idType id, long *value) const;
 	virtual const char* getContainerType(void) const;
 public:

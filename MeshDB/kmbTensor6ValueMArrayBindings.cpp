@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Tensor6ValueMArrayBindings                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -21,7 +21,7 @@ kmb::Tensor6ValueMArrayBindings::Tensor6ValueMArrayBindings(size_t size,kmb::Dat
 , aIndex()
 , count(0)
 {
-	this->type = kmb::PhysicalValue::TENSOR6;
+	this->type = kmb::PhysicalValue::Tensor6;
 	this->bMode = bmode;
 	vArray.initialize(size);
 	aIndex = vArray.getBLArrayIndex(0);
@@ -35,15 +35,15 @@ kmb::Tensor6ValueMArrayBindings::~Tensor6ValueMArrayBindings(void)
 void
 kmb::Tensor6ValueMArrayBindings::clear(void)
 {
-	vArray.clear();
-	aIndex.clear();
+	vArray.clearData();
+	aIndex = vArray.getBLArrayIndex(0);
 	count = 0;
 }
 
 bool
 kmb::Tensor6ValueMArrayBindings::setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val)
 {
-	if( val && 0 <= id && val->getType() == kmb::PhysicalValue::TENSOR6 ){
+	if( val && 0 <= id && val->getType() == kmb::PhysicalValue::Tensor6 ){
 		kmb::BLArrayIndex ind = vArray.getBLArrayIndex( static_cast<size_t>(id) );
 		double q[6];
 		reinterpret_cast< kmb::Tensor6Value* >(val)->getValue(q);
@@ -81,10 +81,7 @@ kmb::Tensor6ValueMArrayBindings::setValue(kmb::idType id, double value,int index
 {
 	if( 0 <= id && 0 <= index && index < 6 ){
 		kmb::BLArrayIndex ind = vArray.getBLArrayIndex( static_cast<size_t>(id) );
-		double q[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-		vArray.get( static_cast<size_t>(id), q );
-		q[index] = value;
-		if( vArray.set( ind, q ) ){
+		if( vArray.setComponent( ind, index, &value) ){
 			if( aIndex <= ind ){
 				aIndex = ind;
 				++aIndex;
@@ -94,6 +91,24 @@ kmb::Tensor6ValueMArrayBindings::setValue(kmb::idType id, double value,int index
 		}
 	}
 	return false;
+}
+
+bool
+kmb::Tensor6ValueMArrayBindings::scalar(double r)
+{
+	kmb::BLArrayIndex index;
+	vArray.first(index);
+	double d[6];
+	while( vArray.valid(index) ){
+		if( vArray.get(index,d)){
+			for(int i=0;i<6;++i){
+				d[i] *= r;
+			}
+			vArray.set(index,d);
+		}
+		++index;
+	}
+	return true;
 }
 
 #ifdef _MSC_VER
@@ -183,7 +198,8 @@ kmb::Tensor6ValueMArrayBindings::begin(void)
 	_it = new kmb::Tensor6ValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-		_it->aIndex = this->vArray.getBLArrayIndex(0);
+
+		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::iterator(_it);
 }
@@ -198,7 +214,8 @@ kmb::Tensor6ValueMArrayBindings::begin(void) const
 	_it = new kmb::Tensor6ValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-		_it->aIndex = this->vArray.getBLArrayIndex(0);
+
+		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::const_iterator(_it);
 }

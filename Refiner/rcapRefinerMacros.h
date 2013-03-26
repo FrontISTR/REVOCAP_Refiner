@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_Refiner version 1.0                          #
+# Software Name : REVOCAP_Refiner version 1.1                          #
 # Program Name : rcapRefinerMacros                                     #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -17,10 +17,3 @@
  * テストプログラム用のマクロ集
  */
 
-/* size_t 型の出力を C99 でも VC8 でも警告が出ないようにする */
-#ifdef _MSC_VER
-/* #if __STDC_VERSION__ < 199901L */
-# define PRIsz "u"
-#else
-# define PRIsz "zd"
-#endif

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : TetMeshMIO                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -45,8 +45,8 @@ kmb::TetMeshMIO::loadFromFile(const char* filename,MeshData* mesh)
 	}else{
 		kmb::nodeIdType tmp[20];
 		kmb::nodeIdType ary[20];
-		std::fill_n( tmp, 20, kmb::nullNodeId );
-		std::fill_n( ary, 20, kmb::nullNodeId );
+		std::fill( tmp, tmp+20, kmb::nullNodeId );
+		std::fill( ary, ary+20, kmb::nullNodeId );
 		std::ifstream input( filename, std::ios_base::in );
 		if( input.fail() ){
 			return -1;
@@ -285,6 +285,7 @@ kmb::TetMeshMIO::saveToFile(const char* filename, const kmb::MeshData* mesh)
 				}
 			}
 		}
+		output.close();
 	}
 	return 0;
 }

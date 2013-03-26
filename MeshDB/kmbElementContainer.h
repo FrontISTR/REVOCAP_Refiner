@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainer                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,14 +26,13 @@
 #pragma once
 
 #include "MeshDB/kmbElement.h"
-#include "Geometry/kmb_BoundingBox.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_FramedPlane.h"
+#include "Geometry/kmbBoundingBox.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Geometry/kmbFramedPlane.h"
 #include <set>
 #include <string>
 
 #include "MeshDB/kmbTypes.h"
-
 
 namespace kmb{
 
@@ -66,8 +65,8 @@ public:
 
 
 
-	virtual kmb::elementIdType addElement(kmb::Element* element);
-	virtual kmb::elementIdType addElement(kmb::Element* element,const kmb::elementIdType id);
+	virtual kmb::elementIdType addElement(const kmb::Element* element);
+	virtual kmb::elementIdType addElement(const kmb::Element* element,const kmb::elementIdType id);
 	virtual void updateBoundingBox(const kmb::Point3DContainer* points);
 
 	virtual kmb::Element* eraseElement(kmb::elementIdType id);
@@ -101,6 +100,7 @@ public:
 
 		virtual kmb::elementIdType getId(void) const = 0;
 		virtual kmb::Element* getElement(void){ return NULL; };
+		virtual const kmb::Element* getElement(void) const{ return NULL; };
 		virtual bool getElement(kmb::elementType &etype,kmb::nodeIdType *nodes) const = 0;
 		virtual kmb::elementType getType(void) const = 0;
 		virtual kmb::nodeIdType getCellId(int index) const = 0;
@@ -204,6 +204,15 @@ public:
 	static bool copy(const kmb::ElementContainer* org, kmb::ElementContainer* elements);
 	static kmb::ElementContainer* createContainer( const char* containerType, size_t size );
 };
+
+
+class ElementContainerDirectAccessable : public ElementContainer{
+public:
+	virtual kmb::elementType getElementType(kmb::elementIdType elementId) const = 0;
+	virtual kmb::nodeIdType operator()(kmb::elementIdType elementId,kmb::idType localId) const = 0;
+	virtual kmb::nodeIdType& operator()(kmb::elementIdType elementId,kmb::idType localId) = 0;
+};
+
 
 typedef ElementContainer Body;
 

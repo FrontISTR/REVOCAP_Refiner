@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : PatchGenerator                                          #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -32,7 +32,7 @@ public:
 	PatchGenerator(void);
 	virtual ~PatchGenerator(void);
 	/*
-	 * mesh ‚Ι‚Ν¶¬‚µ‚½ CAD –Κ‚Μ HashCode ‚π BODYVARIABLE ‚Μ Data –Ό FaceHashCode ‚Ε—^‚¦‚ι
+	 * mesh ‚Ι‚Ν¶¬‚µ‚½ CAD –Κ‚Μ HashCode ‚π BodyVariable ‚Μ Data –Ό FaceHashCode ‚Ε—^‚¦‚ι
 	 */
 	bool execute(kmb::ShapeData& shape,kmb::MeshData& mesh);
 	/*
@@ -43,17 +43,17 @@ public:
 	 *
 	 */
 	void setDeflection(double d);
-	double getDeflection(void);
+	double getDeflection(void) const;
 	/*
 	 * BRepMesh::Mesh
 	 */
 	void setIncremental(double d);
-	double getIncremental(void);
+	double getIncremental(void) const;
 	/*
 	 * ’Έ“_‚π“―κ‹‚·‚ιθ‡’l
 	 */
 	void setTolerance(double d);
-	double getTolerance(void);
+	double getTolerance(void) const;
 };
 
 }

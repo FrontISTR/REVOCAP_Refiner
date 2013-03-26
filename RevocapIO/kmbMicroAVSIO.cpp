@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
-# Class Name : RevocapCouplerIO                                        #
+# Software Name : REVOCAP_PrePost version 1.6                          #
+# Class Name : MicroAVSIO                                              #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -22,9 +22,10 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 
 kmb::MicroAVSIO::MicroAVSIO(void)
-: dtype(UNDEFINED)
+: dtype(Undefined)
 , nodeOffset(1)
 , elementOffset(1)
 , asVector3(false)
@@ -41,8 +42,18 @@ kmb::MicroAVSIO::~MicroAVSIO(void)
 {
 }
 
+/* version 9 のとき
+
+( コメント行)
+( ステップ数)
+( データの繰り返しタイプ)
+( ステップ番号1) ( コメント)
+( 全節点数) ( 全要素数)
+( 節点番号1) (X 座標) (Y 座標) (Z 座標)
+
+ */
 int
-kmb::MicroAVSIO::getVersion(std::ifstream &input)
+kmb::MicroAVSIO::getVersion(std::ifstream &input) const
 {
 	std::string line;
 	if( !input.eof() ){
@@ -327,7 +338,7 @@ kmb::MicroAVSIO::readGeom(std::ifstream &input,kmb::MeshData* mesh)
 				mesh->addElementWithId( kmb::TETRAHEDRON, nodeTable, elementId-elementOffset );
 			}else if( etype == "tet2" ){
 				input >> nodeTable[0] >> nodeTable[1] >> nodeTable[3] >> nodeTable[2];
-				input >> nodeTable[9] >> nodeTable[6] >> nodeTable[4] >> nodeTable[5] >> nodeTable[7] >> nodeTable[8];
+				input >> nodeTable[6] >> nodeTable[7] >> nodeTable[5] >> nodeTable[8] >> nodeTable[9] >> nodeTable[4];
 				for(int j=0;j<10;++j){
 					nodeTable[j] -= nodeOffset;
 				}
@@ -504,56 +515,56 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					case 1:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 2:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR2 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector2 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector2, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 3:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR3 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector3 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector3, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 6:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
@@ -561,26 +572,26 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						data = mesh->getDataBindingsPtr( "MISES", "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( "MISES", "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( "MISES", kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( "MISES", kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
@@ -588,9 +599,9 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						break;
 					}
 				}
-				int nodeCount = static_cast<int>( mesh->getNodeCount() );
 				kmb::nodeIdType nodeId = kmb::nullNodeId;
 				double* values = new double[nodeDimCount];
+				std::fill_n(values,nodeDimCount,0.0);
 				for(int i = 0;i<nodeCount;++i){
 					input >> nodeId;
 					for(int j=0;j<nodeDimCount;++j){
@@ -658,56 +669,56 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					case 1:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 2:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR2 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector2 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector2, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 3:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR3 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector3 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector3, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 6:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
@@ -715,26 +726,26 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						data = mesh->getDataBindingsPtr( "EMISES", "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( "EMISES", "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( "EMISES", kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( "EMISES", kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
@@ -742,9 +753,9 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						break;
 					}
 				}
-				int elementCount = static_cast<int>( mesh->getElementCount() );
 				kmb::elementIdType elementId = kmb::Element::nullElementId;
 				double* values = new double[elementDimCount];
+				std::fill_n(values,elementDimCount,0.0);
 				for(int i = 0;i<elementCount;++i){
 					input >> elementId;
 					for(int j=0;j<elementDimCount;++j){
@@ -820,82 +831,82 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					case 1:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 2:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR2 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector2 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector2, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 3:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR3 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector3 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Vector3, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 6:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data =NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 7:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						data = mesh->getDataBindingsPtr( "MISES", "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::NODEVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( "MISES", "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( "MISES", kmb::DataBindings::NODEVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( "MISES", kmb::DataBindings::NodeVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
@@ -903,9 +914,9 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						break;
 					}
 				}
-				int nodeCount = static_cast<int>( mesh->getNodeCount() );
 				kmb::nodeIdType nodeId = kmb::nullNodeId;
 				double* values = new double[nodeDimCount];
+				std::fill_n(values,nodeDimCount,0.0);
 				for(int i = 0;i<nodeCount;++i){
 					input >> nodeId;
 					for(int j=0;j<nodeDimCount;++j){
@@ -973,56 +984,56 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					case 1:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 2:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR2 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector2 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::VECTOR2, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector2, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 3:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::VECTOR3 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Vector3 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::VECTOR3, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Vector3, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 6:
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
@@ -1030,26 +1041,26 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::TENSOR6 ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Tensor6 ) )
 						{
 							mesh->deleteData( items[i].name.c_str(), "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::TENSOR6, "post" );
+							data = mesh->createDataBindings( items[i].name.c_str(), kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Tensor6, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						data = mesh->getDataBindingsPtr( "EMISES", "post" );
 						if( data && (
-								data->getBindingMode() != kmb::DataBindings::ELEMENTVARIABLE ||
-								data->getValueType() != kmb::PhysicalValue::SCALAR ) )
+								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
+								data->getValueType() != kmb::PhysicalValue::Scalar ) )
 						{
 							mesh->deleteData( "EMISES", "post" );
 							data = NULL;
 						}
 						if( data == NULL ){
-							data = mesh->createDataBindings( "EMISES", kmb::DataBindings::ELEMENTVARIABLE, kmb::PhysicalValue::SCALAR, "post" );
+							data = mesh->createDataBindings( "EMISES", kmb::DataBindings::ElementVariable, kmb::PhysicalValue::Scalar, "post" );
 						}
 						mesh->appendTargetDataPtr( data );
 						break;
@@ -1057,9 +1068,9 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						break;
 					}
 				}
-				int elementCount = static_cast<int>( mesh->getElementCount() );
 				kmb::elementIdType elementId = kmb::Element::nullElementId;
 				double* values = new double[elementDimCount];
+				std::fill_n(values,elementDimCount,0.0);
 				for(int i = 0;i<elementCount;++i){
 					input >> elementId;
 					for(int j=0;j<elementDimCount;++j){
@@ -1176,5 +1187,282 @@ kmb::MicroAVSIO::loadPostFromFile(const char* filename,kmb::MeshData* mesh)
 int
 kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 {
+	if( mesh == NULL ){
+		return -1;
+	}
+	std::ofstream output( filename, std::ios_base::out );
+	if( output.fail() ){
+		return -1;
+	}
+
+	output << "# UCD (AVS/Express)" << std::endl;
+	output << "1" << std::endl;
+	output << "data" << std::endl;
+	output << "step1 (fixed time)" << std::endl;
+	output << "  " << mesh->getNodeCount() << " " << mesh->getElementCount() << std::endl;
+
+	kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
+	output.setf( std::ios::fixed );
+	while( !nIter.isFinished() ){
+		output << std::setw(8) << nIter.getId()+this->nodeOffset << " "
+			<< std::setw(15) << nIter.x() << " "
+			<< std::setw(15) << nIter.y() << " "
+			<< std::setw(15) << nIter.z() << std::endl;
+		++nIter;
+	}
+
+	kmb::bodyIdType bodyCount = mesh->getBodyCount();
+
+
+
+	for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+		const kmb::Body* body = mesh->getBodyPtr(bodyId);
+		if( body == NULL ){
+			continue;
+		}
+		kmb::ElementContainer::const_iterator eIter = body->begin();
+		while( !eIter.isFinished() ){
+			output << " " << eIter.getId() + this->elementOffset << " " << bodyId << " ";
+			switch( eIter.getType() ){
+				case kmb::TETRAHEDRON:
+					output << "tet " <<
+						eIter[0] + this->nodeOffset << " " <<
+						eIter[1] + this->nodeOffset << " " <<
+						eIter[3] + this->nodeOffset << " " <<
+						eIter[2] + this->nodeOffset << std::endl;
+					break;
+				case kmb::TETRAHEDRON2:
+					output << "tet2 " <<
+						eIter[0] + this->nodeOffset << " " <<
+						eIter[1] + this->nodeOffset << " " <<
+						eIter[3] + this->nodeOffset << " " <<
+						eIter[2] + this->nodeOffset << " " <<
+						eIter[6] + this->nodeOffset << " " <<
+						eIter[7] + this->nodeOffset << " " <<
+						eIter[5] + this->nodeOffset << " " <<
+						eIter[8] + this->nodeOffset << " " <<
+						eIter[9] + this->nodeOffset << " " <<
+						eIter[4] + this->nodeOffset << std::endl;
+					break;
+				case kmb::TRIANGLE:
+					output << "tri " <<
+						eIter[0] + this->nodeOffset << " " <<
+						eIter[1] + this->nodeOffset << " " <<
+						eIter[2] + this->nodeOffset << std::endl;
+					break;
+				case kmb::QUAD:
+					output << "quad " <<
+						eIter[0] + this->nodeOffset << " " <<
+						eIter[1] + this->nodeOffset << " " <<
+						eIter[2] + this->nodeOffset << " " <<
+						eIter[3] + this->nodeOffset << std::endl;
+					break;
+				case kmb::WEDGE:
+					output << "prism " <<
+						eIter[3] + this->nodeOffset << " " <<
+						eIter[4] + this->nodeOffset << " " <<
+						eIter[5] + this->nodeOffset << " " <<
+						eIter[0] + this->nodeOffset << " " <<
+						eIter[1] + this->nodeOffset << " " <<
+						eIter[2] + this->nodeOffset << std::endl;
+					break;
+				case kmb::PYRAMID:
+					output << "pyr " <<
+						eIter[0] + this->nodeOffset << " " <<
+						eIter[1] + this->nodeOffset << " " <<
+						eIter[2] + this->nodeOffset << " " <<
+						eIter[3] + this->nodeOffset << " " <<
+						eIter[4] + this->nodeOffset << std::endl;
+					break;
+				case kmb::HEXAHEDRON:
+					output << "hex " <<
+						eIter[4] + this->nodeOffset << " " <<
+						eIter[5] + this->nodeOffset << " " <<
+						eIter[6] + this->nodeOffset << " " <<
+						eIter[7] + this->nodeOffset << " " <<
+						eIter[0] + this->nodeOffset << " " <<
+						eIter[1] + this->nodeOffset << " " <<
+						eIter[2] + this->nodeOffset << " " <<
+						eIter[3] + this->nodeOffset << std::endl;
+					break;
+				default:
+					break;
+			}
+			++eIter;
+		}
+	}
+
+	int nodeDataDim = 0;
+	int elementDataDim = 0;
+
+	std::multimap< std::string, kmb::DataBindings*> dataBindings = mesh->getDataBindingsMap();
+	std::multimap< std::string, kmb::DataBindings*>::const_iterator ngIter = dataBindings.begin();
+	std::multimap< std::string, kmb::DataBindings*>::const_iterator ngEnd = dataBindings.end();
+	while( ngIter != ngEnd ){
+		kmb::DataBindings* data = ngIter->second;
+		if( data ){
+			switch( data->getBindingMode() )
+			{
+			case kmb::DataBindings::NodeVariable:
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+					nodeDataDim += 1;
+					break;
+				case kmb::PhysicalValue::Vector3:
+					nodeDataDim += 3;
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					nodeDataDim += 6;
+					break;
+				default:
+					break;
+				}
+				break;
+			case kmb::DataBindings::ElementVariable:
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+					elementDataDim += 1;
+					break;
+				case kmb::PhysicalValue::Vector3:
+					elementDataDim += 3;
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					elementDataDim += 6;
+					break;
+				default:
+					break;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		++ngIter;
+	}
+	output << " " << nodeDataDim << " " << elementDataDim << std::endl;
+	if( nodeDataDim > 0 ){
+		output << " " << nodeDataDim;
+		for(int i=0;i<nodeDataDim;++i){
+			output << " 1";
+		}
+		output << std::endl;
+		mesh->clearTargetData();
+		std::multimap< std::string, kmb::DataBindings*>::const_iterator ngIter = dataBindings.begin();
+		std::multimap< std::string, kmb::DataBindings*>::const_iterator ngEnd = dataBindings.end();
+		while( ngIter != ngEnd ){
+			kmb::DataBindings* data = ngIter->second;
+			if( data ){
+				switch( data->getBindingMode() )
+				{
+				case kmb::DataBindings::NodeVariable:
+					switch( data->getValueType() )
+					{
+					case kmb::PhysicalValue::Scalar:
+						output << " " << ngIter->first << ", unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Vector3:
+						output << " " << ngIter->first << "_u;" << ngIter->first << ", unknown" << std::endl;
+						output << " " << ngIter->first << "_v, unknown" << std::endl;
+						output << " " << ngIter->first << "_w, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Tensor6:
+						output << " " << ngIter->first << "_0, unknown" << std::endl;
+						output << " " << ngIter->first << "_1, unknown" << std::endl;
+						output << " " << ngIter->first << "_2, unknown" << std::endl;
+						output << " " << ngIter->first << "_3, unknown" << std::endl;
+						output << " " << ngIter->first << "_4, unknown" << std::endl;
+						output << " " << ngIter->first << "_5, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					default:
+						break;
+					}
+					break;
+				default:
+					break;
+				}
+			}
+			++ngIter;
+		}
+		double* values = new double[nodeDataDim];
+		std::fill_n(values,nodeDataDim,0.0);
+		kmb::nodeIdType nodeId = 0;
+		kmb::nodeIdType nodeCount = static_cast<kmb::nodeIdType>(mesh->getNodeCount());
+		for(nodeId=0;nodeId<nodeCount;++nodeId){
+			mesh->getMultiPhysicalValues(nodeId,values);
+			output << " " << nodeId+this->nodeOffset;
+			for(int i=0;i<nodeDataDim;++i){
+				output << " " << std::setw(15) << values[i];
+			}
+			output << std::endl;
+		}
+		delete[] values;
+	}
+	if( elementDataDim > 0 ){
+		output << " " << elementDataDim;
+		for(int i=0;i<elementDataDim;++i){
+			output << " 1";
+		}
+		output << std::endl;
+		mesh->clearTargetData();
+		std::multimap< std::string, kmb::DataBindings*>::const_iterator ngIter = dataBindings.begin();
+		std::multimap< std::string, kmb::DataBindings*>::const_iterator ngEnd = dataBindings.end();
+		while( ngIter != ngEnd ){
+			kmb::DataBindings* data = ngIter->second;
+			if( data ){
+				switch( data->getBindingMode() )
+				{
+				case kmb::DataBindings::ElementVariable:
+					switch( data->getValueType() )
+					{
+					case kmb::PhysicalValue::Scalar:
+						output << " " << ngIter->first << ", unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Vector3:
+						output << " " << ngIter->first << "_u;" << ngIter->first << ", unknown" << std::endl;
+						output << " " << ngIter->first << "_v, unknown" << std::endl;
+						output << " " << ngIter->first << "_w, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Tensor6:
+						output << " " << ngIter->first << "_0, unknown" << std::endl;
+						output << " " << ngIter->first << "_1, unknown" << std::endl;
+						output << " " << ngIter->first << "_2, unknown" << std::endl;
+						output << " " << ngIter->first << "_3, unknown" << std::endl;
+						output << " " << ngIter->first << "_4, unknown" << std::endl;
+						output << " " << ngIter->first << "_5, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					default:
+						break;
+					}
+					break;
+				default:
+					break;
+				}
+			}
+			++ngIter;
+		}
+		double* values = new double[elementDataDim];
+		std::fill_n(values,elementDataDim,0.0);
+		kmb::elementIdType elementId = 0;
+		kmb::elementIdType elementCount = static_cast<kmb::elementIdType>( mesh->getElementCount() );
+		for(elementId=0;elementId<elementCount;++elementId){
+			mesh->getMultiPhysicalValues(elementId,values);
+			output << " " << elementId+this->elementOffset;
+			for(int i=0;i<elementDataDim;++i){
+				output << " " << std::setw(15) << values[i];
+			}
+			output << std::endl;
+		}
+		delete[] values;
+	}
+
+	output.close();
 	return 0;
 }

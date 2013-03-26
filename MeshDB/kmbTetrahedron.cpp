@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : Tetrahedron                                             #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -25,9 +25,9 @@
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbTetrahedron.h"
 #include "MeshDB/kmbTriangle.h"
-#include "MeshDB/kmbMeshDB.h"
+#include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbElementRelation.h"
-#include "Geometry/kmb_Sphere.h"
+#include "Geometry/kmbSphere.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -134,7 +134,7 @@ kmb::Tetrahedron::isEquivalent(int index[4])
 	return true;
 }
 
-kmb::Tetrahedron::Tetrahedron()
+kmb::Tetrahedron::Tetrahedron(void)
 : kmb::Element(kmb::TETRAHEDRON)
 {
 	cell = new kmb::nodeIdType[4];

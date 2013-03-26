@@ -1,0 +1,26 @@
+#
+# This is the configuration file for makefile of REVOCAP_Refiner depending on environments.
+# 
+# If Ruby is installed in your system, please give RUBY_PLATFORM to ARCH variable.
+# Otherwise ARCH variable should be a platform string (ex, i686-linux, etc)
+
+###########################
+# for Earth Simulator 2   #
+###########################
+
+ARCH = es2
+CC = sxmpicc
+CFLAGS = $(DEBUGFLAG)
+CXX = sxmpic++
+CXXFLAGS = $(DEBUGFLAG) -Krtti
+F90 = sxmpif90
+FFLAGS = $(DEBUGFLAG)
+AR = sxar
+ARFLAGS = rsv
+LD = $(F90)
+LDFLAGS = $(FFLAGS)
+LIBPATH =
+LIBS =
+RM = rm -f
+DOXYGEN = doxygen
+TAR = tar

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : HecmwIO                                                 #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -26,17 +26,21 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "MeshDB/kmbElement.h"
 
 namespace kmb{
 
 class MeshData;
+class ElementContainer;
+class DataBindings;
 
 class HecmwIO
 {
 public:
 	enum solutionType{
 		STATIC,
+		NLSTATIC,
 		HEAT,
 		EIGEN,
 		DYNAMIC
@@ -56,10 +60,12 @@ private:
 	bool dataFlag;
 	bool resElementFlag;
 	bool dummySectionFlag;
-	std::string resheader;
+	std::string resHeader;
+	std::vector< kmb::HecmwIO::egrpData > egrpInfo;
 public:
 	HecmwIO( kmb::nodeIdType offsetNodeId=1, kmb::elementIdType offsetElementId=1);
 	~HecmwIO(void);
+	void clear(void);
 
 
 
@@ -77,11 +83,21 @@ public:
 
 
 
-	int loadFromFile(const char* filename,kmb::MeshData* mesh) const;
+
+	int loadFromFile(const char* filename,kmb::MeshData* mesh);
+	int loadFromMW3File(const char* filename,kmb::MeshData* mesh) const;
 	int loadFromFRSFile(const char* filename,kmb::MeshData* mesh) const;
 	int loadFromResFile(const char* filename,kmb::MeshData* mesh) const;
+	int loadFromResFileItem(const char* filename,kmb::DataBindings* data,const char* name) const;
+
+	int loadFromResAsciiFile(const char* filename,kmb::MeshData* mesh) const;
+
+	int loadFromResBinFile(const char* filename,kmb::MeshData* mesh) const;
+
 	int saveToFile(const char* filename,const kmb::MeshData* mesh) const;
-	int saveToResFile(const char* filename,const kmb::MeshData* mesh) const;
+
+	int saveToResFile(const char* filename,kmb::MeshData* mesh) const;
+
 	int saveToFileMW3(const char* filename,const kmb::MeshData* mesh,const char* partName) const;
 
 
@@ -104,11 +120,48 @@ public:
 	void setOffsetNodeId(kmb::nodeIdType offset);
 	kmb::elementIdType getOffsetElementId(void) const;
 	kmb::nodeIdType getOffsetNodeId(void) const;
+
+
+	int correctLocalFaceId( kmb::MeshData* mesh, const char* faceName, const char* stype=NULL );
 protected:
 
 
 	static int getHECType( kmb::elementType etype );
 	static kmb::elementType getRevocapType( int etype );
+
+
+
+	int readHeader( std::ifstream &input, std::string &line ) const;
+
+	size_t readNode( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const;
+
+	size_t readElement( std::ifstream &input, std::string &line, kmb::ElementContainer* body ) const;
+
+
+
+
+
+
+
+
+
+
+	kmb::bodyIdType readSection( std::ifstream &input, std::string &line, kmb::MeshData* mesh );
+
+	int readMaterial( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const;
+
+	size_t readEGroup( std::ifstream &input, std::string &line, kmb::MeshData* mesh, kmb::ElementContainer* parentBody=NULL );
+	size_t readNGroup( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const;
+	size_t readSGroup( std::ifstream &input, std::string &line, kmb::MeshData* mesh ) const;
+
+	int getEgrpInfoIndex( std::string name ) const;
+	int createEgrpInfo( std::string name, std::string matname );
+
+
+	static int tetRmap[];
+	static int wedRmap[];
+	static int hexRmap[];
+	static int pyrRmap[];
 };
 
 }

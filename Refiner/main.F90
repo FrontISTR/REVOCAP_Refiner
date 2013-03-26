@@ -1,10 +1,10 @@
 !/*----------------------------------------------------------------------
 !#                                                                      #
-!# Software Name : REVOCAP_Refiner version 1.0                          #
+!# Software Name : REVOCAP_Refiner version 1.1                          #
 !# Sample Program By Fortran90                                          #
 !#                                                                      #
 !#                                Written by                            #
-!#                                           K. Tokunaga 2011/03/23     #
+!#                                           K. Tokunaga 2012/03/23     #
 !#                                                                      #
 !#      Contact Address: IIS, The University of Tokyo CISS              #
 !#                                                                      #
@@ -86,8 +86,9 @@ PROGRAM RefinerSample
   PRINT '(I8)', (ng0(I), I = 1, nodeCount)
 
 ! ---------------------- REFINE -----------------------------------------
-  ALLOCATE( refineTetras(elementCount*4*8) )
-  refineTetras = 0
+  refineElementCount = rcapGetRefineElementCount( elementCount, RCAP_TETRAHEDRON )
+  ALLOCATE( refineTetras(refineElementCount*4) )
+
   refineElementCount = rcapRefineElement( elementCount, RCAP_TETRAHEDRON, tetras, refineTetras )
 
   PRINT *, "----- Refined Model -----"

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : NurbsCurve3D                                            #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -13,11 +13,12 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 
-#include "Geometry/kmb_Geometry4D.h"
-#include "Geometry/kmb_Optimization.h"
+#include "Geometry/kmbGeometry4D.h"
+#include "Geometry/kmbOptimization.h"
 #include "Shape/kmbNurbsCurve3D.h"
 
 kmb::NurbsCurve3D::NurbsCurve3D(void)
+: kmb::Curve3D()
 {
 }
 
@@ -245,6 +246,8 @@ kmb::NurbsCurve3D::getNearest( const kmb::Point3D& point, double& t ) const
 	dist_local distObj( this, point );
 	opt_local optObj( this, point );
 	kmb::Optimization opt;
+	opt.setEpsilon(epsilon);
+	opt.setIterMax(iterMax);
 	double min_t, max_t;
 	getDomain(min_t,max_t);
 	double t0 = 0.0;

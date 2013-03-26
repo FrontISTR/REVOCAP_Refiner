@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementContainerArray                                   #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -24,7 +24,7 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbElementContainerArray.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Common/kmbCalculator.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -380,6 +380,12 @@ kmb::ElementContainerArray::_iteratorArray::getId(void) const
 
 kmb::Element*
 kmb::ElementContainerArray::_iteratorArray::getElement(void)
+{
+	return this->elementContainer->elementArray[ index ];
+}
+
+const kmb::Element*
+kmb::ElementContainerArray::_iteratorArray::getElement(void) const
 {
 	return this->elementContainer->elementArray[ index ];
 }

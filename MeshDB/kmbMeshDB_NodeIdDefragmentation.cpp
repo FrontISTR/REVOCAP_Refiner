@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -89,14 +89,14 @@ kmb::MeshDB::nodeIdDefragmentation(nodeIdType initId)
 		kmb::DataBindings* d = bIter->second;
 		if( d != NULL ){
 			switch(d->getBindingMode()){
-				case kmb::DataBindings::NODEGROUP:
+				case kmb::DataBindings::NodeGroup:
 				{
 					if( strcmp( "DataBindingsGroup", d->getContainerType() ) == 0 ){
 						reinterpret_cast<kmb::DataBindingsGroup<kmb::nodeIdType>*>(d)->replaceId( idmap );
 					}
 					break;
 				}
-				case kmb::DataBindings::NODEVARIABLE:
+				case kmb::DataBindings::NodeVariable:
 				{
 					if( strcmp( "DataVariable", d->getContainerType() ) == 0 ){
 						d->replaceNodeId( idmap );
@@ -116,7 +116,7 @@ kmb::MeshDB::replaceNodeId(kmb::nodeIdType oldId, kmb::nodeIdType newId)
 {
 	if( this->node3Ds
 		&& strcmp( node3Ds->getContainerType(), kmb::Point3DContainerMap::CONTAINER_TYPE ) == 0
-		&& static_cast< kmb::Point3DContainerMap*>(this->node3Ds)->replaceID(oldId,newId) ){
+		&& static_cast< kmb::Point3DContainerMap*>(this->node3Ds)->replaceId(oldId,newId) ){
 
 		std::vector<elementIdType> coboundary;
 
@@ -139,8 +139,8 @@ kmb::MeshDB::replaceNodeId(kmb::nodeIdType oldId, kmb::nodeIdType newId)
 		{
 			kmb::DataBindings* data = iterBind->second;
 			if( data != NULL && (
-				data->getBindingMode() == kmb::DataBindings::NODEVARIABLE ||
-				data->getBindingMode() == kmb::DataBindings::NODEGROUP ) )
+				data->getBindingMode() == kmb::DataBindings::NodeVariable ||
+				data->getBindingMode() == kmb::DataBindings::NodeGroup ) )
 			{
 				data->replaceId( oldId, newId );
 			}
@@ -168,10 +168,10 @@ kmb::MeshDB::deleteUselessNodes(void)
 		kmb::Point3DContainer::iterator nIter = this->node3Ds->begin();
 		while( nIter != this->node3Ds->end() )
 		{
-			kmb::nodeIdType nodeID = nIter.getId();
+			kmb::nodeIdType nodeId = nIter.getId();
 			++nIter;
-			if( neighborInfo.getElementCountAroundNode( nodeID ) == 0 ){
-				reinterpret_cast< kmb::Point3DContainerMap*>(this->node3Ds)->deleteID( nodeID );
+			if( neighborInfo.getElementCountAroundNode( nodeId ) == 0 ){
+				reinterpret_cast< kmb::Point3DContainerMap*>(this->node3Ds)->deleteId( nodeId );
 				++count;
 			}
 		}

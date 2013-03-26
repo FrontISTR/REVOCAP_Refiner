@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : BSplineSurface3D                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -16,7 +16,8 @@
 #include "Shape/kmbBSplineSurface3D.h"
 
 kmb::BSplineSurface3D::BSplineSurface3D(void)
-: uOrder(0)
+: kmb::Surface3D()
+, uOrder(0)
 , vOrder(0)
 {
 }

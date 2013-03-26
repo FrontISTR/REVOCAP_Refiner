@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : ElementEvaluator                                        #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -17,15 +17,15 @@
 
 #include "MeshDB/kmbElementEvaluator.h"
 
-#include "Geometry/kmb_Geometry.h"
-#include "Geometry/kmb_Calculator.h"
-#include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Point3DContainer.h"
+#include "Geometry/kmbGeometry.h"
+#include "Common/kmbCalculator.h"
+#include "Geometry/kmbPoint2DContainer.h"
+#include "Geometry/kmbPoint3DContainer.h"
 
 #include "MeshDB/kmbQuad.h"
 
 int
-kmb::ElementEvaluator::getConcaveInQuad(const kmb::ElementBase &quad)
+kmb::ElementEvaluator::getConcaveInQuad(const kmb::ElementBase &quad) const
 {
 	if( points == NULL ){
 		return -1;

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshData                                                #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -21,11 +21,11 @@
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbElementOctree.h"
 
-#include "Geometry/kmb_BoundingBox.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Octree.h"
-#include "Geometry/kmb_Calculator.h"
+#include "Geometry/kmbBoundingBox.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Geometry/kmbPoint2DContainer.h"
+#include "Geometry/kmbOctree.h"
+#include "Common/kmbCalculator.h"
 
 #include <vector>
 #include <string>
@@ -68,6 +68,7 @@ public:
 	kmb::Matrix4x4* getCoordMatrix(void);
 	const kmb::Matrix4x4* getCoordMatrix(void) const;
 
+	int getNodeDim(void) const;
 
 
 	virtual void beginNode(size_t size=0,const char* containerType=NULL);
@@ -128,6 +129,8 @@ public:
 
 	kmb::bodyIdType getBodyCount(void) const;
 
+	bodyIdType getBodyId(elementIdType elementId) const;
+
 
 	virtual kmb::bodyIdType appendBody( kmb::Body* body, bool offset=true );
 	virtual kmb::bodyIdType replaceBody( kmb::bodyIdType bodyId, kmb::Body* body, bool offset=true );
@@ -152,12 +155,16 @@ public:
 
 	bool isUniqueElementType(kmb::bodyIdType bodyId,kmb::elementType etype) const;
 
-	kmb::ElementContainer::const_iterator findElement(elementIdType elementId,bodyIdType bodyId=kmb::Body::nullBodyId) const;
+	kmb::ElementContainer::iterator findElement(elementIdType elementID,bodyIdType bodyID=kmb::Body::nullBodyId);
+	kmb::ElementContainer::const_iterator findElement(elementIdType elementID,bodyIdType bodyID=kmb::Body::nullBodyId) const;
 
 	virtual const char* getBodyName(bodyIdType bodyId) const;
 	virtual void setBodyName(bodyIdType bodyId,const char* name);
+	kmb::bodyIdType getBodyIdByName(const char* name) const;
 
 	const char* getElementContainerType(bodyIdType bodyId) const;
+
+	kmb::bodyIdType importBody(const kmb::MeshData& otherMesh,kmb::bodyIdType bodyId);
 
 
 
@@ -180,6 +187,9 @@ public:
 	bool renameData(const char* oldname,const char* newname,const char* stype=NULL);
 	bool deleteData(const char* name,const char* stype=NULL);
 	bool clearData(const char* name,const char* stype=NULL);
+
+
+
 	bool replaceData(const kmb::DataBindings* olddata, kmb::DataBindings* newdata, const char* name,const char* stype=NULL);
 
 	size_t getIdCount(const char* name,const char* stype=NULL) const;
@@ -221,10 +231,17 @@ public:
 	virtual void setMultiPhysicalValues(double* values);
 	virtual void getMultiPhysicalValues(kmb::idType id, double* values) const;
 
+	std::string getUniqueDataName(std::string prefix,int num=0);
+
 
 	void deriveTargetData(kmb::elementIdType elementId,kmb::elementIdType orgElementId);
 
-	kmb::bodyIdType faceGroupToBody(const char* name,const char* stype=NULL);
+	kmb::bodyIdType faceGroupToBody(const char* faceG,const char* stype=NULL);
+
+	kmb::bodyIdType faceVariableToBody(const char* faceV,const char* elemV,const char* stype=NULL);
+
+	size_t faceGroupToBody(const char* faceG,kmb::ElementContainer* body, const char* stype=NULL);
+	size_t faceVariableToBody(const char* faceV,kmb::ElementContainer* body,const char* stype=NULL);
 
 	void getNodeSetFromDataBindings(std::set<kmb::nodeIdType>&nodeSet,const char* name,const char* stype=NULL) const;
 

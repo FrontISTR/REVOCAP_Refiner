@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : MeshDB                                                  #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -36,10 +36,10 @@
 #include "MeshDB/kmbMeshData.h"
 
 
-#include "Geometry/kmb_BoundingBox.h"
-#include "Geometry/kmb_Point3DContainer.h"
-#include "Geometry/kmb_Point2DContainer.h"
-#include "Geometry/kmb_Octree.h"
+#include "Geometry/kmbBoundingBox.h"
+#include "Geometry/kmbPoint3DContainer.h"
+#include "Geometry/kmbPoint2DContainer.h"
+#include "Geometry/kmbOctree.h"
 
 #include <vector>
 #include <map>
@@ -102,7 +102,6 @@ public:
 	void setDefaultContainerType(const char* containerType);
 public:
 
-	int getNodeDim(void);
 	virtual const kmb::Point2DContainer* getNode2Ds(void) const{ return node2Ds; };
 
 	virtual void beginNode(size_t size,kmb::Point2DContainer* point2Ds);
@@ -128,7 +127,7 @@ public:
 
 
 
-	bool replaceNodeId(kmb::nodeIdType oldID, kmb::nodeIdType newID);
+	bool replaceNodeId(kmb::nodeIdType oldId, kmb::nodeIdType newId);
 	kmb::Point3DContainerMap::idContinuityType getNodeContinuity() const;
 	void nodeIdDefragmentation(nodeIdType initId=0);
 	int deleteUselessNodes(void);
@@ -140,9 +139,9 @@ public:
 public:
 
 	double getNearestNode(const kmb::nodeIdType id,kmb::nodeIdType& nearestId) const;
-	double getNearestNodeInBody(double x,double y,double z,kmb::bodyIdType bodyId,kmb::nodeIdType& nearestId);
-	double getNearestNodeInBody(const kmb::Point3D& point,kmb::bodyIdType bodyId,kmb::nodeIdType& nearestId);
-	double getNearestNodeInBody(const kmb::nodeIdType id,kmb::bodyIdType bodyId,kmb::nodeIdType& nearestId);
+	double getNearestNodeInBody(double x,double y,double z,kmb::bodyIdType bodyId,kmb::nodeIdType& nearestId) const;
+	double getNearestNodeInBody(const kmb::Point3D& point,kmb::bodyIdType bodyId,kmb::nodeIdType& nearestId) const;
+	double getNearestNodeInBody(const kmb::nodeIdType id,kmb::bodyIdType bodyId,kmb::nodeIdType& nearestId) const;
 public:
 
 	virtual kmb::bodyIdType beginElement(size_t size,kmb::ElementContainer* container);
@@ -161,12 +160,11 @@ public:
 
 	bool replaceNodeIdOfElement(kmb::bodyIdType bodyId,kmb::elementIdType elementId,kmb::nodeIdType oldNodeId,kmb::nodeIdType newNodeId);
 	bool reverseElement(kmb::elementIdType elementID,kmb::bodyIdType bodyID=kmb::Body::nullBodyId);
-	kmb::ElementContainer::iterator findElement(elementIdType elementID,bodyIdType bodyID=kmb::Body::nullBodyId);
-	kmb::ElementContainer::const_iterator findElement(elementIdType elementID,bodyIdType bodyID=kmb::Body::nullBodyId) const;
+
+
 
 public:
 
-	bodyIdType getBodyId(elementIdType elementID) const;
 	void updateBoundingBox(bodyIdType bodyId);
 	const kmb::BoundingBox getBoundingBox(bodyIdType bodyId) const;
 
@@ -206,11 +204,11 @@ public:
 	void appendNodeSearchCache(kmb::nodeIdType nodeId);
 	void clearNodeSearchCache(void);
 	double getNearestNode(double x,double y,double z,kmb::nodeIdType &nearestId) const;
-	void getNodesInRegion(const kmb::Region* region,std::set<kmb::nodeIdType> &selectedNodes);
+	void getNodesInRegion(const kmb::Region* region,std::set<kmb::nodeIdType> &selectedNodes) const;
 public:
 
 
-	void getSurroundingElements(nodeIdType nodeId,std::vector<elementIdType>& elements,bool cacheOnly=true);
+	void getSurroundingElements(nodeIdType nodeId,std::vector<elementIdType>& elements,bool cacheOnly=true) const;
 public:
 
 	kmb::Vector3D getNormalVector(kmb::elementIdType elementID,kmb::bodyIdType bodyID=kmb::Body::nullBodyId) const;
@@ -235,12 +233,12 @@ public:
 
 	double getAspectRatio(elementIdType elementId,kmb::bodyIdType bodyId=kmb::Body::nullBodyId) const;
 
-	int getNaturalCoordinates(bodyIdType bodyId,elementIdType elementId,double x,double y,double z,double* values);
-	bool getPhysicalCoordinates(bodyIdType bodyId,elementIdType elementId,double s,double t,double u,kmb::Point3D &target);
+	int getNaturalCoordinates(bodyIdType bodyId,elementIdType elementId,double x,double y,double z,double* values) const;
+	bool getPhysicalCoordinates(bodyIdType bodyId,elementIdType elementId,double s,double t,double u,kmb::Point3D &target) const;
 	static void shapeFunction( kmb::elementType etype, double* naturalCoords, double* values );
 
-	int getEdgeCountOfBody(kmb::bodyIdType bodyID);
-	int getNodeCountOfBody(kmb::bodyIdType bodyID);
+	int getEdgeCountOfBody(kmb::bodyIdType bodyId) const;
+	int getNodeCountOfBody(kmb::bodyIdType bodyId) const;
 
 
 
@@ -263,9 +261,9 @@ public:
 
 
 
-	kmb::bodyIdType importBody(kmb::MeshDB& otherMesh,kmb::bodyIdType bodyId, const char* coupleName=NULL,kmb::coupleType ctype=kmb::SLAVE);
-	kmb::bodyIdType importBodyWithNodeMatching(kmb::MeshDB& otherMesh, kmb::bodyIdType bodyId, double tolerance, const char* coupleName=NULL);
-	kmb::bodyIdType importBody(kmb::MeshDB& otherMesh,kmb::bodyIdType bodyId, std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper);
+	kmb::bodyIdType importBody(kmb::MeshData& otherMesh,kmb::bodyIdType bodyId, const char* coupleName=NULL,kmb::coupleType ctype=kmb::SLAVE);
+	kmb::bodyIdType importBodyWithNodeMatching(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, double tolerance, const char* coupleName=NULL);
+	kmb::bodyIdType importBody(kmb::MeshData& otherMesh,kmb::bodyIdType bodyId, std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper);
 
 	size_t importAllBody(const kmb::MeshData& otherMesh);
 
@@ -285,6 +283,8 @@ public:
 
 	kmb::DataBindings* createDataBindings(const char* name,kmb::DataBindings::bindingMode bmode,PhysicalValue::valueType vtype,const char* stype="",kmb::bodyIdType targetBodyId=kmb::Body::nullBodyId);
 	size_t getElementCountOfData(const char* name,const char* stype=NULL) const;
+	size_t getNodeCountOfData(const char* name,const char* stype=NULL) const;
+
 	bool replaceIdOfData(const char* name,kmb::idType oldID,kmb::idType newID,const char* stype=NULL);
 
 
@@ -298,7 +298,7 @@ public:
 
 	bool getMinMaxValue(const kmb::DataBindings* data,kmb::BoundingBox1D &bbox) const;
 	bool getMinMaxValue(const kmb::DataBindings* data,kmb::BoundingBox &bbox) const;
-	bool getMinMaxValueWithId(const kmb::DataBindings* data,kmb::MinMaxWithId& minmax,int comp=-1) const;
+	bool getMinMaxValueWithId(const kmb::DataBindings* data,kmb::MinMaxWithId<kmb::idType>& minmax,int comp=-1) const;
 
 
 	virtual int getValueOnNearestNode(const char* name,double x,double y,double z,double *values,const char* stype=NULL) const;
@@ -318,11 +318,11 @@ public:
 
 	int convertData(const char* org, const char* conv, const char* orgstype=NULL,const char* convstype=NULL);
 	int convertData(const kmb::DataBindings* orgData, kmb::DataBindings* convData);
-	int convertBody2Data(kmb::bodyIdType bodyId, const char* name,const char* stype=NULL);
+
+
+	int convertBodyToData(kmb::bodyIdType bodyId, const char* name,const char* stype=NULL);
 public:
 
-	std::string getUniqueDataName(std::string prefix,int num=0);
-public:
 
 
 

@@ -1,10 +1,10 @@
 /*----------------------------------------------------------------------
 #                                                                      #
-# Software Name : REVOCAP_PrePost version 1.5                          #
+# Software Name : REVOCAP_PrePost version 1.6                          #
 # Class Name : BezierCurve2D                                           #
 #                                                                      #
 #                                Written by                            #
-#                                           K. Tokunaga 2011/03/23     #
+#                                           K. Tokunaga 2012/03/23     #
 #                                                                      #
 #      Contact Address: IIS, The University of Tokyo CISS              #
 #                                                                      #
@@ -36,6 +36,7 @@ public:
 	virtual ~BezierCurve2D(void);
 	void clear(void);
 	virtual bool isDomain( double t ) const;
+
 	virtual void getDomain( double &min_t, double &max_t ) const;
 	virtual bool getPoint( double t, kmb::Point2D& point ) const;
 	bool getDerivative( double t, kmb::Vector2D& tangent ) const;
