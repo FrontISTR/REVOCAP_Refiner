@@ -98,6 +98,64 @@ kmb::Bucket3DGrid::getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,k
 	return sqrt( minimizer.getMin() );
 }
 
+size_t
+kmb::Bucket3DGrid::getNearPoints(kmb::nodeIdType nodeId,double thresh,std::vector<kmb::nodeIdType>& nodeIds) const
+{
+	if( points == NULL ){
+		return 0;
+	}
+	kmb::Point3D pt;
+	points->getPoint(nodeId,pt);
+	double x = pt.x();
+	double y = pt.y();
+	double z = pt.z();
+
+
+	int i0,j0,k0;
+	getSubIndices(x,y,z,i0,j0,k0);
+	int i1=i0, j1=j0, k1=k0;
+	kmb::BoxRegion region;
+	getSubRegion(i0,j0,k0,region);
+	if( region.maxX() -x < thresh ){
+		i1++;
+	}
+	if( x - region.minX() < thresh ){
+		i0--;
+	}
+	if( region.maxY() -y < thresh ){
+		j1++;
+	}
+	if( y - region.minY() < thresh ){
+		j0--;
+	}
+	if( region.maxZ() -z < thresh ){
+		k1++;
+	}
+	if( z - region.minZ() < thresh ){
+		k0--;
+	}
+	for(int i=i0;i<=i1;i++){
+		for(int j=j0;j<=j1;j++){
+			for(int k=k0;k<=k1;k++){
+				kmb::Point3D targetPt;
+				kmb::Bucket3DGrid::const_iterator pIter = this->begin(i,j,k);
+				kmb::Bucket3DGrid::const_iterator endIter = this->end(i,j,k);
+				while( pIter != endIter ){
+					kmb::nodeIdType targetId = pIter.get();
+					if( targetId != nodeId ){
+						if( this->points->getPoint( targetId, targetPt ) && pt.distanceSq(targetPt) < thresh*thresh ){
+							nodeIds.push_back( targetId );
+						}
+					}
+					++pIter;
+				}
+			}
+		}
+	}
+
+	return nodeIds.size();
+}
+
 double
 kmb::Bucket3DGrid::getNearest(const double x,const double y,const double z,kmb::nodeIdType &nearestId) const
 {

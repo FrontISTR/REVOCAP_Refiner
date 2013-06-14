@@ -165,27 +165,7 @@ kmb::Point3D::getFootOfPerpendicular( const Point3D &origin, const Vector3D &u, 
 	}
 	return false;
 }
-/*
-double
-kmb::Point3D::distanceSqToTriangle(const Point3D& a,const Point3D& b,const Point3D& c) const
-{
-	kmb::Vector3D ab(b,a);
-	kmb::Vector3D ac(c,a);
-	double t0=0.0, t1=0.0;
-	if( getFootOfPerpendicular( a, ab, ac, t0, t1 ) &&
-		t0 > 0 && t1 > 0 && t0 + t1 < 1 )
-	{
 
-		return this->distanceSq( a + ab.scalar(t0) + ac.scalar(t1) );
-	}else{
-
-		double da = this->distanceSqToSegment(b,c);
-		double db = this->distanceSqToSegment(c,a);
-		double dc = this->distanceSqToSegment(a,b);
-		return kmb::Minimizer::getMin(da,db,dc);
-	}
-}
-*/
 double
 kmb::Point3D::distanceSqToTriangle(const Point3D& a,const Point3D& b,const Point3D& c,double *t) const
 {

@@ -198,7 +198,6 @@ kmb::Vector2ValueMArrayBindings::begin(void)
 	_it = new kmb::Vector2ValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-
 		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::iterator(_it);
@@ -214,7 +213,6 @@ kmb::Vector2ValueMArrayBindings::begin(void) const
 	_it = new kmb::Vector2ValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-
 		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::const_iterator(_it);

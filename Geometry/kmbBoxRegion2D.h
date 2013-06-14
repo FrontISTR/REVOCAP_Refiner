@@ -51,6 +51,8 @@ public:
 	double centerY(void) const;
 	double rangeX(void) const;
 	double rangeY(void) const;
+
+	double range(void) const;
 	double diameter(void) const;
 	const Point2D& getMin(void) const;
 	const Point2D& getMax(void) const;

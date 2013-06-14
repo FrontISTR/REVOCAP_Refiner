@@ -211,6 +211,16 @@ kmb::MeshData::getNodes(void)
 	return this->node3Ds;
 }
 
+kmb::Point3DContainer* kmb::MeshData::replaceNodes(kmb::Point3DContainer* nodes)
+{
+	if( this->node3Ds == NULL || nodes == NULL ){
+		return NULL;
+	}
+	delete this->node3Ds;
+	this->node3Ds = nodes;
+	return nodes;
+}
+
 size_t
 kmb::MeshData::getNodeCount(void) const
 {
@@ -732,6 +742,26 @@ const std::multimap< std::string, kmb::DataBindings* >&
 kmb::MeshData::getDataBindingsMap(void) const
 {
 	return bindings;
+}
+
+kmb::datamap::iterator kmb::MeshData::beginDataIterator()
+{
+	return bindings.begin();
+}
+
+kmb::datamap::const_iterator kmb::MeshData::beginDataIterator() const
+{
+	return bindings.begin();
+}
+
+kmb::datamap::iterator kmb::MeshData::endDataIterator()
+{
+	return bindings.end();
+}
+
+kmb::datamap::const_iterator kmb::MeshData::endDataIterator() const
+{
+	return bindings.end();
 }
 
 kmb::DataBindings*

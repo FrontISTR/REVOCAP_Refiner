@@ -22,6 +22,10 @@ class Point3D;
 class Point3DStructured;
 class Hexahedron;
 
+
+
+
+
 class StructuredCell
 {
 protected:

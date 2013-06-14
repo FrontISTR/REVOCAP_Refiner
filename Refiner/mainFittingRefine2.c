@@ -57,6 +57,7 @@ int main(void)
 	};
 	/* 細分後の要素の節点配列 */
 	int32_t* refineHexas = NULL;
+	int32_t* refine2Hexas = NULL;
 	int8_t etype = RCAP_HEXAHEDRON;
 	/* 初期節点の個数 */
 	size_t nodeCount = 12;
@@ -64,6 +65,7 @@ int main(void)
 	size_t elementCount = 2;
 	/* 細分後の要素の個数 */
 	size_t refineElementCount = 0;
+	size_t refine2ElementCount = 0;
 
 	/* 境界条件（節点グループ） */
 	int32_t ng0[4] = {0,3,4,7};
@@ -87,7 +89,7 @@ int main(void)
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 12 );
 	printf("node:\n");
-	printf("  size: %zu\n", nodeCount );
+	printf("  size: %u\n", nodeCount );
 	printf("  coordinate:\n");
 	for(i=0;(size_t)i<nodeCount;++i){
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
@@ -96,7 +98,7 @@ int main(void)
 	/* 細分前の要素数 */
 	assert( elementCount == 2 );
 	printf("element:\n");
-	printf("  - size: %zu\n", elementCount );
+	printf("  - size: %u\n", elementCount );
 	printf("    connectivity:\n");
 	for(i=0;(size_t)i<elementCount;++i){
 		printf("      - [%d, HEXAHEDRON, %d, %d, %d, %d, %d, %d, %d, %d]\n", i+elementOffset,
@@ -112,7 +114,7 @@ int main(void)
 	printf("  - name: ng0\n");
 	printf("    mode: NODEGROUP\n");
 	printf("    vtype: NONE\n");
-	printf("    size: %zu\n",ng0Count);
+	printf("    size: %u\n",ng0Count);
 	printf("    id:\n");
 	for(i=0;(size_t)i<ng0Count;++i){
 		printf("    - %d\n", ng0[i]);
@@ -132,7 +134,7 @@ int main(void)
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
 	printf("node:\n");
-	printf("  size: %zu\n", refineNodeCount );
+	printf("  size: %u\n", refineNodeCount );
 	printf("  coordinate:\n");
 	for(i=0;(size_t)i<refineNodeCount;++i){
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, resultCoords[3*i], resultCoords[3*i+1], resultCoords[3*i+2] );
@@ -141,7 +143,7 @@ int main(void)
 
 	/* 細分後の要素 */
 	printf("element:\n");
-	printf("  - size: %zu\n", refineElementCount );
+	printf("  - size: %u\n", refineElementCount );
 	printf("    connectivity:\n");
 	for(i=0;(size_t)i<refineElementCount;++i){
 		printf("      - [%d, HEXAHEDRON, %d, %d, %d, %d, %d, %d, %d, %d]\n", i+elementOffset,
@@ -157,7 +159,56 @@ int main(void)
 	printf("  - name: ng0\n");
 	printf("    mode: NODEGROUP\n");
 	printf("    vtype: NONE\n");
-	printf("    size: %d\n",ng0Count);
+	printf("    size: %u\n",ng0Count);
+	printf("    id:\n");
+	for(i=0;(size_t)i<ng0Count;++i){
+		printf("    - %d\n", result_ng0[i]);
+	}
+	free( result_ng0 );
+
+	/*---------------------- REFINE STEP 2 -----------------------------------------*/
+
+	/* 要素の細分 */
+	refine2ElementCount = rcapGetRefineElementCount( refineElementCount, etype );
+	refine2Hexas = (int32_t*)calloc( 8*refine2ElementCount, sizeof(int32_t) );
+	refineElementCount = rcapRefineElement( elementCount, etype, refineHexas, refine2Hexas );
+	rcapCommit();
+	rcapWriteFittingFile( "output/column2_updated.rnf" );
+
+	printf("----- Refined Model 2 -----\n");
+	printf("---\n");
+
+	/* 細分後の節点 */
+	refineNodeCount = rcapGetNodeCount();
+	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
+	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
+	printf("node:\n");
+	printf("  size: %u\n", refineNodeCount );
+	printf("  coordinate:\n");
+	for(i=0;(size_t)i<refineNodeCount;++i){
+		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, resultCoords[3*i], resultCoords[3*i+1], resultCoords[3*i+2] );
+	}
+	free( resultCoords );
+
+	/* 細分後の要素 */
+	printf("element:\n");
+	printf("  - size: %u\n", refineElementCount );
+	printf("    connectivity:\n");
+	for(i=0;(size_t)i<refine2ElementCount;++i){
+		printf("      - [%d, HEXAHEDRON, %d, %d, %d, %d, %d, %d, %d, %d]\n", i+elementOffset,
+			refine2Hexas[8*i], refine2Hexas[8*i+1], refine2Hexas[8*i+2], refine2Hexas[8*i+3],
+			refine2Hexas[8*i+4], refine2Hexas[8*i+5], refine2Hexas[8*i+6], refine2Hexas[8*i+7] );
+	}
+
+	/* 細分後の節点グループの更新 */
+	ng0Count = rcapGetNodeGroupCount("ng0");
+	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
+	rcapGetNodeGroup("ng0",ng0Count,result_ng0);
+	printf("data:\n");
+	printf("  - name: ng0\n");
+	printf("    mode: NODEGROUP\n");
+	printf("    vtype: NONE\n");
+	printf("    size: %u\n",ng0Count);
 	printf("    id:\n");
 	for(i=0;(size_t)i<ng0Count;++i){
 		printf("    - %d\n", result_ng0[i]);
@@ -165,6 +216,10 @@ int main(void)
 	free( result_ng0 );
 
 	free( refineHexas );
+	refineHexas = NULL;
+	free( refine2Hexas );
+	refine2Hexas = NULL;
+
 	rcapTermRefiner();
 	return 0;
 }

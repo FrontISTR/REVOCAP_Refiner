@@ -195,7 +195,6 @@ kmb::ScalarValueMArrayBindings::begin(void)
 	_it = new kmb::ScalarValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-
 		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::iterator(_it);
@@ -211,7 +210,6 @@ kmb::ScalarValueMArrayBindings::begin(void) const
 	_it = new kmb::ScalarValueMArrayBindings::_iteratorMArray();
 	if( _it ){
 		_it->values = this;
-
 		this->vArray.first( _it->aIndex );
 	}
 	return kmb::DataBindings::const_iterator(_it);

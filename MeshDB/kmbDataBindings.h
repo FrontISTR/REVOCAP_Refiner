@@ -224,7 +224,7 @@ public:
 		bool operator==(const iterator &other) const;
 		bool operator!=(const iterator &other) const;
 
-		bool isFinished(void) const {	return (_iter==NULL);	}
+		bool isFinished(void) const{ return (_iter==NULL); }
 	};
 
 	class const_iterator
@@ -251,7 +251,7 @@ public:
 		bool operator==(const const_iterator &other) const;
 		bool operator!=(const const_iterator &other) const;
 
-		bool isFinished(void) const {	return (_iter==NULL);	}
+		bool isFinished(void) const{ return (_iter==NULL); }
 	};
 
 	virtual iterator begin(void) = 0;

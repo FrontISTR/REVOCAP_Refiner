@@ -61,6 +61,7 @@ class Tetrahedron;
 class FramedPlane;
 class ElementEvaluator;
 class DataEvaluator;
+class MeshOperation;
 
 class MeshDB : public MeshData
 {
@@ -76,8 +77,9 @@ private:
 	kmb::OctreePoint3D nodeOctree;
 	kmb::ElementEvaluator *evaluator;
 	kmb::DataEvaluator *dataEvaluator;
-
+	kmb::MeshOperation* meshOperation;
 public:
+
 	kmb::NodeNeighborInfo neighborInfo;
 public:
 	MeshDB(void);
@@ -130,6 +132,8 @@ public:
 	bool replaceNodeId(kmb::nodeIdType oldId, kmb::nodeIdType newId);
 	kmb::Point3DContainerMap::idContinuityType getNodeContinuity() const;
 	void nodeIdDefragmentation(nodeIdType initId=0);
+
+	size_t uniteNodes(double thresh);
 	int deleteUselessNodes(void);
 
 	nodeIdType insertNode(const Point3D& point);
@@ -154,14 +158,11 @@ public:
 
 	kmb::elementIdType deleteElement(bodyIdType bodyId,elementIdType elementId);
 
-
 	kmb::elementIdType generateElementId(void);
 
 
 	bool replaceNodeIdOfElement(kmb::bodyIdType bodyId,kmb::elementIdType elementId,kmb::nodeIdType oldNodeId,kmb::nodeIdType newNodeId);
 	bool reverseElement(kmb::elementIdType elementID,kmb::bodyIdType bodyID=kmb::Body::nullBodyId);
-
-
 
 public:
 

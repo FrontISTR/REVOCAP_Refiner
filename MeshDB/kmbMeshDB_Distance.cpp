@@ -27,11 +27,14 @@
 #include <cfloat>
 
 #include "MeshDB/kmbMeshDB.h"
-#include "MeshDB/kmbSegment.h"
-#include "MeshDB/kmbTriangle.h"
 #include "Common/kmbCalculator.h"
 #include "Geometry/kmbGeometry3D.h"
+#include "Geometry/kmbBucket.h"
+#include "Geometry/kmbBoundingBox.h"
+#include "MeshDB/kmbSegment.h"
+#include "MeshDB/kmbTriangle.h"
 #include "MeshDB/kmbElementContainer.h"
+#include "MeshDB/kmbMeshOperation.h"
 
 double
 kmb::MeshDB::getDistance(kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1) const
@@ -150,4 +153,12 @@ kmb::MeshDB::getDistanceToElement(double x,double y,double z,kmb::elementIdType 
 {
 	kmb::ElementContainer::const_iterator eIter = this->findElement(elementId,bodyId);
 	return sqrt( this->evaluator->getDistanceSq(eIter,x,y,z) );
+}
+
+size_t kmb::MeshDB::uniteNodes(double thresh)
+{
+	if( meshOperation == NULL ){
+		meshOperation = new kmb::MeshOperation(this);
+	}
+	return meshOperation->uniteNodes(thresh);
 }

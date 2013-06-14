@@ -75,6 +75,7 @@ kmb::MeshDB::MeshDB(void)
 , node2Ds(NULL)
 , evaluator(NULL)
 , dataEvaluator(NULL)
+, meshOperation(NULL)
 {
 	defaultNodeContainerType = kmb::Point3DContainerMap::CONTAINER_TYPE;
 	defaultElementContainerType = kmb::ElementContainerMap::CONTAINER_TYPE;
@@ -115,6 +116,11 @@ kmb::MeshDB::clearModel(void)
 	if( dataEvaluator ){
 		delete dataEvaluator;
 		dataEvaluator = NULL;
+	}
+
+	if( meshOperation ){
+		delete meshOperation;
+		meshOperation = NULL;
 	}
 }
 

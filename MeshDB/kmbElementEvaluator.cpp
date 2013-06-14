@@ -102,6 +102,48 @@ kmb::ElementEvaluator::getAspectRatio(const kmb::ElementBase &eIter) const
 				}
 			}
 			break;
+		case HEXAHEDRON:
+		case HEXAHEDRON2:
+
+			{
+				kmb::Node n0,n1,n3,n4;
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[3], n3 )
+				 && points->getPoint( eIter[4], n4 )
+				 )
+				{
+					double q01 = n0.distance(n1);
+					double q03 = n0.distance(n3);
+					double q04 = n0.distance(n4);
+					kmb::BoundingBox1D bbox;
+					bbox.update(q01);
+					bbox.update(q03);
+					bbox.update(q04);
+					return bbox.getMax() / bbox.getMin();
+				}
+			}
+			break;
+		case QUAD:
+		case QUAD2:
+
+			{
+				kmb::Node n0,n1,n3;
+				if( points->getPoint( eIter[0], n0 )
+				 && points->getPoint( eIter[1], n1 )
+				 && points->getPoint( eIter[3], n3 )
+				 )
+				{
+					double q01 = n0.distance(n1);
+					double q03 = n0.distance(n3);
+					if( q01 > q03 ){
+						return q01 / q03;
+					}else{
+						return q03 / q01;
+					}
+				}
+			}
+			break;
 		default:
 			break;
 		}

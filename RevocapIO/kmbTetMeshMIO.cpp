@@ -85,6 +85,9 @@ kmb::TetMeshMIO::loadFromFile(const char* filename,MeshData* mesh)
 				ary[8] = tmp[9];
 				mesh->addElement( kmb::TETRAHEDRON2, ary );
 				break;
+			case 6:
+				mesh->addElement( kmb::WEDGE, tmp );
+				break;
 			case 8:
 				mesh->addElement( kmb::HEXAHEDRON, tmp );
 				break;
@@ -161,27 +164,24 @@ kmb::TetMeshMIO::saveToFile(const char* filename, const kmb::MeshData* mesh)
 		size_t elementCount = 0;
 		size_t volumeCount = 0;
 		kmb::bodyIdType bodyCount = mesh->getBodyCount();
+		size_t* elementCountEach = new size_t[bodyCount];
 		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body && body->getCount() > 0 &&
-				( body->isUniqueType( kmb::TETRAHEDRON )
-				|| body->isUniqueType( kmb::TETRAHEDRON2 )
-				|| body->isUniqueType( kmb::HEXAHEDRON )
-				|| body->isUniqueType( kmb::HEXAHEDRON2 ) ) )
-			{
-				elementCount += body->getCount();
+			elementCountEach[bodyId] = 0;
+			if( body && body->getCount() > 0 ){
+				elementCountEach[bodyId] += body->getCountByType( kmb::TETRAHEDRON );
+				elementCountEach[bodyId] += body->getCountByType( kmb::TETRAHEDRON2 );
+				elementCountEach[bodyId] += body->getCountByType( kmb::HEXAHEDRON );
+				elementCountEach[bodyId] += body->getCountByType( kmb::HEXAHEDRON2 );
+				elementCountEach[bodyId] += body->getCountByType( kmb::WEDGE );
+				elementCount += elementCountEach[bodyId];
 				++volumeCount;
 			}
 		}
 		output << elementCount << std::endl;
 		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body &&
-				( body->isUniqueType( kmb::TETRAHEDRON )
-				|| body->isUniqueType( kmb::TETRAHEDRON2 )
-				|| body->isUniqueType( kmb::HEXAHEDRON )
-				|| body->isUniqueType( kmb::HEXAHEDRON2 ) ) )
-			{
+			if( body ){
 				kmb::ElementContainer::const_iterator eIter = body->begin();
 				while( eIter != body->end() ){
 					switch( eIter.getType() ){
@@ -204,6 +204,15 @@ kmb::TetMeshMIO::saveToFile(const char* filename, const kmb::MeshData* mesh)
 							eIter.getCellId(4) << " " <<
 							eIter.getCellId(9) << " " <<
 							eIter.getCellId(8) << std::endl;
+						break;
+					case kmb::WEDGE:
+						output <<
+							eIter.getCellId(0) << " " <<
+							eIter.getCellId(1) << " " <<
+							eIter.getCellId(2) << " " <<
+							eIter.getCellId(3) << " " <<
+							eIter.getCellId(4) << " " <<
+							eIter.getCellId(5) << std::endl;
 						break;
 					case kmb::HEXAHEDRON:
 						output <<
@@ -261,18 +270,14 @@ kmb::TetMeshMIO::saveToFile(const char* filename, const kmb::MeshData* mesh)
 		kmb::elementIdType elementId = 0;
 		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body && body->getCount() > 0 &&
-				( body->isUniqueType( kmb::TETRAHEDRON )
-				|| body->isUniqueType( kmb::TETRAHEDRON2 )
-				|| body->isUniqueType( kmb::HEXAHEDRON )
-				|| body->isUniqueType( kmb::HEXAHEDRON2 ) ) )
-			{
-				output << body->getCount() << std::endl;
+			if( body && body->getCount() > 0 ){
+				output << elementCountEach[bodyId] << std::endl;
 				kmb::ElementContainer::const_iterator eIter = body->begin();
 				while( eIter != body->end() ){
 					switch( eIter.getType() ){
 					case kmb::TETRAHEDRON:
 					case kmb::TETRAHEDRON2:
+					case kmb::WEDGE:
 					case kmb::HEXAHEDRON:
 					case kmb::HEXAHEDRON2:
 						output << elementId << std::endl;

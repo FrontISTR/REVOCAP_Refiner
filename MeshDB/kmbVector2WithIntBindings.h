@@ -190,6 +190,9 @@ public:
 		}
 	};
 	virtual iterator begin(void){
+		if( this->mapper.size() == 0 ){
+			return kmb::DataBindings::iterator(NULL);
+		}
 		_iterator* _it = NULL;
 		_it = new _iterator();
 		_it->dataIter = this->mapper.begin();
@@ -197,6 +200,9 @@ public:
 		return kmb::DataBindings::iterator(_it);
 	}
 	virtual const_iterator begin(void) const{
+		if( this->mapper.size() == 0 ){
+			return kmb::DataBindings::iterator(NULL);
+		}
 		_iterator* _it = NULL;
 		_it = new _iterator();
 		_it->dataIter = this->mapper.begin();

@@ -34,6 +34,8 @@ namespace kmb{
 
 class Matrix4x4;
 
+typedef std::multimap< std::string, kmb::DataBindings* > datamap;
+
 class MeshData
 {
 protected:
@@ -41,6 +43,7 @@ protected:
 	std::vector< kmb::ElementContainer* > bodies;
 	kmb::ElementContainer* currentBody;
 	std::multimap< std::string, kmb::DataBindings* > bindings;
+
 	std::vector< kmb::DataBindings* > bindingsStack;
 	int bindingsStackDim;
 	std::string defaultSpecType;
@@ -90,7 +93,8 @@ public:
 
 	const kmb::Point3DContainer* getNodes(void) const;
 	kmb::Point3DContainer* getNodes(void);
-	virtual const kmb::Point2DContainer* getNode2Ds(void) const{	return NULL; };
+	virtual const kmb::Point2DContainer* getNode2Ds(void) const{ return NULL; };
+	kmb::Point3DContainer* replaceNodes(kmb::Point3DContainer* nodes);
 
 	virtual size_t getNodeCount(void) const;
 
@@ -136,6 +140,7 @@ public:
 	virtual kmb::bodyIdType replaceBody( kmb::bodyIdType bodyId, kmb::Body* body, bool offset=true );
 
 
+
 	virtual bool updateBody( kmb::bodyIdType bodyId );
 
 	virtual void clearBody(bodyIdType bodyId);
@@ -169,6 +174,10 @@ public:
 
 
 	virtual const std::multimap< std::string, kmb::DataBindings* >& getDataBindingsMap(void) const;
+	kmb::datamap::iterator beginDataIterator();
+	kmb::datamap::const_iterator beginDataIterator() const;
+	kmb::datamap::iterator endDataIterator();
+	kmb::datamap::const_iterator endDataIterator() const;
 
 	virtual kmb::DataBindings* createDataBindings(
 		const char* name,

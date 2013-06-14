@@ -61,6 +61,8 @@ public:
 	double rangeX(void) const;
 	double rangeY(void) const;
 	double rangeZ(void) const;
+
+	double range(void) const;
 	double maxRange(void) const;
 	double diameter(void) const;
 	double diameterSq(void) const;

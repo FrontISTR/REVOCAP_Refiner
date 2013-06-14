@@ -30,6 +30,7 @@
 #include "MeshDB/kmbDataBindings.h"
 #include "MeshDB/kmbElementContainer.h"
 #include "MeshDB/kmbNodeMapperBindings.h"
+#include "MeshDB/kmbMeshOperation.h"
 
 #include <map>
 #include <cstring>
@@ -201,47 +202,51 @@ kmb::MeshDB::reverseElement(kmb::elementIdType elementID,kmb::bodyIdType bodyID)
 int
 kmb::MeshDB::duplicateNodeIdOfBody(kmb::bodyIdType bodyId,const char* coupleName)
 {
-	int count = 0;
-	kmb::nodeIdType orgNodeId = kmb::nullNodeId;
-	kmb::nodeIdType newNodeId = kmb::nullNodeId;
-	long l;
-	kmb::ElementContainer* body = this->getBodyPtr(bodyId);
-	kmb::Point3DContainer* points = this->getNodes();
-	kmb::DataBindings* data = NULL;
-	if( body && points ){
-		if( coupleName ){
-			data = this->getDataBindingsPtr(coupleName);
-			if( data == NULL ){
-				data = new kmb::NodeMapperBindings<kmb::nodeIdType>();
-				this->setDataBindingsPtr(coupleName,data);
-			}
-		}else{
-			data = new kmb::NodeMapperBindings<kmb::nodeIdType>();
-		}
-		kmb::ElementContainer::iterator eIter = body->begin();
-		while( !eIter.isFinished() ){
-			int len = eIter.getNodeCount();
-			for(int i=0;i<len;++i){
-				orgNodeId = eIter[i];
-				if( !data->hasId( orgNodeId ) ){
-					++count;
-					newNodeId = points->duplicatePoint( orgNodeId );
-					eIter.setCellId(i,newNodeId);
-					l = static_cast<long>(newNodeId);
-					data->setPhysicalValue( orgNodeId, &l );
-				}else if( data->getPhysicalValue( orgNodeId, &l ) ){
-					newNodeId = static_cast<kmb::nodeIdType>(l);
-					eIter.setCellId(i,newNodeId);
-				}
-			}
-			++eIter;
-		}
-		if( data && coupleName == NULL ){
-
-			delete data;
-		}
+	if( meshOperation == NULL ){
+		meshOperation = new kmb::MeshOperation(this);
 	}
-	return count;
+	return meshOperation->duplicateNodeIdOfBody(bodyId,coupleName);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
 
 

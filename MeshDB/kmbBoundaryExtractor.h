@@ -28,6 +28,7 @@
 #include <map>
 #include "MeshDB/kmbTypes.h"
 #include "MeshDB/kmbElement.h"
+#include "MeshDB/kmbElementRelation.h"
 
 namespace kmb{
 
@@ -56,6 +57,8 @@ protected:
 	void eraseFaceMap(kmb::ElementBase &element,kmb::idType faceId,bool reverse=false,const kmb::ElementContainer* elements=NULL);
 
 	void appendElementContainer(const kmb::ElementContainer* body);
+
+	kmb::ElementRelation::relationType getFaceRelation(kmb::ElementBase &e0,kmb::idType f0,kmb::ElementBase &e1,kmb::idType f1) const;
 public:
 	BoundaryExtractor(void);
 	virtual ~BoundaryExtractor(void);
@@ -70,8 +73,13 @@ public:
 	void eraseData(const char* name,bool reverse=false);
 
 
+
 	kmb::bodyIdType getBoundary(kmb::bodyIdType bodyId) const;
+
 	kmb::bodyIdType getBoundary(void) const;
+
+	kmb::bodyIdType getBoundary(kmb::BoundaryExtractor& other) const;
+
 
 	size_t getBoundary(const kmb::ElementContainer* parent,kmb::ElementContainer* boundary) const;
 

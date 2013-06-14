@@ -196,6 +196,17 @@ void rcapTermRefiner( void );
  * @param[in] filename ファイル名
  */
 void rcapSetCADFilename( const char* filename );
+/**
+ * @brief 形状補正に用いる CAD ファイルと事前補正情報を出力する。
+ * globalID と localID を与えた後で出力する補正情報は、localID と曲面との対応になる。
+ *
+ * @remark このファイルで出力される節点番号は 0 始まりである。
+ *
+ * @remark この関数はデバッグ用途または、領域分割した後に局所的な細分を行う場合に用いる。
+ *
+ * @param[in] filename ファイル名
+ */
+void rcapWriteFittingFile( const char* filename );
 
 /**
  * @brief 中間節点の生成に2次要素の形状関数を使うかどうかを設定する。

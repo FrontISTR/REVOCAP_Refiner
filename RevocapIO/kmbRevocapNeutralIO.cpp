@@ -910,35 +910,35 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 					{
 						double v = 0.0;
 						data->getPhysicalValue()->getValue(&v);
-						output << "    value: " << v << std::endl;
+						output << "    value: " << std::scientific << std::setprecision(8) << v << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Vector2:
 					{
 						double v[] = {0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << v[0] << ", " << v[1] << "]" << std::endl;
+						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Vector3:
 					{
 						double v[] = {0.0, 0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
+						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Tensor6:
 					{
 						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
+						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Point3Vector3:
 					{
 						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [[" << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+						output << "    value: [[" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Vector2withInt:
@@ -947,7 +947,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 						long k = 0L;
 						data->getPhysicalValue()->getValue(v);
 						data->getPhysicalValue()->getValue(&k);
-						output << "    value: [" << v[0] << ", " << v[1] << ", " << k << "]" << std::endl;
+						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << k << "]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Integer:
@@ -1007,7 +1007,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 							kmb::DataBindings::iterator gIter = data->begin();
 							while( !gIter.isFinished() ){
 								gIter.getValue(&v);
-								output << "    - [" << gIter.getId() << ", " << v << "]" << std::endl;
+								output << "    - [" << gIter.getId() << ", " << std::scientific << std::setprecision(8) << v << "]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1018,7 +1018,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 							kmb::DataBindings::iterator gIter = data->begin();
 							while( !gIter.isFinished() ){
 								gIter.getValue(v);
-								output << "    - [" << gIter.getId() << ", [" << v[0] << ", " << v[1] << "]]" << std::endl;
+								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1029,7 +1029,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 							kmb::DataBindings::iterator gIter = data->begin();
 							while( !gIter.isFinished() ){
 								gIter.getValue(v);
-								output << "    - [" << gIter.getId() << ", [" << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
+								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1040,7 +1040,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 							kmb::DataBindings::iterator gIter = data->begin();
 							while( !gIter.isFinished() ){
 								gIter.getValue(v);
-								output << "    - [" << gIter.getId() << ", [" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1053,7 +1053,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 							while( !gIter.isFinished() ){
 								gIter.getValue(v);
 								gIter.getValue(&k);
-								output << "    - [" << gIter.getId() << ", [" << v[0] << ", " << v[1] << ", " << k << "]]" << std::endl;
+								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << k << "]]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1079,7 +1079,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 								gIter.getFace(f);
 								gIter.getValue(&v);
 								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << v << "]" << std::endl;
+								output << std::scientific << std::setprecision(8) << v << "]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1092,7 +1092,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 								gIter.getFace(f);
 								gIter.getValue(v);
 								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << v[0] << ", " << v[1] << "]]" << std::endl;
+								output << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1105,7 +1105,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 								gIter.getFace(f);
 								gIter.getValue(v);
 								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
+								output << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1118,7 +1118,7 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 								gIter.getFace(f);
 								gIter.getValue(v);
 								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+								output << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
 								++gIter;
 							}
 						}
@@ -1137,35 +1137,35 @@ kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* m
 					{
 						double v = 0.0;
 						data->getPhysicalValue()->getValue(&v);
-						output << "    value: " << v << std::endl;
+						output << "    value: " << std::scientific << std::setprecision(8) << v << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Vector2:
 					{
 						double v[] = {0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << v[0] << ", " << v[1] << "]" << std::endl;
+						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Vector3:
 					{
 						double v[] = {0.0, 0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
+						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Tensor6:
 					{
 						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
+						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Point3Vector3:
 					{
 						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 						data->getPhysicalValue()->getValue(v);
-						output << "    value: [[" << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+						output << "    value: [[" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
 					}
 					break;
 				case kmb::PhysicalValue::Integer:

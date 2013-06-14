@@ -1195,11 +1195,37 @@ kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 		return -1;
 	}
 
+
+
+	int modelDim = 3;
+	size_t nodeCount = mesh->getNodeCount();
+	size_t elemCount = 0;
+
+	kmb::bodyIdType bodyCount = mesh->getBodyCount();
+
+	for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+		const kmb::Body* body = mesh->getBodyPtr(bodyId);
+		if( body == NULL || body->getDimension() != modelDim ){
+			continue;
+		}
+		elemCount += body->getCount();
+	}
+	if( elemCount == 0 ){
+		modelDim = 2;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			if( body == NULL || body->getDimension() != modelDim ){
+				continue;
+			}
+			elemCount += body->getCount();
+		}
+	}
+
 	output << "# UCD (AVS/Express)" << std::endl;
 	output << "1" << std::endl;
 	output << "data" << std::endl;
 	output << "step1 (fixed time)" << std::endl;
-	output << "  " << mesh->getNodeCount() << " " << mesh->getElementCount() << std::endl;
+	output << "  " << nodeCount << " " << elemCount << std::endl;
 
 	kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
 	output.setf( std::ios::fixed );
@@ -1211,13 +1237,11 @@ kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 		++nIter;
 	}
 
-	kmb::bodyIdType bodyCount = mesh->getBodyCount();
-
 
 
 	for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 		const kmb::Body* body = mesh->getBodyPtr(bodyId);
-		if( body == NULL ){
+		if( body == NULL || body->getDimension() != modelDim ){
 			continue;
 		}
 		kmb::ElementContainer::const_iterator eIter = body->begin();
@@ -1457,6 +1481,323 @@ kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 			output << " " << elementId+this->elementOffset;
 			for(int i=0;i<elementDataDim;++i){
 				output << " " << std::setw(15) << values[i];
+			}
+			output << std::endl;
+		}
+		delete[] values;
+	}
+
+	output.close();
+	return 0;
+}
+
+int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
+{
+	if( mesh == NULL ){
+		return -1;
+	}
+	std::ofstream output( filename, std::ios_base::out );
+	if( output.fail() ){
+		return -1;
+	}
+
+	size_t nodeCount = mesh->getNodeCount();
+	size_t elemCount = 0;
+	size_t nDataCount = 0;
+	size_t nDataDim = 0;
+	size_t eDataCount = 0;
+	size_t eDataDim = 0;
+	size_t mDataCount = 0;
+	size_t mDataDim = 0;
+
+
+
+	int modelDim = 3;
+
+	kmb::bodyIdType bodyCount = mesh->getBodyCount();
+
+	for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+		const kmb::Body* body = mesh->getBodyPtr(bodyId);
+		if( body == NULL || body->getDimension() != modelDim ){
+			continue;
+		}
+		elemCount += body->getCount();
+	}
+	if( elemCount == 0 ){
+		modelDim = 2;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::Body* body = mesh->getBodyPtr(bodyId);
+			if( body == NULL || body->getDimension() != modelDim ){
+				continue;
+			}
+			elemCount += body->getCount();
+		}
+	}
+
+	kmb::datamap::const_iterator dBegin = mesh->beginDataIterator();
+	kmb::datamap::const_iterator dEnd = mesh->endDataIterator();
+
+	for(kmb::datamap::const_iterator dIter = dBegin; dIter != dEnd; ++dIter )
+	{
+		kmb::DataBindings* data = dIter->second;
+		if( data ){
+			switch( data->getBindingMode() )
+			{
+			case kmb::DataBindings::NodeVariable:
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+					nDataDim += 1;
+					nDataCount += 1;
+					break;
+				case kmb::PhysicalValue::Vector3:
+					nDataDim += 3;
+					nDataCount += 1;
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					nDataDim += 6;
+					nDataCount += 1;
+					break;
+				default:
+					break;
+				}
+				break;
+			case kmb::DataBindings::ElementVariable:
+				switch( data->getValueType() )
+				{
+				case kmb::PhysicalValue::Scalar:
+					eDataDim += 1;
+					eDataCount += 1;
+					break;
+				case kmb::PhysicalValue::Vector3:
+					eDataDim += 3;
+					eDataCount += 1;
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					eDataDim += 6;
+					eDataCount += 1;
+					break;
+				default:
+					break;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+	output << " " << std::setw(10) << nodeCount <<
+		" " << std::setw(10) << elemCount <<
+		" " << std::setw(10) << nDataDim <<
+		" " << std::setw(10) << eDataDim <<
+		" " << std::setw(10) << mDataDim << std::endl;
+
+	kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
+	output.setf( std::ios::fixed );
+	while( !nIter.isFinished() ){
+		output << " " << std::setw(10) << nIter.getId()+this->nodeOffset << " " <<
+			std::setfill(' ') << std::setprecision(8) << std::scientific <<
+			std::setw(16) << nIter.x() << " " <<
+			std::setw(16) << nIter.y() << " " <<
+			std::setw(16) << nIter.z() << std::endl;
+		++nIter;
+	}
+
+
+
+	for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+		const kmb::Body* body = mesh->getBodyPtr(bodyId);
+		if( body == NULL || body->getDimension() != modelDim ){
+			continue;
+		}
+		kmb::ElementContainer::const_iterator eIter = body->begin();
+		while( !eIter.isFinished() ){
+			output << " " << std::setw(10) << eIter.getId() + this->elementOffset << " " << bodyId << " ";
+			switch( eIter.getType() ){
+				case kmb::TETRAHEDRON:
+					output << "tet " <<
+						std::setw(10) << eIter[0] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[1] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[3] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[2] + this->nodeOffset << std::endl;
+					break;
+				case kmb::TETRAHEDRON2:
+					output << "tet2 " <<
+						std::setw(10) << eIter[0] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[1] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[3] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[2] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[6] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[7] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[5] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[8] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[9] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[4] + this->nodeOffset << std::endl;
+					break;
+				case kmb::TRIANGLE:
+					output << "tri " <<
+						std::setw(10) << eIter[0] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[1] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[2] + this->nodeOffset << std::endl;
+					break;
+				case kmb::QUAD:
+					output << "quad " <<
+						std::setw(10) << eIter[0] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[1] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[2] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[3] + this->nodeOffset << std::endl;
+					break;
+				case kmb::WEDGE:
+					output << "prism " <<
+						std::setw(10) << eIter[3] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[4] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[5] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[0] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[1] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[2] + this->nodeOffset << std::endl;
+					break;
+				case kmb::PYRAMID:
+					output << "pyr " <<
+						std::setw(10) << eIter[0] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[1] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[2] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[3] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[4] + this->nodeOffset << std::endl;
+					break;
+				case kmb::HEXAHEDRON:
+					output << "hex " <<
+						std::setw(10) << eIter[4] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[5] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[6] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[7] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[0] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[1] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[2] + this->nodeOffset << " " <<
+						std::setw(10) << eIter[3] + this->nodeOffset << std::endl;
+					break;
+				default:
+					break;
+			}
+			++eIter;
+		}
+	}
+
+	if( nDataDim > 0 ){
+		output << " " << nDataDim;
+		for(int i=0;i<nDataDim;++i){
+			output << " 1";
+		}
+		output << std::endl;
+		mesh->clearTargetData();
+		kmb::datamap::const_iterator dIter = dBegin;
+		while( dIter != dEnd ){
+			kmb::DataBindings* data = dIter->second;
+			if( data ){
+				switch( data->getBindingMode() )
+				{
+				case kmb::DataBindings::NodeVariable:
+					switch( data->getValueType() )
+					{
+					case kmb::PhysicalValue::Scalar:
+						output << " " << dIter->first << ", unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Vector3:
+						output << " " << dIter->first << "_u, unknown" << std::endl;
+						output << " " << dIter->first << "_v, unknown" << std::endl;
+						output << " " << dIter->first << "_w, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Tensor6:
+						output << " " << dIter->first << "_0, unknown" << std::endl;
+						output << " " << dIter->first << "_1, unknown" << std::endl;
+						output << " " << dIter->first << "_2, unknown" << std::endl;
+						output << " " << dIter->first << "_3, unknown" << std::endl;
+						output << " " << dIter->first << "_4, unknown" << std::endl;
+						output << " " << dIter->first << "_5, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					default:
+						break;
+					}
+					break;
+				default:
+					break;
+				}
+			}
+			++dIter;
+		}
+		double* values = new double[nDataDim];
+		std::fill_n(values,nDataDim,0.0);
+		kmb::nodeIdType nodeId = 0;
+		kmb::nodeIdType nodeCount = static_cast<kmb::nodeIdType>(mesh->getNodeCount());
+		for(nodeId=0;nodeId<nodeCount;++nodeId){
+			mesh->getMultiPhysicalValues(nodeId,values);
+			output << " " << std::setw(12) << nodeId+this->nodeOffset;
+			for(int i=0;i<nDataDim;++i){
+				output << std::setfill(' ') << std::setprecision(8) << std::scientific << " " <<
+				std::setw(16) << values[i];
+			}
+			output << std::endl;
+		}
+		delete[] values;
+	}
+	if( eDataDim > 0 ){
+		output << " " << eDataDim;
+		for(int i=0;i<eDataDim;++i){
+			output << " 1";
+		}
+		output << std::endl;
+		mesh->clearTargetData();
+		kmb::datamap::const_iterator dIter = dBegin;
+		while( dIter != dEnd ){
+			kmb::DataBindings* data = dIter->second;
+			if( data ){
+				switch( data->getBindingMode() )
+				{
+				case kmb::DataBindings::ElementVariable:
+					switch( data->getValueType() )
+					{
+					case kmb::PhysicalValue::Scalar:
+						output << " " << dIter->first << ", unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Vector3:
+						output << " " << dIter->first << "_u, unknown" << std::endl;
+						output << " " << dIter->first << "_v, unknown" << std::endl;
+						output << " " << dIter->first << "_w, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					case kmb::PhysicalValue::Tensor6:
+						output << " " << dIter->first << "_0, unknown" << std::endl;
+						output << " " << dIter->first << "_1, unknown" << std::endl;
+						output << " " << dIter->first << "_2, unknown" << std::endl;
+						output << " " << dIter->first << "_3, unknown" << std::endl;
+						output << " " << dIter->first << "_4, unknown" << std::endl;
+						output << " " << dIter->first << "_5, unknown" << std::endl;
+						mesh->appendTargetDataPtr( data );
+						break;
+					default:
+						break;
+					}
+					break;
+				default:
+					break;
+				}
+			}
+			++dIter;
+		}
+		double* values = new double[eDataDim];
+		std::fill_n(values,eDataDim,0.0);
+		kmb::elementIdType elementId = 0;
+		kmb::elementIdType elementCount = static_cast<kmb::elementIdType>( mesh->getElementCount() );
+		for(elementId=0;elementId<elementCount;++elementId){
+			mesh->getMultiPhysicalValues(elementId,values);
+			output << " " << std::setw(12) << elementId+this->elementOffset;
+			for(int i=0;i<nDataDim;++i){
+				output << std::setfill(' ') << std::setprecision(8) << std::scientific << " " <<
+				std::setw(16) << values[i];
 			}
 			output << std::endl;
 		}

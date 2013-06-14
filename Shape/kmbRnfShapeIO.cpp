@@ -67,12 +67,18 @@ kmb::RnfShapeIO::readNurbs(std::ifstream &input,kmb::NurbsSurface3D* nurbs)
 	}
 	std::string line, str;
 	std::istringstream tokenizer;
+	long id;
 	int uOrder=0, vOrder=0;
 	double x=0.0,y=0.0,z=0.0,w=0.0;
 	char comma=0;
 	while( !input.eof() ){
 		std::getline( input, line );
-		if( line.find("uknots:") != std::string::npos ){
+		if( line.find("id:") != std::string::npos ){
+			tokenizer.str(line);
+			tokenizer.clear();
+			tokenizer >> str >> id;
+			nurbs->setSurfaceId(id);
+		}else if( line.find("uknots:") != std::string::npos ){
 			std::getline( input, line );
 			tokenizer.str(line);
 			tokenizer.clear();

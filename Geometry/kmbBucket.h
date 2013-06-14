@@ -28,6 +28,7 @@
 #include "Geometry/kmbBoxRegion.h"
 
 #include <map>
+#include <vector>
 #include <cmath>
 #include <cstddef>
 
@@ -219,9 +220,9 @@ public:
 		if( num == 0 ){ num = 1; }
 		this->bucketRegion = box;
 		double unit = pow( bucketRegion.getVolume() / num, 1.0/3.0);
-		this->xnum = static_cast<int>( bucketRegion.rangeX() /unit );
-		this->ynum = static_cast<int>( bucketRegion.rangeY() /unit );
-		this->znum = static_cast<int>( bucketRegion.rangeZ() /unit );
+		this->xnum = static_cast<int>( bucketRegion.rangeX() / unit );
+		this->ynum = static_cast<int>( bucketRegion.rangeY() / unit );
+		this->znum = static_cast<int>( bucketRegion.rangeZ() / unit );
 		if( this->xnum <= 0 ){ this->xnum = 1; }
 		if( this->ynum <= 0 ){ this->ynum = 1; }
 		if( this->znum <= 0 ){ this->znum = 1; }
@@ -298,17 +299,35 @@ public:
 
 	indexType getIndex(double x,double y,double z) const
 	{
+		int i,j,k;
+		if( getSubIndices(x,y,z,i,j,k) ){
+			return ( i * ynum + j ) * znum + k;
+		}else{
+			return -1;
+		}
+/*
 		if( bucketRegion.intersect(x,y,z) == kmb::BoxRegion::OUTSIDE ){
 			return -1;
 		}
 		indexType i = static_cast<indexType>( (x-bucketRegion.minX()) / bucketRegion.rangeX() * xnum );
 		indexType j = static_cast<indexType>( (y-bucketRegion.minY()) / bucketRegion.rangeY() * ynum );
 		indexType k = static_cast<indexType>( (z-bucketRegion.minZ()) / bucketRegion.rangeZ() * znum );
+
+		if( x == bucketRegion.maxX() ){
+			i = xnum-1;
+		}
+		if( y == bucketRegion.maxY() ){
+			j = ynum-1;
+		}
+		if( z == bucketRegion.maxZ() ){
+			k = znum-1;
+		}
 		if( 0 <= i && i < xnum && 0 <= j && j < ynum && 0 <= k && k < znum ){
 			return ( i * ynum + j ) * znum + k;
 		}else{
 			return -1;
 		}
+*/
 	};
 
 	indexType getIndex(int i,int j,int k) const{
@@ -465,6 +484,16 @@ protected:
 		i = static_cast<int>( (x-bucketRegion.minX()) / bucketRegion.rangeX() * xnum );
 		j = static_cast<int>( (y-bucketRegion.minY()) / bucketRegion.rangeY() * ynum );
 		k = static_cast<int>( (z-bucketRegion.minZ()) / bucketRegion.rangeZ() * znum );
+
+		if( x == bucketRegion.maxX() ){
+			i = xnum-1;
+		}
+		if( y == bucketRegion.maxY() ){
+			j = ynum-1;
+		}
+		if( z == bucketRegion.maxZ() ){
+			k = znum-1;
+		}
 		if( i < 0 ){ i = 0; res = false; }
 		if( j < 0 ){ j = 0; res = false; }
 		if( k < 0 ){ k = 0; res = false; }
@@ -494,6 +523,8 @@ public:
 
 
 	double getNearest(const double x,const double y,const double z,kmb::nodeIdType &nearestId) const;
+
+	size_t getNearPoints(kmb::nodeIdType nodeId,double thresh,std::vector<kmb::nodeIdType>& nodeIds) const;
 protected:
 
 

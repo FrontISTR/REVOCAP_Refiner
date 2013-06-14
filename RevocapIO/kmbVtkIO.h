@@ -19,6 +19,7 @@
 namespace kmb{
 
 class MeshData;
+class DataBindings;
 
 class VtkIO
 {
@@ -27,6 +28,7 @@ public:
 	~VtkIO(void);
 	int loadFromFile(const char* filename,kmb::MeshData* mesh);
 	int saveToFile(const char* filename,const kmb::MeshData* mesh);
+	int saveToStructuredPointsFile_V3(const char* filename,int nx, int ny, int nz,const kmb::DataBindings* data);
 protected:
 	int loadFromFile_V4(const char* filename,kmb::MeshData* mesh);
 

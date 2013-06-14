@@ -13,6 +13,12 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 
+
+
+
+
+
+
 #pragma once
 
 #include "MeshDB/kmbTypes.h"
@@ -62,6 +68,7 @@ public:
 
 	int loadPostFromFile(const char* filename,kmb::MeshData* mesh);
 	int saveToFile(const char* filename,kmb::MeshData* mesh);
+	int saveToFile_V8(const char* filename,kmb::MeshData* mesh);
 
 	void setReadAsVector3( bool flag );
 

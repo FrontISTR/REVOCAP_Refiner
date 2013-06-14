@@ -741,6 +741,91 @@ kmb::BoundaryExtractor::getBoundary(void) const
 	return boundaryId;
 }
 
+kmb::ElementRelation::relationType
+kmb::BoundaryExtractor::getFaceRelation(kmb::ElementBase &e0,kmb::idType f0,kmb::ElementBase &e1,kmb::idType f1) const
+{
+	int vertexNum0 = kmb::ElementBase::getBoundaryVertexCount( e0.getType(), static_cast<int>(f0) );
+	int vertexNum1 = kmb::ElementBase::getBoundaryVertexCount( e1.getType(), static_cast<int>(f1) );
+	if( vertexNum0 != vertexNum1 ){
+		kmb::ElementRelation::OTHERRELATION;
+	}
+	int index = -1;
+	int otherIndex = -1;
+	switch(vertexNum0){
+		case 2:{
+			kmb::nodeIdType a0 = e0.getBoundaryCellId(f0,0);
+			kmb::nodeIdType a1 = e0.getBoundaryCellId(f0,1);
+			kmb::nodeIdType b0 = e1.getBoundaryCellId(f1,0);
+			kmb::nodeIdType b1 = e1.getBoundaryCellId(f1,1);
+			return kmb::ElementRelation::getSegmentRelation( a0,a1,b0,b1,index,otherIndex );
+		}
+		case 3:{
+			kmb::nodeIdType a0 = e0.getBoundaryCellId(f0,0);
+			kmb::nodeIdType a1 = e0.getBoundaryCellId(f0,1);
+			kmb::nodeIdType a2 = e0.getBoundaryCellId(f0,2);
+			kmb::nodeIdType b0 = e1.getBoundaryCellId(f1,0);
+			kmb::nodeIdType b1 = e1.getBoundaryCellId(f1,1);
+			kmb::nodeIdType b2 = e1.getBoundaryCellId(f1,2);
+			return kmb::ElementRelation::getTriangleRelation( a0,a1,a2,b0,b1,b2,index,otherIndex );
+		}
+		case 4:{
+			kmb::nodeIdType a0 = e0.getBoundaryCellId(f0,0);
+			kmb::nodeIdType a1 = e0.getBoundaryCellId(f0,1);
+			kmb::nodeIdType a2 = e0.getBoundaryCellId(f0,2);
+			kmb::nodeIdType a3 = e0.getBoundaryCellId(f0,3);
+			kmb::nodeIdType b0 = e1.getBoundaryCellId(f1,0);
+			kmb::nodeIdType b1 = e1.getBoundaryCellId(f1,1);
+			kmb::nodeIdType b2 = e1.getBoundaryCellId(f1,2);
+			kmb::nodeIdType b3 = e1.getBoundaryCellId(f1,3);
+			return kmb::ElementRelation::getQuadRelation( a0,a1,a2,a3,b0,b1,b2,b3,index,otherIndex );
+		}
+		default:
+			return kmb::ElementRelation::OTHERRELATION;
+	}
+}
+
+kmb::bodyIdType
+kmb::BoundaryExtractor::getBoundary(kmb::BoundaryExtractor& other) const
+{
+	if( mesh == NULL || mesh != other.mesh ){
+		return kmb::Body::nullBodyId;
+	}
+	kmb::nodeIdType* cell = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT_DIM2 ];
+	kmb::bodyIdType boundaryId = mesh->beginElement();
+	{
+		std::multimap< kmb::nodeIdType, kmb::Face >::const_iterator fIter = facemap.begin();
+		while( fIter != facemap.end() )
+		{
+			kmb::nodeIdType sum = fIter->first;
+			kmb::Face f0 = fIter->second;
+			kmb::ElementContainer::iterator e0 = mesh->findElement(f0.getElementId());
+			kmb::idType l0 = f0.getLocalFaceId();
+			if( other.facemap.find(sum) != other.facemap.end() && !e0.isFinished() ){
+
+				std::multimap< kmb::nodeIdType, kmb::Face >::iterator oIter = other.facemap.lower_bound(sum);
+				std::multimap< kmb::nodeIdType, kmb::Face >::iterator end = other.facemap.upper_bound(sum);
+				while( oIter != end){
+					kmb::Face f1 = oIter->second;
+					kmb::ElementContainer::iterator e1 = mesh->findElement(f1.getElementId());
+					kmb::idType l1 = f1.getLocalFaceId();
+					if( !e1.isFinished() ){
+						if( getFaceRelation(e0,l0,e1,l1) == kmb::ElementRelation::REVERSE ){
+							kmb::elementType etype = e0.getBoundaryElement( f0.getLocalFaceId(), cell );
+							kmb::elementIdType elementId = mesh->addElement( etype, cell );
+							mesh->deriveTargetData( elementId, f0.getElementId() );
+						}
+					}
+					++oIter;
+				}
+			}
+			++fIter;
+		}
+	}
+	mesh->endElement();
+	delete[] cell;
+	return boundaryId;
+}
+
 int
 kmb::BoundaryExtractor::getBoundaryComponents(kmb::bodyIdType bodyId,kmb::bodyIdType* &boundaryIds) const
 {

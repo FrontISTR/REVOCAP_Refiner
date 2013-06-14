@@ -84,7 +84,7 @@ protected:
 	T maxId;
 public:
 	MinMaxWithId(void)
-		: minValue(DBL_MAX), maxValue(-DBL_MAX), minId(), maxId()
+		: minValue(DBL_MAX), maxValue(-DBL_MAX), minId(-1), maxId(-1)
 	{
 	}
 	virtual ~MinMaxWithId(void){};

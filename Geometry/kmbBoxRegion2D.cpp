@@ -121,6 +121,17 @@ kmb::BoxRegion2D::rangeY(void) const
 	return this->maxPoint.y() - this->minPoint.y();
 }
 
+double kmb::BoxRegion2D::range(void) const
+{
+	double rx = rangeX();
+	double ry = rangeY();
+	if( rx > ry ){
+		return rx;
+	}else{
+		return ry;
+	}
+}
+
 double
 kmb::BoxRegion2D::diameter(void) const
 {

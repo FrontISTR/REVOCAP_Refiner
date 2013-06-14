@@ -74,7 +74,7 @@ struct rcapRefinerInfo rcapRefinerDoc;
 
 void rcapGetVersion( void )
 {
-	puts("REVOCAP_Refiner Version 1.0.10 (2012/03/12)");
+	puts("REVOCAP_Refiner Version 1.1.02 (2013/06/14)");
 }
 
 void rcapInitRefiner(int32_t node_Offset,int32_t element_Offset)
@@ -349,6 +349,7 @@ void rcapSetCADFilename( const char* filename )
 {
 	if( rcapRefinerDoc.refiner == NULL ){
 		printf("REVOCAP_Refiner Warning : call rcapSetCADFilename before rcapInitRefiner\n");
+		return;
 	}
 
 	kmb::RnfShapeIO rnfshape;
@@ -373,6 +374,37 @@ void rcapSetCADFilename( const char* filename )
 	if( orgMiddleNodeManager ){
 		delete orgMiddleNodeManager;
 	}
+}
+
+void rcapWriteFittingFile( const char* filename )
+{
+	if( rcapRefinerDoc.refiner == NULL ){
+		printf("REVOCAP_Refiner Warning : call rcapWriteFittingFile before rcapInitRefiner\n");
+		return;
+	}
+	kmb::MiddleNodeManagerWithShape* middleNodeManagerShape = dynamic_cast<kmb::MiddleNodeManagerWithShape*>(rcapRefinerDoc.middleMan);
+	if( middleNodeManagerShape == NULL ){
+		printf("REVOCAP_Refiner Warning : no shape data in rcapWriteFittingFile\n");
+		return;
+	}
+	if( rcapRefinerDoc.surfaces.size() == 0 ){
+		printf("REVOCAP_Refiner Warning : no shape data in rcapWriteFittingFile\n");
+		return;
+	}
+	kmb::RevocapNeutralIO rnfIO;
+	kmb::RnfShapeIO rnfshape;
+	rnfIO.saveHeader( filename );
+	rnfshape.appendSurfaceHeaderToFile( filename );
+	std::vector< kmb::Surface3D* >::iterator sIter = rcapRefinerDoc.surfaces.begin();
+	while( sIter != rcapRefinerDoc.surfaces.end() ){
+		kmb::Surface3D* surf = *sIter;
+		if( surf ){
+			rnfshape.appendSurfaceToFile( filename, surf );
+		}
+		++sIter;
+	}
+
+	rnfIO.appendDataToRNFFile( filename, rcapRefinerDoc.mesh, "fitting" );
 }
 
 void rcapSetSecondFitting( int32_t flag )

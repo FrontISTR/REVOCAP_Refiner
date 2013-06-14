@@ -177,6 +177,27 @@ kmb::BoxRegion::rangeZ(void) const
 }
 
 double
+kmb::BoxRegion::range(void) const
+{
+	double rx = rangeX();
+	double ry = rangeY();
+	double rz = rangeZ();
+	if( rx >= ry ){
+		if( rx >= rz ){
+			return rx;
+		}else{
+			return rz;
+		}
+	}else{
+		if( ry >= rz ){
+			return ry;
+		}else{
+			return rz;
+		}
+	}
+}
+
+double
 kmb::BoxRegion::maxRange(void) const
 {
 	return kmb::Maximizer::getMax( rangeX(), rangeY(), rangeZ() );
