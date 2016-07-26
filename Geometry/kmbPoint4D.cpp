@@ -77,7 +77,7 @@ kmb::Point4D::distance(double x,double y,double z,double w) const
 double
 kmb::Point4D::distanceSq(double x,double y,double z,double w) const
 {
-	return
+	return 
 		(this->x()-x)*(this->x()-x) +
 		(this->y()-y)*(this->y()-y) +
 		(this->z()-z)*(this->z()-z) +

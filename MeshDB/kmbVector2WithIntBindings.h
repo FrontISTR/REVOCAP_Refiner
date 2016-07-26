@@ -12,11 +12,11 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
-
+//
+// パラメトリックな曲面の id とその (u,v) 座標を記録するときに用いる
+// 同じ id に対して重複して設定できない
+// 異なる id に対しては重複設定できる
+//
 
 #pragma once
 #include "MeshDB/kmbDataBindings.h"
@@ -80,7 +80,7 @@ public:
 		}
 		return false;
 	}
-
+	// 複数あるかもしれないので注意
 	virtual bool getPhysicalValue(kmb::idType id, double *val) const{
 		typename std::multimap<T,valueType>::const_iterator i = mapper.find( static_cast<T>(id) );
 		if( val && i != mapper.end() ){
@@ -105,7 +105,7 @@ public:
 	virtual size_t getIdCount() const{
 		return mapper.size();
 	}
-
+	// 整数値が k であるようなデータが登録されているかどうか
 	bool hasId(T t,long k) const{
 		if( mapper.count(t) == 0 ){
 			return false;
@@ -122,9 +122,9 @@ public:
 		}
 		return false;
 	}
-
-
-
+	// id0 => id1 の対応が与えられた時
+	// id0 があれば id1 に置き換える
+	// iMapper に与えられないものがあればそれはすべて削除
 	size_t replaceIds( const std::map<T,T>& iMapper ){
 		size_t count = 0;
 		typename std::multimap<T,valueType> temp;
@@ -136,8 +136,6 @@ public:
 			if( iter != iMapper.end() ){
 				++count;
 				mapper.insert( std::pair<T,valueType>( iter->second, tIter->second ) );
-
-
 			}
 			++tIter;
 		}
@@ -209,8 +207,8 @@ public:
 		_it->endIter = this->mapper.end();
 		return kmb::DataBindings::const_iterator(_it);
 	}
-
-
+	// 形状補正機能のための特別メソッド
+	// 共通の整数値を持つかどうかを調べて、その場合はそれぞれの u,v を返す
 	bool isCommonIntval(T t0,T t1,long &index,double u0[2],double u1[2]) const{
 		std::pair< typename std::multimap<T,valueType>::const_iterator,
 			typename std::multimap<T,valueType>::const_iterator > range0 = this->mapper.equal_range(t0);
@@ -230,7 +228,7 @@ public:
 		}
 		return false;
 	}
-
+	// ２つ以上あるかもしれないとき
 	int isCommonIntval(T t0,T t1,std::vector< valueType > &v0, std::vector< valueType > &v1) const{
 		int count = 0;
 		std::pair< typename std::multimap<T,valueType>::const_iterator,
@@ -248,11 +246,11 @@ public:
 		}
 		return count;
 	}
-
+	// 値がいくつあるかを返す
 	size_t countId(T t) const{
 		return this->mapper.count(t);
 	}
-
+	// 複数値を取得する
 	bool getValues(T t,double &u,double &v,long &l,size_t index=0) const{
 		std::pair< typename std::multimap<T,valueType>::const_iterator,
 			typename std::multimap<T,valueType>::const_iterator > range = this->mapper.equal_range(t);

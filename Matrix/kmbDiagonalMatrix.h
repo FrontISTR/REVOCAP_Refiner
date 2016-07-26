@@ -25,9 +25,9 @@ public:
 	virtual ~DiagonalMatrix(void);
 	virtual bool solve(const kmb::ColumnVector &b, kmb::ColumnVector &x) const;
 	virtual double determinant(void) const;
-
+	// 何もしないくてもよい（transposeで不変だから）
 	virtual bool transpose(void);
-
+	// 何もしないようにする（Diagonalでなくなってしまうため）
 	virtual bool row_exchange(int i0,int i1);
 	virtual bool row_transf(int i0,int i1,double r);
 };
@@ -46,7 +46,7 @@ protected:
 	void clear(void);
 };
 
-
+// SquareMatrix の対角成分だけを有効にする
 class DiagonalMatrix_Wrapper : public DiagonalMatrix
 {
 private:

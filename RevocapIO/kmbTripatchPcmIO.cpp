@@ -82,16 +82,14 @@ kmb::TripatchPcmIO::loadFromFile(const char* filename,MeshData* mesh)
 	}
 }
 
-
-
-
+// packOption = 0 : そのまま出力
+// packOption = 1 : すべてを一つにまとめて出力
+// 空の body は出力しない
 int
 kmb::TripatchPcmIO::saveToFile(const char* filename,const kmb::MeshData* mesh,int packOption)
 {
 	if( mesh == NULL || !mesh->getNodes() ){
 		return -1;
-
-
 	}else{
 		int patchCount = 0;
 		kmb::bodyIdType bodyCount = mesh->getBodyCount();

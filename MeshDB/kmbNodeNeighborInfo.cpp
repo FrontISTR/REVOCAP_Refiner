@@ -62,14 +62,14 @@ kmb::NodeNeighborInfo::setIgnoreOrientation(bool f)
 bool
 kmb::NodeNeighborInfo::append( kmb::nodeIdType nodeID, kmb::elementIdType elementID )
 {
-
+	// 重複しないように登録する
 	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
 		bIterPair = coboundaries.equal_range( nodeID );
 	NodeNeighbor::iterator nIter = bIterPair.first;
 	while( nIter != bIterPair.second )
 	{
 		if(nIter->second == elementID){
-
+			// 既に登録済み
 			return false;
 		}
 		++nIter;
@@ -81,14 +81,14 @@ kmb::NodeNeighborInfo::append( kmb::nodeIdType nodeID, kmb::elementIdType elemen
 bool
 kmb::NodeNeighborInfo::erase( kmb::nodeIdType nodeID, kmb::elementIdType elementID )
 {
-
+	// 検索して削除
 	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
 		bIterPair = coboundaries.equal_range( nodeID );
 	NodeNeighbor::iterator nIter = bIterPair.first;
 	while( nIter != bIterPair.second )
 	{
 		if(nIter->second == elementID){
-
+			// 登録済みのものを削除
 			coboundaries.erase( nIter );
 			return true;
 		}
@@ -100,7 +100,7 @@ kmb::NodeNeighborInfo::erase( kmb::nodeIdType nodeID, kmb::elementIdType element
 bool
 kmb::NodeNeighborInfo::appendCoboundary( kmb::elementIdType elementId, const kmb::ElementBase &element )
 {
-
+	// この要素が生成する隣接関係を登録する
 	const unsigned int len = element.getNodeCount();
 	for(unsigned int i=0;i<len;++i){
 		kmb::nodeIdType nodeId = element.getCellId(i);
@@ -112,7 +112,7 @@ kmb::NodeNeighborInfo::appendCoboundary( kmb::elementIdType elementId, const kmb
 bool
 kmb::NodeNeighborInfo::deleteCoboundary( kmb::elementIdType elementId, const kmb::ElementBase &element )
 {
-
+	// この要素が生成する隣接関係を削除する
 	const unsigned int len = element.getNodeCount();
 	for(unsigned int i=0;i<len;++i){
 		kmb::nodeIdType nodeId = element.getCellId(i);
@@ -222,21 +222,21 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 	int count = 0;
 	if( element == NULL )
 		return count;
-
-
-
-
+	// coboundaries から計算する
+	// 自分自身の頂点配列から
+	// 周辺要素を取り出して、
+	// それとの要素間関係を計算する
 
 	const int boundaryNum = element.getBoundaryCount();
 
-
+	// Segment Segment2 の時は特別
 	if( element.getDimension() == 1 )
 	{
 		for(int i=0;i<2;++i)
 		{
 			neighbors[i] = kmb::Element::nullElementId;
 			const kmb::nodeIdType nodeID = element.getCellId(i);
-
+			// 頂点ごとの周辺要素との関係を調べる
 			std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 				eIterPair = coboundaries.equal_range( nodeID );
 			NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -245,7 +245,7 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 			{
 				kmb::elementIdType coElemId = eIter->second;
 				++eIter;
-
+				// 異なる要素が節点と共有していたら登録する
 				if( elementID != coElemId ){
 					neighbors[count] = coElemId;
 					++count;
@@ -257,9 +257,9 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 		int otherIndex = -1;
 		for(int i=0;i<boundaryNum;++i){
 			neighbors[i] = kmb::Element::nullElementId;
-
+			// Face の最初の頂点で探す
 			kmb::nodeIdType nodeID = element.getBoundaryCellId(i,0);
-
+			// 頂点ごとの周辺要素との関係を調べる
 			std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 				eIterPair = coboundaries.equal_range( nodeID );
 			NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -268,7 +268,7 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 			{
 				kmb::elementIdType coElemId = eIter->second;
 				++eIter;
-
+				// 異なる要素が接していたら登録する
 				if( elementID != coElemId ){
 					kmb::ElementContainer::const_iterator coElement = elements->find(coElemId);
 					if( !coElement.isFinished() ){
@@ -289,9 +289,9 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 		int otherIndex = -1;
 		for(int i=0;i<boundaryNum;++i){
 			neighbors[i] = kmb::Element::nullElementId;
-
+			// Face の最初の頂点で探す
 			kmb::nodeIdType nodeID = element.getBoundaryCellId(i,0);
-
+			// 頂点ごとの周辺要素との関係を調べる
 			std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 				eIterPair = coboundaries.equal_range( nodeID );
 			NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -300,7 +300,7 @@ kmb::NodeNeighborInfo::getNeighborElements( const kmb::elementIdType elementID, 
 			{
 				kmb::elementIdType coElemId = eIter->second;
 				++eIter;
-
+				// 異なる要素が接していたら登録する
 				if( elementID != coElemId ){
 					kmb::ElementContainer::const_iterator coElement = elements->find(coElemId);
 					if( !coElement.isFinished() ){
@@ -325,30 +325,30 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 {
 	if( mesh == NULL )
 		return 0;
-
-
-
-
+	// coboundaries から計算する
+	// 自分自身の頂点配列から
+	// 周辺要素を取り出して、
+	// それとの要素間関係を計算する
 	kmb::ElementContainer::const_iterator element = mesh->findElement(elementID);
 
 	int count = 0;
 	if( element.isFinished() )
 		return count;
-
-
-
-
+	// coboundaries から計算する
+	// 自分自身の頂点配列から
+	// 周辺要素を取り出して、
+	// それとの要素間関係を計算する
 
 	const int boundaryNum = element.getBoundaryCount();
 
-
+	// Segment Segment2 の時は特別
 	if( element.getDimension() == 1 )
 	{
 		for(int i=0;i<2;++i)
 		{
 			neighbors[i] = kmb::Element::nullElementId;
 			const kmb::nodeIdType nodeID = element.getCellId(i);
-
+			// 頂点ごとの周辺要素との関係を調べる
 			std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 				eIterPair = coboundaries.equal_range( nodeID );
 			NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -357,7 +357,7 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 			{
 				kmb::elementIdType coElemId = eIter->second;
 				++eIter;
-
+				// 異なる要素が節点と共有していたら登録する
 				if( elementID != coElemId ){
 					neighbors[count] = coElemId;
 					++count;
@@ -369,9 +369,9 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 		int otherIndex = -1;
 		for(int i=0;i<boundaryNum;++i){
 			neighbors[i] = kmb::Element::nullElementId;
-
+			// Face の最初の頂点で探す
 			kmb::nodeIdType nodeID = element.getBoundaryCellId(i,0);
-
+			// 頂点ごとの周辺要素との関係を調べる
 			std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 				eIterPair = coboundaries.equal_range( nodeID );
 			NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -380,7 +380,7 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 			{
 				kmb::elementIdType coElemId = eIter->second;
 				++eIter;
-
+				// 異なる要素が接していたら登録する
 				if( elementID != coElemId ){
 					kmb::ElementContainer::const_iterator coElement = mesh->findElement(coElemId);
 					if( coElement != NULL ){
@@ -401,9 +401,9 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 		int otherIndex = -1;
 		for(int i=0;i<boundaryNum;++i){
 			neighbors[i] = kmb::Element::nullElementId;
-
+			// Face の最初の頂点で探す
 			kmb::nodeIdType nodeID = element.getBoundaryCellId(i,0);
-
+			// 頂点ごとの周辺要素との関係を調べる
 			std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 				eIterPair = coboundaries.equal_range( nodeID );
 			NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -412,7 +412,7 @@ kmb::NodeNeighborInfo::getNeighborElements( kmb::elementIdType elementID, kmb::e
 			{
 				kmb::elementIdType coElemId = eIter->second;
 				++eIter;
-
+				// 異なる要素が接していたら登録する
 				if( elementID != coElemId ){
 					kmb::ElementContainer::const_iterator coElement = mesh->findElement(coElemId);
 					if( !coElement.isFinished() ){
@@ -438,7 +438,7 @@ kmb::NodeNeighborInfo::getNodeNeighbor
 {
 	if( elements == NULL )
 		return;
-
+	// 周辺要素を取り出して計算する
 	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
 		eIterPair = coboundaries.equal_range( nodeID );
 	NodeNeighbor::iterator eIter = eIterPair.first;
@@ -448,7 +448,7 @@ kmb::NodeNeighborInfo::getNodeNeighbor
 		kmb::ElementContainer::const_iterator element = elements->find(elementID);
 		if( !element.isFinished() ){
 			const int len = element.getNodeCount();
-
+			// 局所座標を取得
 			int nodeIndex = element.indexOf(nodeID);
 			for(int i=0;i<len;++i){
 				if( i != nodeIndex &&
@@ -468,8 +468,8 @@ kmb::NodeNeighborInfo::getNodeNeighbor
 {
 	if( mesh == NULL )
 		return;
-
-
+	
+	// 周辺要素を取り出して計算する
 	std::pair< NodeNeighbor::iterator, NodeNeighbor::iterator >
 		eIterPair = coboundaries.equal_range( nodeID );
 	NodeNeighbor::iterator eIter = eIterPair.first;
@@ -479,7 +479,7 @@ kmb::NodeNeighborInfo::getNodeNeighbor
 		kmb::ElementContainer::const_iterator element = mesh->findElement(elementID);
 		if( !element.isFinished() ){
 			const int len = element.getNodeCount();
-
+			// 局所座標を取得
 			int nodeIndex = element.indexOf(nodeID);
 			for(int i=0;i<len;++i){
 				if( i != nodeIndex &&
@@ -501,7 +501,7 @@ kmb::NodeNeighborInfo::getCrownNodeNeighbor
 			!elements->isUniqueDim(2) ){
 		return;
 	}
-
+	// 最初の要素
 	kmb::ElementContainer::const_iterator element;
 	kmb::nodeIdType nextNodeId = kmb::nullNodeId;
 	{
@@ -514,7 +514,7 @@ kmb::NodeNeighborInfo::getCrownNodeNeighbor
 		nextNodeId = element.nextNode(nodeID);
 		neighbors.push_back( nextNodeId );
 	}
-
+	// 次の要素を探す
 	while( !element.isFinished() ){
 		element = elements->end();
 		kmb::NodeNeighbor::iterator eIter = beginIteratorAt(nodeID);
@@ -530,12 +530,12 @@ kmb::NodeNeighborInfo::getCrownNodeNeighbor
 			}
 		}
 		if( !element.isFinished() ){
-
+			// ループを形成するまで
 			for(unsigned int i=0;i<neighbors.size();++i){
 				if( nextNodeId == neighbors[i] ){
 					nextNodeId = kmb::nullNodeId;
 					if( i > 0 ){
-
+						// i 番目より前の部分は削除してずらす
 						for(unsigned int j=0;j<neighbors.size()-i;++j){
 							neighbors[j] = neighbors[j+i];
 						}
@@ -564,7 +564,7 @@ kmb::NodeNeighborInfo::isConnected
 	if( elements == NULL )
 		return retVal;
 
-
+	// get elements around node0
 	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 		eIterPair = coboundaries.equal_range( nodeId0 );
 	NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -594,7 +594,7 @@ kmb::NodeNeighborInfo::isConnected
 	if( mesh == NULL )
 		return retVal;
 
-
+	// get elements around node0
 	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 		eIterPair = coboundaries.equal_range( nodeId0 );
 	NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -643,7 +643,7 @@ kmb::NodeNeighborInfo::endNodeIterator(void)
 void
 kmb::NodeNeighborInfo::getSurroundingElements(kmb::nodeIdType nodeId, std::vector<kmb::elementIdType> &elements) const
 {
-
+	// 周辺要素を取り出して計算する
 	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator > eIterPair = coboundaries.equal_range( nodeId );
 	NodeNeighbor::const_iterator eIter = eIterPair.first;
 	while( eIter != eIterPair.second )
@@ -683,7 +683,7 @@ kmb::NodeNeighborInfo::getNextElementAroundNode( kmb::ElementContainer* triangle
 	}
 	kmb::ElementContainer::iterator element = triangles->find( elemId );
 
-
+	// 近傍の要素を取得
 	kmb::NodeNeighbor::const_iterator eIter = beginIteratorAt(nodeId);
 	kmb::NodeNeighbor::const_iterator end = endIteratorAt(nodeId);
 	while( eIter != end && nextElementId == kmb::Element::nullElementId ){
@@ -694,7 +694,7 @@ kmb::NodeNeighborInfo::getNextElementAroundNode( kmb::ElementContainer* triangle
 			kmb::ElementRelation::relationType rel =
 				kmb::ElementRelation::getRelation( element, index, neighborElement, otherIndex );
 			if( rel == kmb::ElementRelation::ADJACENT ){
-
+				// 三角形の Face 番号の付け方に依存している
 				if( clockwise && element.getType() == kmb::TRIANGLE &&
 					element.getCellId( kmb::Triangle::faceTable[index][0] ) == nodeId )
 				{
@@ -733,7 +733,7 @@ kmb::NodeNeighborInfo::getEndsOfEdge( const kmb::ElementContainer* edges, kmb::n
 
 	int count = 0;
 
-
+	// edge の先頭と最後の点を探す
 	kmb::ElementContainer::const_iterator eIter = edges->begin();
 	while( !eIter.isFinished() ){
 		kmb::nodeIdType node0 = eIter.getCellId(0);
@@ -781,16 +781,16 @@ kmb::NodeNeighborInfo::getElementFace( const kmb::ElementBase &element, kmb::idT
 	}
 	int index = -1;
 	int otherIndex = -1;
-
+	// Face の最初の頂点で探す
 	kmb::nodeIdType nodeID = element.getBoundaryCellId(faceId,0);
-
+	// 頂点ごとの周辺要素との関係を調べる
 	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator > eIterPair = coboundaries.equal_range( nodeID );
 	NodeNeighbor::const_iterator eIter = eIterPair.first;
 	while( eIter != eIterPair.second )
 	{
 		kmb::elementIdType coElemId = eIter->second;
 		++eIter;
-
+		// 要素が接していたら登録する
 		kmb::ElementContainer::const_iterator coElement = elements->find(coElemId);
 		if( !coElement.isFinished() ){
 			kmb::ElementRelation::relationType rel =
@@ -813,9 +813,9 @@ kmb::NodeNeighborInfo::getFace( const kmb::ElementBase &element, kmb::Face &face
 	}
 	int index = -1;
 	int otherIndex = -1;
-
+	// element の最初の頂点で探す
 	kmb::nodeIdType nodeID = element.getCellId(0);
-
+	// 頂点ごとの周辺要素との関係を調べる
 	std::pair< NodeNeighbor::const_iterator, NodeNeighbor::const_iterator >
 		eIterPair = coboundaries.equal_range( nodeID );
 	NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -823,7 +823,7 @@ kmb::NodeNeighborInfo::getFace( const kmb::ElementBase &element, kmb::Face &face
 	{
 		kmb::elementIdType coElemId = eIter->second;
 		++eIter;
-
+		// 要素が接していたら登録する
 		kmb::ElementContainer::const_iterator coElement = elements->find(coElemId);
 		if( !coElement.isFinished() ){
 			kmb::ElementRelation::relationType rel =
@@ -847,9 +847,9 @@ kmb::NodeNeighborInfo::getAdjacentFace( const kmb::Face &face, kmb::Face &adj, c
 	if( !element.isFinished() ){
 		int index = -1;
 		int otherIndex = -1;
-
+		// element の最初の頂点で探す
 		kmb::nodeIdType nodeId = element.getBoundaryCellId( face.getLocalFaceId(), 0 );
-
+		// 頂点ごとの周辺要素との関係を調べる
 		std::pair< kmb::NodeNeighbor::const_iterator, kmb::NodeNeighbor::const_iterator >
 			eIterPair = coboundaries.equal_range( nodeId );
 		kmb::NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -857,7 +857,7 @@ kmb::NodeNeighborInfo::getAdjacentFace( const kmb::Face &face, kmb::Face &adj, c
 		{
 			kmb::elementIdType coElemId = eIter->second;
 			++eIter;
-
+			// 要素が接していたら登録する
 			kmb::ElementContainer::const_iterator coElement = elements->find(coElemId);
 			if( !coElement.isFinished() ){
 				kmb::ElementRelation::relationType rel =
@@ -883,9 +883,9 @@ kmb::NodeNeighborInfo::getAdjacentFace( const kmb::Face &face, kmb::Face &adj, k
 	if( !element.isFinished() ){
 		int index = -1;
 		int otherIndex = -1;
-
+		// element の最初の頂点で探す
 		kmb::nodeIdType nodeId = element.getBoundaryCellId( face.getLocalFaceId(), 0 );
-
+		// 頂点ごとの周辺要素との関係を調べる
 		std::pair< kmb::NodeNeighbor::const_iterator, kmb::NodeNeighbor::const_iterator >
 			eIterPair = coboundaries.equal_range( nodeId );
 		kmb::NodeNeighbor::const_iterator eIter = eIterPair.first;
@@ -893,7 +893,7 @@ kmb::NodeNeighborInfo::getAdjacentFace( const kmb::Face &face, kmb::Face &adj, k
 		{
 			kmb::elementIdType coElemId = eIter->second;
 			++eIter;
-
+			// 要素が接していたら登録する
 			kmb::ElementContainer::const_iterator coElement = mesh->findElement(coElemId);
 			if( !coElement.isFinished() ){
 				kmb::ElementRelation::relationType rel =

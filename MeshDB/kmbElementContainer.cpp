@@ -189,7 +189,7 @@ kmb::ElementContainer::eraseElement(kmb::elementIdType id){
 	return NULL;
 }
 
-
+//--------- non virtual methods -------------
 kmb::elementIdType
 kmb::ElementContainer::getOffsetId(void) const
 {
@@ -216,7 +216,7 @@ void kmb::ElementContainer::getCountOfDim(int count[3]) const
 	count[0] = 0;
 	count[1] = 0;
 	count[2] = 0;
-
+	// count by dimension of element
 	for(int i=0; i<kmb::ELEMENT_TYPE_NUM; ++i )
 	{
 		int dim = kmb::Element::getDimension( static_cast<kmb::elementType>(i) );
@@ -243,7 +243,7 @@ int kmb::ElementContainer::getDimension(void) const
 
 bool kmb::ElementContainer::isUniqueDim(int dim) const
 {
-
+	// verify dimension of element
 	for(int i=0; i<kmb::ELEMENT_TYPE_NUM; ++i )
 	{
 		if( kmb::Element::getDimension( static_cast<kmb::elementType>(i) ) != dim &&
@@ -258,7 +258,7 @@ int
 kmb::ElementContainer::getDegree(void) const
 {
 	int count[3] = {0,0,0};
-
+	// count by dimension of element
 	for(int i=0; i<kmb::ELEMENT_TYPE_NUM; ++i )
 	{
 		int deg = kmb::Element::getDegree( static_cast<kmb::elementType>(i) );
@@ -295,7 +295,7 @@ kmb::ElementContainer::getNodesOfBody(const kmb::Point3DContainer* points,kmb::P
 			{
 				const kmb::nodeIdType id = eIter.getCellId(i);
 				if( points->getPoint( id, point ) ){
-
+					// Permission of multiple points depends on specification of Point3DContainer
 					result->addPoint( point, id );
 				}
 			}
@@ -336,6 +336,32 @@ kmb::ElementContainer::getMinPoint(kmb::Point3D& pt) const
 	pt.z( boundingBox.getMin().z() );
 }
 
+int kmb::ElementContainer::replaceNodeId(kmb::nodeIdType oldNodeId,kmb::nodeIdType newNodeId)
+{
+	int count = 0;
+	kmb::ElementContainer::iterator eIter = this->begin();
+	while( !eIter.isFinished() )
+	{
+		if( eIter.replaceNodeId(oldNodeId,newNodeId) ){
+			++count;
+		}
+		++eIter;
+	}
+	return count;
+}
+
+int kmb::ElementContainer::replaceNodeId(std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper)
+{
+	int count = 0;
+	kmb::ElementContainer::iterator eIter = begin();
+	while( eIter != end() )
+	{
+		count += eIter.replaceNodeId(nodeMapper);
+		++eIter;
+	}
+	return count;
+}
+
 const kmb::BoundingBox&
 kmb::ElementContainer::getBoundingBox(void) const
 {
@@ -364,7 +390,7 @@ kmb::ElementContainer::getBodyName(void) const
 	return this->bodyName.c_str();
 }
 
-
+//------------------ iterator ---------------------
 
 kmb::ElementContainer::iterator::iterator( const kmb::ElementContainer::iterator &other )
 : _iter(NULL)
@@ -483,8 +509,8 @@ kmb::ElementContainer::iterator::operator=(const kmb::ElementContainer::iterator
 		_iter = NULL;
 		offsetId = 0;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._iter ){
 		_iter = other._iter->clone();
 	}
@@ -492,7 +518,7 @@ kmb::ElementContainer::iterator::operator=(const kmb::ElementContainer::iterator
 	return *this;
 }
 
-
+// pre operator
 kmb::ElementContainer::iterator&
 kmb::ElementContainer::iterator::operator++(void)
 {
@@ -508,7 +534,7 @@ kmb::ElementContainer::iterator::operator++(void)
 	return *this;
 }
 
-
+// post operator
 kmb::ElementContainer::iterator
 kmb::ElementContainer::iterator::operator++(int n)
 {
@@ -537,7 +563,7 @@ kmb::ElementContainer::iterator::operator!=(const kmb::ElementContainer::iterato
 	return ( _iter != other._iter );
 }
 
-
+//------------------ const iterator ---------------------
 
 kmb::ElementContainer::const_iterator::const_iterator( const kmb::ElementContainer::const_iterator &other )
 : _iter(NULL)
@@ -662,8 +688,8 @@ kmb::ElementContainer::const_iterator::operator=(const kmb::ElementContainer::co
 		_iter = NULL;
 		offsetId = 0;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._iter ){
 		_iter = other._iter->clone();
 		offsetId = other.offsetId;
@@ -680,8 +706,8 @@ kmb::ElementContainer::const_iterator::operator=(const kmb::ElementContainer::it
 		_iter = NULL;
 		offsetId = 0;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._iter ){
 		_iter = other._iter->clone();
 		offsetId = other.offsetId;
@@ -689,7 +715,7 @@ kmb::ElementContainer::const_iterator::operator=(const kmb::ElementContainer::it
 	return *this;
 }
 
-
+// pre operator
 kmb::ElementContainer::const_iterator&
 kmb::ElementContainer::const_iterator::operator++(void)
 {
@@ -705,7 +731,7 @@ kmb::ElementContainer::const_iterator::operator++(void)
 	return *this;
 }
 
-
+// post operator
 kmb::ElementContainer::const_iterator
 kmb::ElementContainer::const_iterator::operator++(int n)
 {

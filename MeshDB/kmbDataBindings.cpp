@@ -35,8 +35,8 @@
 #pragma warning(disable:869)
 #endif
 
-const kmb::DataBindings::iterator kmb::DataBindings::endIterator;
-const kmb::DataBindings::const_iterator kmb::DataBindings::endConstIterator;
+const kmb::DataBindings::iterator kmb::DataBindings::endIterator; // NULL 値
+const kmb::DataBindings::const_iterator kmb::DataBindings::endConstIterator; // NULL 値
 
 kmb::DataBindings::DataBindings(void)
 : type(kmb::PhysicalValue::Unknown)
@@ -46,7 +46,7 @@ kmb::DataBindings::DataBindings(void)
 {
 }
 
-
+// factory
 kmb::DataBindings*
 kmb::DataBindings::createDataBindings
 (bindingMode mode,kmb::PhysicalValue::valueType vType,std::string sType,kmb::bodyIdType bodyId)
@@ -435,7 +435,7 @@ kmb::DataBindings::getPhysicalValue(kmb::Face f, long *value) const
 	return false;
 }
 
-
+//*************** iterator **************************//
 
 kmb::DataBindings::iterator::iterator(const kmb::DataBindings::iterator& other)
 : _iter(NULL)

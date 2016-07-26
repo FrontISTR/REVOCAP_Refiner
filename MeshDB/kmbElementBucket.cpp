@@ -61,8 +61,8 @@ kmb::ElementBucket::setContainer(const kmb::Point3DContainer* points,const kmb::
 	this->evaluator = new kmb::ElementEvaluator(points);
 }
 
-
-
+// かなり安全に BoundingBox と交差する場合はすべて追加
+// Bucket には重複して追加されている
 int
 kmb::ElementBucket::append(kmb::elementIdType elementId)
 {
@@ -205,7 +205,7 @@ kmb::ElementBucket::searchElement(double x,double y,double z,double tolerance) c
 	while( eIter != endIter ){
 		kmb::ElementContainer::const_iterator elem = elements->find( eIter.get() );
 		if( !elem.isFinished() ){
-
+			// ここで (x,y,z) を含むかどうかを判定する
 			if( maximizer.update( evaluator->getMinInnerVolume( elem, x, y, z ) ) ){
 				elementId = elem.getId();
 			}
@@ -235,7 +235,7 @@ kmb::ElementBucket::searchElementInBody(const kmb::ElementContainer* body,double
 	while( eIter != endIter ){
 		kmb::ElementContainer::const_iterator elem = body->find( eIter.get() );
 		if( !elem.isFinished() ){
-
+			// ここで (x,y,z) を含むかどうかを判定する
 			double dist = 0.0;
 			if( evaluator->getMinInnerVolume(elem,x,y,z) >= 0.0 ){
 				dist = 0.0;
@@ -277,7 +277,7 @@ kmb::ElementBucket::searchElementInData(const kmb::DataBindings* data,const kmb:
 			if( data->hasId( eIter.get() ) ){
 				kmb::ElementContainer::const_iterator elem = body->find( eIter.get() );
 				if( !elem.isFinished() ){
-
+					// ここで (x,y,z) を含むかどうかを判定する
 					double dist = 0.0;
 					if( evaluator->getMinInnerVolume(elem,x,y,z) >= 0.0 ){
 						dist = 0.0;
@@ -305,7 +305,7 @@ kmb::ElementBucket::searchElementInData(const kmb::DataBindings* data,const kmb:
 					}
 				}
 				if( flag ){
-
+					// ここで (x,y,z) を含むかどうかを判定する
 					double dist = 0.0;
 					if( evaluator->getMinInnerVolume(elem,x,y,z) >= 0.0 ){
 						dist = 0.0;

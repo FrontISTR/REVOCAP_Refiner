@@ -36,16 +36,16 @@
 /********************************************************************************
 =begin
 
-=== 1���l�p�`�v�f (QUAD)
+=== 1次四角形要素 (QUAD)
 
-�ڑ��s��
+接続行列
 
 	{ 0, 1, 0,-1},
 	{-1, 0, 1, 0},
 	{ 0,-1, 0, 1},
 	{ 1, 0,-1, 0}
 
-��
+辺
 
 	{ 0, 1},
 	{ 1, 2},
@@ -54,7 +54,7 @@
 
 =end
 
-�`��֐�
+形状関数
 0 : 1/4(1-s)(1-t) => (s,t) = (-1,-1)
 1 : 1/4(1+s)(1-t) => (s,t) = ( 1,-1)
 2 : 1/4(1+s)(1+t) => (s,t) = ( 1, 1)
@@ -181,8 +181,8 @@ kmb::Quad::checkShapeFunctionDomain(double s,double t)
 	return minimizer.getMin();
 }
 
-
-
+// g = \sum coeff[i] * points[i] - target
+// ( g * dg/ds, g * dg/dt ) を考える
 bool
 kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[2])
 {
@@ -190,7 +190,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 		return false;
 	}
 	/*
-	 * 4�p�`�̗v�f���W�����߂邽�߂Ƀj���[�g���@���s��
+	 * 4角形の要素座標を求めるためにニュートン法を行う
 	 */
 	class nr_local : public kmb::OptTargetVV {
 	public:
@@ -213,7 +213,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 			g[0] -= target[0];
 			g[1] -= target[1];
 			g[2] -= target[2];
-
+			// s で微分
 			kmb::Quad::shapeFunction_ds(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgds[i] = 0.0;
@@ -221,7 +221,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 					dgds[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// t で微分
 			kmb::Quad::shapeFunction_dt(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdt[i] = 0.0;
@@ -251,7 +251,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 			g[0] -= target[0];
 			g[1] -= target[1];
 			g[2] -= target[2];
-
+			// s で微分
 			kmb::Quad::shapeFunction_ds(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgds[i] = 0.0;
@@ -259,7 +259,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 					dgds[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// t で微分
 			kmb::Quad::shapeFunction_dt(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdt[i] = 0.0;
@@ -267,7 +267,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 					dgdt[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// ss
 			kmb::Quad::shapeFunction_dsds(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdss[i] = 0.0;
@@ -275,7 +275,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 					dgdss[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// st
 			kmb::Quad::shapeFunction_dsdt(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdst[i] = 0.0;
@@ -283,7 +283,7 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 					dgdst[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// tt
 			kmb::Quad::shapeFunction_dtdt(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdtt[i] = 0.0;
@@ -301,8 +301,6 @@ kmb::Quad::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* 
 		: target(t), points(pt){}
 	};
 	nr_local opt_obj(target,points);
-
-
 	double init_t[2]  = { 0.0,  0.0};
 	kmb::Optimization opt;
 	bool res = opt.calcZero_DN( opt_obj, naturalCoords, init_t );
@@ -332,7 +330,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 	bool swapped = false;
 	if( quad0.getType() == kmb::QUAD && quad1.getType() == kmb::QUAD )
 	{
-
+		// 2点共有の確認
 		unsigned int rel = 0;
 		unsigned int flag = 0x0001;
 		for(int i=0;i<4;++i){
@@ -343,9 +341,9 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 		}
 		kmb::nodeIdType nodes[6]
 			= {kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId};
-
+		// nodes[0] と nodes[3] が結びついているとする
 		switch( rel ){
-		case 0x0081:
+		case 0x0081:  // (0,0) (1,3)
 			nodes[0] = quad0.getCellId(0);
 			nodes[1] = quad1.getCellId(1);
 			nodes[2] = quad1.getCellId(2);
@@ -354,7 +352,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(3);
 			swapped = true;
 			break;
-		case 0x0012:
+		case 0x0012:  // (0,1) (1,0)
 			nodes[0] = quad0.getCellId(0);
 			nodes[1] = quad1.getCellId(2);
 			nodes[2] = quad1.getCellId(3);
@@ -363,7 +361,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(3);
 			swapped = true;
 			break;
-		case 0x0024:
+		case 0x0024:  // (0,2) (1,1)
 			nodes[0] = quad0.getCellId(0);
 			nodes[1] = quad1.getCellId(3);
 			nodes[2] = quad1.getCellId(0);
@@ -372,7 +370,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(3);
 			swapped = true;
 			break;
-		case 0x0048:
+		case 0x0048:  // (0,3) (1,2)
 			nodes[0] = quad0.getCellId(0);
 			nodes[1] = quad1.getCellId(0);
 			nodes[2] = quad1.getCellId(1);
@@ -381,7 +379,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(3);
 			swapped = true;
 			break;
-		case 0x0810:
+		case 0x0810:  // (1,0) (2,3)
 			nodes[0] = quad0.getCellId(1);
 			nodes[1] = quad1.getCellId(1);
 			nodes[2] = quad1.getCellId(2);
@@ -390,7 +388,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(0);
 			swapped = true;
 			break;
-		case 0x0120:
+		case 0x0120:  // (1,1) (2,0)
 			nodes[0] = quad0.getCellId(1);
 			nodes[1] = quad1.getCellId(2);
 			nodes[2] = quad1.getCellId(3);
@@ -399,7 +397,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(0);
 			swapped = true;
 			break;
-		case 0x0240:
+		case 0x0240:  // (1,2) (2,1)
 			nodes[0] = quad0.getCellId(1);
 			nodes[1] = quad1.getCellId(3);
 			nodes[2] = quad1.getCellId(0);
@@ -408,7 +406,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(0);
 			swapped = true;
 			break;
-		case 0x0480:
+		case 0x0480:  // (1,3) (2,2)
 			nodes[0] = quad0.getCellId(1);
 			nodes[1] = quad1.getCellId(0);
 			nodes[2] = quad1.getCellId(1);
@@ -417,7 +415,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(0);
 			swapped = true;
 			break;
-		case 0x8100:
+		case 0x8100:  // (2,0) (3,3)
 			nodes[0] = quad0.getCellId(2);
 			nodes[1] = quad1.getCellId(1);
 			nodes[2] = quad1.getCellId(2);
@@ -426,7 +424,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(1);
 			swapped = true;
 			break;
-		case 0x1200:
+		case 0x1200:  // (2,1) (3,0)
 			nodes[0] = quad0.getCellId(2);
 			nodes[1] = quad1.getCellId(2);
 			nodes[2] = quad1.getCellId(3);
@@ -435,7 +433,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(1);
 			swapped = true;
 			break;
-		case 0x2400:
+		case 0x2400:  // (2,2) (3,1)
 			nodes[0] = quad0.getCellId(2);
 			nodes[1] = quad1.getCellId(3);
 			nodes[2] = quad1.getCellId(0);
@@ -444,7 +442,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(1);
 			swapped = true;
 			break;
-		case 0x4800:
+		case 0x4800:  // (2,3) (3,2)
 			nodes[0] = quad0.getCellId(2);
 			nodes[1] = quad1.getCellId(0);
 			nodes[2] = quad1.getCellId(1);
@@ -453,7 +451,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(1);
 			swapped = true;
 			break;
-		case 0x1008:
+		case 0x1008:  // (3,0) (0,3)
 			nodes[0] = quad0.getCellId(3);
 			nodes[1] = quad1.getCellId(1);
 			nodes[2] = quad1.getCellId(2);
@@ -462,7 +460,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(2);
 			swapped = true;
 			break;
-		case 0x2001:
+		case 0x2001:  // (3,1) (0,0)
 			nodes[0] = quad0.getCellId(3);
 			nodes[1] = quad1.getCellId(2);
 			nodes[2] = quad1.getCellId(3);
@@ -471,7 +469,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(2);
 			swapped = true;
 			break;
-		case 0x4002:
+		case 0x4002:  // (3,2) (0,1)
 			nodes[0] = quad0.getCellId(3);
 			nodes[1] = quad1.getCellId(3);
 			nodes[2] = quad1.getCellId(0);
@@ -480,7 +478,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 			nodes[5] = quad0.getCellId(2);
 			swapped = true;
 			break;
-		case 0x8004:
+		case 0x8004:  // (3,3) (0,2)
 			nodes[0] = quad0.getCellId(3);
 			nodes[1] = quad1.getCellId(0);
 			nodes[2] = quad1.getCellId(1);
@@ -494,7 +492,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 		}
 		if( swapped ){
 			if( orientation ){
-
+				// 1,4 をつなぐ
 				quad0.setCellId(0, nodes[1]);
 				quad0.setCellId(1, nodes[2]);
 				quad0.setCellId(2, nodes[3]);
@@ -504,7 +502,7 @@ kmb::Quad::edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orienta
 				quad1.setCellId(2, nodes[4]);
 				quad1.setCellId(3, nodes[5]);
 			}else{
-
+				// 2,5 をつなぐ
 				quad0.setCellId(0, nodes[0]);
 				quad0.setCellId(1, nodes[1]);
 				quad0.setCellId(2, nodes[2]);
@@ -541,13 +539,13 @@ kmb::Quad::isCoincident(kmb::nodeIdType t00,kmb::nodeIdType t01,kmb::nodeIdType 
 	if( t03 == t12 )	rel |= 0x0004;
 	if( t03 == t13 )	rel |= 0x0008;
 	switch( rel ){
-
+		// 同じ向きに3点共有
 	case 0x1248:
 	case 0x2481:
 	case 0x4812:
 	case 0x8124:
 		return 1;
-
+		// 逆向きに3点共有
 	case 0x8421:
 	case 0x4218:
 	case 0x2184:
@@ -575,8 +573,8 @@ kmb::Quad::jacobian(double s, double t,const kmb::Point2D* points)
 	return jsx * jty - jsy * jtx;
 }
 
-
-
+// Quad の場合 jacobian の微係数は定数になる
+// したがって最大・最小は必ず頂点で取る
 
 
 #ifdef _MSC_VER

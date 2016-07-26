@@ -12,11 +12,11 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
-
+//
+// 慣用的に制御点の値は同次座標そのものではなく
+// [x,y,w] => [xw:yw:w] に変換したものが同次座標
+// 変換後の同次座標で混ぜ合わせることに注意する
+//
 #pragma once
 
 #include "Shape/kmbCurve2D.h"
@@ -48,7 +48,7 @@ public:
 	virtual void getDomain( double &min_t, double &max_t ) const;
 	virtual bool getNearest( const kmb::Point2D& point, double& t ) const;
 protected:
-
+	// 有理式の分母だけ計算する
 	virtual bool getSubDerivative( double t, kmb::Vector2D& tangent ) const;
 	virtual bool getSubSecondDerivative( double t, kmb::Vector2D& tangent ) const;
 	virtual bool getWeight( double t, double &w ) const;

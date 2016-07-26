@@ -18,12 +18,12 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 #include <cfloat>
@@ -59,7 +59,7 @@ public:
 		}
 	}
 
-
+	// i0 行と i1 行の交換
 	virtual bool row_exchange(int i0,int i1){
 		double t = getRow(i0);
 		setRow(i0,getRow(i1));
@@ -67,23 +67,23 @@ public:
 		return true;
 	}
 
-
+	// i0 行を r 倍して i1 行に加える
 	virtual bool row_transf(int i0,int i1,double r){
 		setRow(i1,getRow(i1)+r*getRow(i0));
 		return true;
 	}
 
-
+	// i0 行を r 倍
 	virtual bool row_multi(int i0,double r){
 		setRow(i0,r*getRow(i0));
 		return true;
 	}
 
-
+	// 成分
 	virtual double& operator[](const int i) = 0;
 	virtual double operator[](const int i) const = 0;
 
-
+	// 代入
 	ColumnVector& operator=(const ColumnVector& other){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -97,7 +97,7 @@ public:
 			(*this)[i] = other[i];
 		}
 	}
-
+	// 和代入
 	bool setSum(const ColumnVector& v0,const ColumnVector& v1){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -119,7 +119,7 @@ public:
 		}
 		return true;
 	}
-
+	// 差代入
 	bool setDifference(const ColumnVector& v0,const ColumnVector& v1){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -141,7 +141,7 @@ public:
 		}
 		return true;
 	}
-
+	// スカラ倍代入 this = s * v
 	bool setScalar(const double s,const ColumnVector& v){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -149,7 +149,7 @@ public:
 		}
 		return true;
 	}
-
+	// スカラ倍加える this = this + s * v
 	bool addScalar(const double s,const ColumnVector& v){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -157,7 +157,7 @@ public:
 		}
 		return true;
 	}
-
+	// アルキメデス長さ
 	double distanceSq(const ColumnVector &other) const{
 		double lenSq = 0.0;
 		int size = getSize();
@@ -166,7 +166,7 @@ public:
 		}
 		return lenSq;
 	}
-
+	// 内積
 	double operator%(const kmb::ColumnVector &other) const{
 		double sum = 0.0;
 		int size = getSize();
@@ -182,7 +182,7 @@ public:
 		}
 		return sum;
 	}
-
+	// normSq
 	double normSq(void) const{
 		double lenSq = 0.0;
 		int size = getSize();
@@ -198,7 +198,7 @@ public:
 		}
 		return sum;
 	}
-
+	// 1-norm = 絶対値の和
 	double norm_1(void) const{
 		double norm = 0.0;
 		int size = getSize();
@@ -207,7 +207,7 @@ public:
 		}
 		return norm;
 	}
-
+	// inf-norm = 絶対値の最大
 	double norm_inf(void) const{
 		double m = -DBL_MAX;
 		int size = getSize();
@@ -249,7 +249,7 @@ public:
 		}
 	}
 
-
+	// i0 列と i1 列の交換
 	virtual bool column_exchange(int i0,int i1){
 		double t = getColumn(i0);
 		setColumn(i0,getColumn(i1));
@@ -257,23 +257,23 @@ public:
 		return true;
 	}
 
-
+	// i0 列を r 倍して i1 列に加える
 	virtual bool column_transf(int i0,int i1,double r){
 		setColumn(i1,getColumn(i1)+r*getColumn(i0));
 		return true;
 	}
 
-
+	// i0 列を r 倍
 	virtual bool column_multi(int i0,double r){
 		setColumn(i0,r*getColumn(i0));
 		return true;
 	}
 
-
+	// 成分
 	virtual double& operator[](const int i) = 0;
 	virtual double operator[](const int i) const = 0;
 
-
+	// 代入
 	RowVector& operator=(const RowVector& other){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -287,7 +287,7 @@ public:
 			(*this)[i] = other[i];
 		}
 	}
-
+	// 和代入
 	bool setSum(const RowVector& v0,const RowVector& v1){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -309,7 +309,7 @@ public:
 		}
 		return true;
 	}
-
+	// 差代入
 	bool setDifference(const RowVector& v0,const RowVector& v1){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -331,7 +331,7 @@ public:
 		}
 		return true;
 	}
-
+	// スカラ倍代入 this = x * v
 	bool setScalar(const double s,const RowVector& v){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -339,7 +339,7 @@ public:
 		}
 		return true;
 	}
-
+	// スカラ倍加える this = this + s * v
 	bool addScalar(const double s,const RowVector& v){
 		int size = getSize();
 		for(int i=0;i<size;++i){
@@ -347,7 +347,7 @@ public:
 		}
 		return true;
 	}
-
+	// アルキメデス長さ
 	double distanceSq(const RowVector &other) const{
 		double lenSq = 0.0;
 		int size = getSize();
@@ -356,7 +356,7 @@ public:
 		}
 		return lenSq;
 	}
-
+	// 内積
 	double operator%(const kmb::RowVector &other) const{
 		double sum = 0.0;
 		int size = getSize();
@@ -372,7 +372,7 @@ public:
 		}
 		return sum;
 	}
-
+	// normSq
 	double normSq(void) const{
 		double lenSq = 0.0;
 		int size = getSize();
@@ -388,7 +388,7 @@ public:
 		}
 		return sum;
 	}
-
+	// 1-norm = 絶対値の和
 	double norm_1(void) const{
 		double norm = 0.0;
 		int size = getSize();
@@ -397,7 +397,7 @@ public:
 		}
 		return norm;
 	}
-
+	// inf-norm = 絶対値の最大
 	double norm_inf(void) const{
 		double m = -DBL_MAX;
 		int size = getSize();

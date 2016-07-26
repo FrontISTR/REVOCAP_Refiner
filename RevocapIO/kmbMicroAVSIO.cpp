@@ -17,6 +17,7 @@
 #include "MeshDB/kmbElement.h"
 #include "MeshDB/kmbMeshData.h"
 #include "MeshDB/kmbDataBindings.h"
+#include "MeshDB/kmbScalarValueBindings.h"
 #include "MeshDB/kmbPhysicalValue.h"
 
 #include <fstream>
@@ -42,14 +43,14 @@ kmb::MicroAVSIO::~MicroAVSIO(void)
 {
 }
 
-/* version 9 �̂Ƃ�
+/* version 9 のとき
 
-( �R�����g�s)
-( �X�e�b�v��)
-( �f�[�^�̌J��Ԃ��^�C�v)
-( �X�e�b�v�ԍ�1) ( �R�����g)
-( �S�ߓ_��) ( �S�v�f��)
-( �ߓ_�ԍ�1) (X ���W) (Y ���W) (Z ���W)
+( コメント行)
+( ステップ数)
+( データの繰り返しタイプ)
+( ステップ番号1) ( コメント)
+( 全節点数) ( 全要素数)
+( 節点番号1) (X 座標) (Y 座標) (Z 座標)
 
  */
 int
@@ -62,7 +63,7 @@ kmb::MicroAVSIO::getVersion(std::ifstream &input) const
 			return 9;
 		}else if( line.find_first_of("0123456789") != std::string::npos ){
 			if( line.find_first_not_of("0123456789") == std::string::npos ){
-
+				// 数字以外の記述がない時 = STEP とみなす
 				return 9;
 			}else{
 				return 8;
@@ -95,7 +96,7 @@ kmb::MicroAVSIO::readHeader(std::ifstream &input)
 			if( line.length() > 0 &&  line.at(0) == '#' ){
 				continue;
 			}
-
+			// 最初の行
 			if( step == -1 ){
 				std::istringstream stream(line);
 				stream >> step;
@@ -208,7 +209,7 @@ kmb::MicroAVSIO::readGeom(std::ifstream &input,kmb::MeshData* mesh)
 				mesh->addElementWithId( kmb::TETRAHEDRON, nodeTable, elementId-elementOffset );
 			}else if( etype == "tet2" ){
 				input >> nodeTable[0] >> nodeTable[1] >> nodeTable[3] >> nodeTable[2];
-				input >> nodeTable[9] >> nodeTable[6] >> nodeTable[4] >> nodeTable[5] >> nodeTable[7] >> nodeTable[8];
+				input >> nodeTable[6] >> nodeTable[7] >> nodeTable[5] >> nodeTable[8] >> nodeTable[9] >> nodeTable[4];
 				for(int j=0;j<10;++j){
 					nodeTable[j] -= nodeOffset;
 				}
@@ -423,7 +424,7 @@ kmb::MicroAVSIO::skipGeom(std::ifstream &input)
 	return 0;
 }
 
-
+// 行の非空白からコンマまでを取り出す
 void
 kmb::MicroAVSIO::getDataName(std::string &line)
 {
@@ -450,11 +451,11 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 	kmb::DataBindings* data = NULL;
 	if( version == 9 ){
 		int nodeDataCount = 0, elementDataCount = 0;
-
+		// 変数すべての個数
 		input >> nodeDimCount >> elementDimCount;
 		if( nodeDimCount > 0 ){
 			mesh->clearTargetData();
-
+			// 変数の個数
 			input >> nodeDataCount;
 			if( nodeDataCount>0 ){
 				std::string line;
@@ -465,14 +466,14 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					items[i].dim = d;
 				}
 				std::getline( input, line );
-
+				// nodeDataCount 行
 				for(int i=0;i<nodeDataCount;++i){
 					std::getline( input, line );
 					getDataName(line);
 					items[i].name = line;
 				}
 				if( summary ){
-
+					// ; がある行は３つにまとめる
 					for(int i=0;i<nodeDataCount-2;++i){
 						size_t semiColon = items[i].name.find(";");
 						if( semiColon != std::string::npos ){
@@ -483,7 +484,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							items[i+2].dim = 0;
 						}
 					}
-
+					// _1 がある行はまとめる
 					for(int i=0;i<nodeDataCount;++i){
 						size_t bar = items[i].name.find("_1");
 						if( bar != std::string::npos ){
@@ -504,7 +505,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						}
 					}
 				}
-
+				// asVector3 フラグ
 				if( asVector3 && nodeDataCount == 3 && items[0].dim == 1 && items[1].dim == 1 && items[1].dim == 1 ){
 					items[0].dim = 3;
 					items[1].dim = 0;
@@ -569,7 +570,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 7:
-
+						// FrontISTR 専用 6+1 に分ける
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
 								data->getBindingMode() != kmb::DataBindings::NodeVariable ||
@@ -616,7 +617,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 		}
 		if( elementDimCount > 0 ){
 			mesh->clearTargetData();
-
+			// 変数の個数
 			input >> elementDataCount;
 			if( elementDataCount>0 ){
 				std::string line;
@@ -625,14 +626,14 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					input >> items[i].dim;
 				}
 				std::getline( input, line );
-
+				// elementDataCount 行
 				for(int i=0;i<elementDataCount;++i){
 					std::getline( input, line );
 					getDataName(line);
 					items[i].name = line;
 				}
 				if( summary ){
-
+					// ; がある行は３つにまとめる
 					for(int i=0;i<elementDataCount-2;++i){
 						size_t semiColon = items[i].name.find(";");
 						if( semiColon != std::string::npos ){
@@ -643,7 +644,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							items[i+2].dim = 0;
 						}
 					}
-
+					// _1 がある行はまとめる
 					for(int i=0;i<elementDataCount;++i){
 						size_t bar = items[i].name.find("_1");
 						if( bar != std::string::npos ){
@@ -723,7 +724,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 7:
-
+						// FrontISTR 専用 6 + 1 に分ける
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
 								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
@@ -772,7 +773,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 		int nodeDataCount = 0, elementDataCount = 0;
 		if( nodeDimCount > 0 ){
 			mesh->clearTargetData();
-
+			// 変数の個数
 			input >> nodeDataCount;
 			if( nodeDataCount>0 ){
 				std::string line;
@@ -781,14 +782,14 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					input >> items[i].dim;
 				}
 				std::getline( input, line );
-
+				// nodeDataCount 行
 				for(int i=0;i<nodeDataCount;++i){
 					std::getline( input, line );
 					getDataName(line);
 					items[i].name = line;
 				}
 				if( summary ){
-
+					// ; がある行は３つにまとめる
 					for(int i=0;i<nodeDataCount-2;++i){
 						size_t semiColon = items[i].name.find(";");
 						if( semiColon != std::string::npos ){
@@ -799,7 +800,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							items[i+2].dim = 0;
 						}
 					}
-
+					// _1 がある行はまとめる
 					for(int i=0;i<nodeDataCount;++i){
 						size_t bar = items[i].name.find("_1");
 						if( bar != std::string::npos ){
@@ -820,7 +821,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						}
 					}
 				}
-
+				// asVector3 フラグ
 				if( asVector3 && nodeDataCount == 3 && items[0].dim == 1 && items[1].dim == 1 && items[1].dim == 1 ){
 					items[0].dim = 3;
 					items[1].dim = 0;
@@ -931,7 +932,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 		}
 		if( elementDimCount > 0 ){
 			mesh->clearTargetData();
-
+			// 変数の個数
 			input >> elementDataCount;
 			if( elementDataCount>0 ){
 				std::string line;
@@ -940,14 +941,14 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 					input >> items[i].dim;
 				}
 				std::getline( input, line );
-
+				// elementDataCount 行
 				for(int i=0;i<elementDataCount;++i){
 					std::getline( input, line );
 					getDataName(line);
 					items[i].name = line;
 				}
 				if( summary ){
-
+					// ; がある行は３つにまとめる
 					for(int i=0;i<elementDataCount-2;++i){
 						size_t semiColon = items[i].name.find(";");
 						if( semiColon != std::string::npos ){
@@ -958,7 +959,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							items[i+2].dim = 0;
 						}
 					}
-
+					// _1 がある行はまとめる
 					for(int i=0;i<elementDataCount;++i){
 						size_t bar = items[i].name.find("_1");
 						if( bar != std::string::npos ){
@@ -1038,7 +1039,7 @@ kmb::MicroAVSIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 						mesh->appendTargetDataPtr( data );
 						break;
 					case 7:
-
+						// FrontISTR 専用 6 + 1 に分ける
 						data = mesh->getDataBindingsPtr( items[i].name.c_str(), "post" );
 						if( data && (
 								data->getBindingMode() != kmb::DataBindings::ElementVariable ||
@@ -1194,12 +1195,17 @@ kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 	if( output.fail() ){
 		return -1;
 	}
-
-
-
+	
+	// 出力する要素の次元
+	// 要素番号は出力する次元のものが先にあること
 	int modelDim = 3;
 	size_t nodeCount = mesh->getNodeCount();
 	size_t elemCount = 0;
+
+	if( nodeCount == 0 ){
+		std::cout << "node count == 0" << std::endl;
+		return -1;
+	}
 
 	kmb::bodyIdType bodyCount = mesh->getBodyCount();
 
@@ -1220,6 +1226,10 @@ kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 			elemCount += body->getCount();
 		}
 	}
+	if( elementCount == 0 ){
+		std::cout << "element count == 0" << std::endl;
+		return -1;
+	}
 
 	output << "# UCD (AVS/Express)" << std::endl;
 	output << "1" << std::endl;
@@ -1237,8 +1247,9 @@ kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 		++nIter;
 	}
 
-
-
+	// REVOCAP と AVS の節点配列の順番を注意するためにあえて for を使わずに実装
+	// 既に BodyName は与えられているものとする
+	// マテリアル番号は bodyId を出力している
 	for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 		const kmb::Body* body = mesh->getBodyPtr(bodyId);
 		if( body == NULL || body->getDimension() != modelDim ){
@@ -1261,12 +1272,12 @@ kmb::MicroAVSIO::saveToFile(const char* filename,kmb::MeshData* mesh)
 						eIter[1] + this->nodeOffset << " " <<
 						eIter[3] + this->nodeOffset << " " <<
 						eIter[2] + this->nodeOffset << " " <<
-						eIter[6] + this->nodeOffset << " " <<
-						eIter[7] + this->nodeOffset << " " <<
-						eIter[5] + this->nodeOffset << " " <<
-						eIter[8] + this->nodeOffset << " " <<
 						eIter[9] + this->nodeOffset << " " <<
-						eIter[4] + this->nodeOffset << std::endl;
+						eIter[6] + this->nodeOffset << " " <<
+						eIter[4] + this->nodeOffset << " " <<
+						eIter[5] + this->nodeOffset << " " <<
+						eIter[7] + this->nodeOffset << " " <<
+						eIter[8] + this->nodeOffset << std::endl;
 					break;
 				case kmb::TRIANGLE:
 					output << "tri " <<
@@ -1507,11 +1518,10 @@ int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
 	size_t nDataDim = 0;
 	size_t eDataCount = 0;
 	size_t eDataDim = 0;
-	size_t mDataCount = 0;
 	size_t mDataDim = 0;
 
-
-
+	// 出力する要素の次元
+	// 要素番号は出力する次元のものが先にあること
 	int modelDim = 3;
 
 	kmb::bodyIdType bodyCount = mesh->getBodyCount();
@@ -1586,7 +1596,7 @@ int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
 			}
 		}
 	}
-
+	// MicroAVS ではベクトル値の出力は認められていないので、すべてスカラーとして出力する
 	output << " " << std::setw(10) << nodeCount <<
 		" " << std::setw(10) << elemCount <<
 		" " << std::setw(10) << nDataDim <<
@@ -1604,8 +1614,8 @@ int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
 		++nIter;
 	}
 
-
-
+	// REVOCAP と AVS の節点配列の順番を注意するためにあえて for を使わずに実装
+	// 既に BodyName は与えられているものとする
 	for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 		const kmb::Body* body = mesh->getBodyPtr(bodyId);
 		if( body == NULL || body->getDimension() != modelDim ){
@@ -1683,9 +1693,9 @@ int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
 		}
 	}
 
-	if( nDataDim > 0 ){
+	if( nDataDim > 0U ){
 		output << " " << nDataDim;
-		for(int i=0;i<nDataDim;++i){
+		for(unsigned int i=0;i<nDataDim;++i){
 			output << " 1";
 		}
 		output << std::endl;
@@ -1735,7 +1745,7 @@ int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
 		for(nodeId=0;nodeId<nodeCount;++nodeId){
 			mesh->getMultiPhysicalValues(nodeId,values);
 			output << " " << std::setw(12) << nodeId+this->nodeOffset;
-			for(int i=0;i<nDataDim;++i){
+			for(unsigned int i=0;i<nDataDim;++i){
 				output << std::setfill(' ') << std::setprecision(8) << std::scientific << " " <<
 				std::setw(16) << values[i];
 			}
@@ -1745,7 +1755,7 @@ int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
 	}
 	if( eDataDim > 0 ){
 		output << " " << eDataDim;
-		for(int i=0;i<eDataDim;++i){
+		for(unsigned int i=0;i<eDataDim;++i){
 			output << " 1";
 		}
 		output << std::endl;
@@ -1795,7 +1805,7 @@ int kmb::MicroAVSIO::saveToFile_V8(const char* filename,kmb::MeshData* mesh)
 		for(elementId=0;elementId<elementCount;++elementId){
 			mesh->getMultiPhysicalValues(elementId,values);
 			output << " " << std::setw(12) << elementId+this->elementOffset;
-			for(int i=0;i<nDataDim;++i){
+			for(unsigned int i=0;i<nDataDim;++i){
 				output << std::setfill(' ') << std::setprecision(8) << std::scientific << " " <<
 				std::setw(16) << values[i];
 			}

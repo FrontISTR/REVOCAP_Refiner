@@ -80,8 +80,8 @@ kmb::Permutation::isFinished(void) const
 	return ( seq == NULL );
 }
 
-
-
+// 最後のものを next すると
+// seq = NULL にする
 bool
 kmb::Permutation::nextPerm(int i)
 {
@@ -94,7 +94,7 @@ kmb::Permutation::nextPerm(int i)
 			}
 			return nextPerm(i-1);
 		}
-
+		// 0 から i-1 桁目で使われていたら true;
 		bool* temp = new bool[n];
 		for(int j=0;j<n;++j){
 			temp[j] = false;
@@ -102,7 +102,7 @@ kmb::Permutation::nextPerm(int i)
 		for(int j=0;j<i;++j){
 			temp[ seq[j] ] = true;
 		}
-
+		// i 桁目を 0 から i-1 桁目で使われていない数に増やす
 		bool flag = false;
 		for(int j=0;j<n;++j){
 			if( temp[j] == false && j > seq[i] ){
@@ -112,12 +112,12 @@ kmb::Permutation::nextPerm(int i)
 				break;
 			}
 		}
-
+		// 増やせなかったとき
 		if( !flag ){
 			delete[] temp;
 			return nextPerm(i-1);
 		}
-
+		// i+1 桁目以下を空いている数で埋める
 		++i;
 		if( i < k ){
 			for(int j=0;j<n;++j){

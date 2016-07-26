@@ -42,10 +42,10 @@ public:
 	};
 	Region(void);
 	virtual ~Region(void);
-
+	/// 判定関数
 	virtual locationType intersect(const Point3D &point) const = 0;
 	virtual bool intersect(const BoxRegion& box) const = 0;
-
+	/// 距離関数
 	virtual double distanceSq(const Point3D &point) const = 0;
 	virtual double distanceSq(const double x,const double y,const double z) const;
 	virtual double distance(const Point3D& point) const;

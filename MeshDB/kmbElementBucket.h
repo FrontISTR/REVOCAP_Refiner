@@ -42,19 +42,19 @@ public:
 	int append(kmb::elementIdType elementId);
 	int appendAll(void);
 
-
-
-
+	// 登録されているコンテナを取り替えて、
+	// このコンテナに格納されている要素をすべて登録する
+	// ただし既存の登録済みの要素はそのまま
 	int appendAllElement(const kmb::ElementContainer* body);
 
-
-
-
+	// 登録されているコンテナから探す
+	// 与えられた点を内部に含むような要素を返す
+	// 与えられた点と要素の面からなる錐体の体積が tolerance の値よりも小さい場合を除く
 	kmb::elementIdType searchElement(double x,double y,double z,double tolerance=0.0) const;
 
-
+	// body を与えてその中から探す
 	kmb::elementIdType searchElementInBody(const kmb::ElementContainer* body,double x,double y,double z,double tolerance=0.0) const;
-
+	// element group または face group  を与えてその中から探す
 	kmb::elementIdType searchElementInData(const kmb::DataBindings* data,const kmb::ElementContainer* body,double x,double y,double z,double tolerance=0.0) const;
 };
 

@@ -25,6 +25,9 @@
 ----------------------------------------------------------------------*/
 #pragma once
 
+// 分類用のユーティリティクラス
+// 集合の同値関係を与えて極大同値類を返す
+// もとの集合の要素の型は T
 
 
 
@@ -36,7 +39,7 @@
 
 namespace kmb{
 
-
+// T には不等号 < と比較 == が定義されているとする
 template<typename T>
 class Classification
 {
@@ -91,15 +94,15 @@ public:
 	Classification(void) : classCount(0){}
 	virtual ~Classification(void){}
 protected:
-	typename std::map<T,T> representTable;
-	typename std::multimap<T,T> eqTable;
-
-
+	typename std::map<T,T> representTable;    // 要素 => 代表（最小要素）
+	typename std::multimap<T,T> eqTable;   // 代表（最小要素） => 同値類の中身
+	// x0 <= x1 が保証されているとき
+	// x0 を代表元として x1 を登録する
 	void addPair(T x0,T x1){
 		eqTable.insert( std::pair< T, T >(x0,x1) );
 		representTable.insert( std::pair< T, T >(x1,x0) );
 	}
-
+	// 代表元を小さい方に合わせる
 	void convertKey(T x0,T x1){
 		if( x0 == x1 ){
 			return;
@@ -108,7 +111,7 @@ protected:
 			x1 = x0;
 			x0 = y;
 		}
-
+		// x1 < x0 を仮定する
 		std::pair< typename std::multimap<T,T>::iterator, typename std::multimap<T,T>::iterator >
 				tIterPair = eqTable.equal_range( x0 );
 		typename std::multimap<T,T>::iterator tIter = tIterPair.first;
@@ -124,7 +127,7 @@ public:
 		representTable.clear();
 		classCount = 0;
 	}
-
+	// x を他とは同値でない要素として登録
 	virtual bool add(T x){
 		if( representTable.find(x) == representTable.end() ){
 			addPair( x, x );
@@ -134,8 +137,8 @@ public:
 			return false;
 		}
 	}
-
-
+	// x0 と x1 を同値な要素として登録
+	// 既に登録済みのときは、同値関係を追加
 	virtual bool equivalent(T x0,T x1){
 		if( x0 == x1 ){
 			return add(x0);
@@ -145,21 +148,21 @@ public:
 			x0 = x1;
 			x1 = x;
 		}
-
+		// 以後 x0 <= x1
 		typename std::map<T,T>::iterator r0Iter = representTable.find(x0);
 		typename std::map<T,T>::iterator r1Iter = representTable.find(x1);
-
+		// どちらも登録されていないとき
 		if( r0Iter == representTable.end() && r1Iter == representTable.end() ){
 			addPair( x0, x1 );
 			addPair( x0, x0 );
 			++classCount;
 		}else
-
+		// x0 が登録済み
 		if( r0Iter != representTable.end() && r1Iter == representTable.end() ){
 			T x00 = r0Iter->second;
 			addPair( x00, x1 );
 		}else
-
+		// x1 が登録済み
 		if( r0Iter == representTable.end() && r1Iter != representTable.end() ){
 			T x10 = r1Iter->second;
 			if( x10 < x0 ){
@@ -169,7 +172,7 @@ public:
 				addPair( x0, x0 );
 			}
 		}else
-
+		// 両方 が異なるクラスに登録済み
 		if( r0Iter->second != r1Iter->second ){
 			T x00 = r0Iter->second;
 			T x10 = r1Iter->second;
@@ -178,13 +181,13 @@ public:
 		}
 		return true;
 	}
-
+	// t0 と t1 が同値かどうかを判定
 	virtual bool isEquivalent(T x0,T x1) const{
 		typename std::map<T,T>::const_iterator r0Iter = representTable.find(x0);
 		typename std::map<T,T>::const_iterator r1Iter = representTable.find(x1);
 		return ( r0Iter != representTable.end() && r1Iter != representTable.end() && r0Iter->second == r1Iter->second );
 	}
-
+	// 代表元
 	virtual T getClassId(T x) const{
 		typename std::map<T,T>::const_iterator rIter = representTable.find(x);
 		if( rIter != representTable.end() ){
@@ -194,7 +197,7 @@ public:
 		}
 	}
 public:
-
+	// 全体のイテレータ
 	virtual iterator begin(void) const{
 		typename Classification<T>::iterator it;
 		it.cIter = this->eqTable.begin();
@@ -207,9 +210,9 @@ public:
 		it.endIter = this->eqTable.end();
 		return it;
 	}
-
-
-
+	// x を含む同値類のイテレータ
+	// x が含まれないときは end() を返す
+	// end(x) = begin( x の次の代表 ) と同じ
 	virtual iterator begin(T x) const{
 		T x0 = getClassId(x);
 		typename Classification<T>::iterator it;

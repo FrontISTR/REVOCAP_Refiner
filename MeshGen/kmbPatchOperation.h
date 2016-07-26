@@ -23,9 +23,9 @@
 #      "Innovative General-Purpose Coupled Analysis System"            #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
+//
+// 三角形要素からなるパッチに対する位相処理
+//
 
 #pragma once
 
@@ -51,14 +51,14 @@ public:
 	PatchOperation(const kmb::Point3DContainer* points);
 	PatchOperation(void);
 	virtual ~PatchOperation(void);
-
+	// 向きをそろえようとする。向きを変えた要素の個数を返す。
 	int uniformOrientation(kmb::MeshDB* mesh,kmb::bodyIdType bodyId,kmb::elementIdType elementId=kmb::Element::nullElementId);
-
-
+	// edgeId : by its nodes all segments (and triangles) are subdivided.
+	// tolerance : threshold distance between segment and nodes
 	kmb::bodyIdType subdivideByEdge(kmb::MeshDB* mesh,kmb::bodyIdType edgeId,double tolerance=DBL_MAX,double globalTolerance=DBL_MAX);
 	kmb::bodyIdType subdivideByEdgeWithPatch(kmb::MeshDB* mesh,kmb::bodyIdType edgeId,double tolerance=DBL_MAX,double globalTolerance=DBL_MAX);
-
-
+	// targetId : its segment are subdivided by nodes of body of edge id
+	// return : number of division
 	int subdivideEdge(kmb::MeshDB* mesh,kmb::bodyIdType targetId,kmb::bodyIdType edgeId,double tolerance=DBL_MAX);
 	int subdivideEdgeWithPatch(kmb::MeshDB* mesh,kmb::bodyIdType targetId,kmb::bodyIdType targetPatchId,kmb::bodyIdType edgeId,double tolerance=DBL_MAX);
 
@@ -66,12 +66,12 @@ public:
 				const kmb::FramedPlane &plane,kmb::bodyIdType &positiveID,kmb::bodyIdType &negativeID,
 				bool capFlag=false,bool duplicateFlag=false,double tolerance=1.0e-8);
 private:
-
+	// subdivide edge by node matching info
 	int edgeSubdivider(kmb::MeshDB* mesh,kmb::bodyIdType edgeId, std::set<kmb::NodeMatchingInfo>& matchingInfo);
 
-
-
-
+	// REMARK : call this method BEFORE edgeSubdivider method for the same edgeId
+	// patchId : body id of trianlges 
+	// edgeId : body id of segments, used in kmb::NodeMatchingInfo::elementId
 	int triangleSubdivider(kmb::MeshDB* mesh,kmb::bodyIdType edgeId, kmb::bodyIdType patchId, std::set<kmb::NodeMatchingInfo>& matchingInfo);
 protected:
 	const Point3DContainer* points;

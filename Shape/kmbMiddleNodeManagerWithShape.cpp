@@ -106,13 +106,13 @@ kmb::MiddleNodeManagerWithShape::createMiddleNode(kmb::nodeIdType n0, kmb::nodeI
 		kmb::Surface3D* surface = NULL;
 		kmb::Point3D pt;
 		double u,v;
-
-
+		// n0 と n1 が共有する曲面を探す
+		// 共通の面が複数ある時は高次の面を優先して探すようにするべきかも
 		if( mappingToSurface->isCommonIntval(n0,n1,v0,v1) > 0 )
 		{
-
+			// 共通の面があるときは、(u,v) 座標で中点を計算する
 			if( nearestFlag ){
-
+				// nearest => (u,v) の中点よりも幾何的な中点に近い点があれば置き換える
 				kmb::nodeIdType nodeId = kmb::nullNodeId;
 				for(unsigned int i=0;i<v0.size();++i){
 					if( (surface = surfaces->at(v0[i].l)) != NULL ){
@@ -144,72 +144,14 @@ kmb::MiddleNodeManagerWithShape::createMiddleNode(kmb::nodeIdType n0, kmb::nodeI
 				}
 			}
 		}else{
-
-/*
-
-			if( nearestFlag ){
-				kmb::Node p0, p1, pt0, pt1;
-
-				double u0(0.0), v0(0.0), u1(0.0), v1(0.0);
-
-				double uu0(0.0), vv0(0.0), uu1(0.0), vv1(0.0);
-				kmb::nodeIdType nodeId = kmb::nullNodeId;
-				if( points && points->getPoint(n0,p0) && points->getPoint(n1,p1) ){
-
-					pt = kmb::Point3D::getCenter(p0,p1);
-					long surfIndex0(-1), surfIndex1(-1);
-
-					kmb::Minimizer minimizer;
-					long fittingSurfIndex(-1);
-					minimizer.update( 0.5 * p0.distance(p1) );
-					if( mappingToSurface->getValues(n0,u0,v0,surfIndex0) ){
-
-						if( (surface = surfaces->at(surfIndex0)) != NULL ){
-							surface->setEpsilon(epsilon);
-							surface->setIterMax(iterMax);
-							if( surface->getNearest(pt,uu0,vv0) ){
-
-								surface->getPoint(uu0,vv0,pt0);
-								if( minimizer.update( pt.distance(pt0) ) ){
-									fittingSurfIndex = 0;
-								}
-							}
-						}
-					}
-					if( mappingToSurface->getValues(n1,u1,v1,surfIndex1) ){
-
-						if( (surface = surfaces->at(surfIndex1)) != NULL ){
-							surface->setEpsilon(epsilon);
-							surface->setIterMax(iterMax);
-							if( surface->getNearest(pt,uu1,vv1) ){
-
-								surface->getPoint(uu1,vv1,pt1);
-								if( minimizer.update( pt.distance(pt1) ) ){
-									fittingSurfIndex = 1;
-								}
-							}
-						}
-					}
-					if( fittingSurfIndex == 0 ){
-						nodeId = this->points->addPoint( pt0 );
-						mappingToSurface->setValue(nodeId, uu0, vv0, fittingSurfIndex );
-						return nodeId;
-					}else if( fittingSurfIndex == 1 ){
-						nodeId = this->points->addPoint( pt1 );
-						mappingToSurface->setValue(nodeId, uu1, vv1, fittingSurfIndex );
-						return nodeId;
-					}else{
-					}
-				}
-			}
-*/
+			// 共通の面がない時
 		}
 	}
-
+	// fitting なし
 	return kmb::MiddleNodeManager::createMiddleNode(n0,n1);
 }
 
-
+// 4点が同一のただ一つの面上にあるときに中点を求める
 kmb::nodeIdType
 kmb::MiddleNodeManagerWithShape::createMiddleNode4(kmb::nodeIdType n0, kmb::nodeIdType n1,kmb::nodeIdType n2, kmb::nodeIdType n3)
 {
@@ -218,7 +160,7 @@ kmb::MiddleNodeManagerWithShape::createMiddleNode4(kmb::nodeIdType n0, kmb::node
 		long index02 = 0L, index13 = 0L;
 		kmb::Surface3D* surface = NULL;
 		kmb::Point3D pt;
-
+		// 共通の面があるときは、(u,v) 座標で中点を計算する
 		if( mappingToSurface->isCommonIntval(n0,n2,index02,u0,u2) &&
 			mappingToSurface->isCommonIntval(n1,n3,index13,u1,u3) &&
 			index02 == index13 &&

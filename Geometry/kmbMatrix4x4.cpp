@@ -70,12 +70,12 @@ kmb::Matrix4x4::Matrix4x4(const Matrix3x3 &other)
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 int
@@ -119,13 +119,13 @@ kmb::Matrix4x4::operator*(const Matrix4x4& other)
 {
 	double mat[16];
 	for(int i=0;i<4;++i){
-		mat[0+i] =
+		mat[0+i] = 
 			m[i]*other.m[0] + m[4+i]*other.m[1] + m[8+i]*other.m[2] + m[12+i]*other.m[3];
-		mat[4+i] =
+		mat[4+i] = 
 			m[i]*other.m[4] + m[4+i]*other.m[5] + m[8+i]*other.m[6] + m[12+i]*other.m[7];
-		mat[8+i] =
+		mat[8+i] = 
 			m[i]*other.m[8] + m[4+i]*other.m[9] + m[8+i]*other.m[10] + m[12+i]*other.m[11];
-		mat[12+i] =
+		mat[12+i] = 
 			m[i]*other.m[12] + m[4+i]*other.m[13] + m[8+i]*other.m[14] + m[12+i]*other.m[15];
 	}
 	return Matrix4x4(mat);
@@ -266,7 +266,7 @@ kmb::Matrix4x4::transpose()
 	return true;
 }
 
-void
+void 
 kmb::Matrix4x4::transpose(const Matrix4x4& other)
 {
 	for(int i=0;i<4;++i){
@@ -296,10 +296,10 @@ kmb::Matrix4x4::zero(void)
 	return true;
 }
 
-double
-kmb::Matrix4x4::determinant(void) const
+double 
+kmb::Matrix4x4::determinant(void) const 
 {
-
+	// 小行列を求める
 	double det = 0.0;
 	if(m[3] != 0.0){
 		kmb::Matrix3x3 m3 =
@@ -338,12 +338,12 @@ kmb::Matrix4x4::determinant(void) const
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 double
@@ -373,7 +373,7 @@ kmb::Matrix4x4::determinant(
 	double m20,double m21,double m22,double m23,
 	double m30,double m31,double m32,double m33)
 {
-
+	// 小行列を求める
 	double det = 0.0;
 	if(m30 != 0.0){
 		det -= m30 *
@@ -397,7 +397,7 @@ kmb::Matrix4x4::determinant(
 				m20,m21,m23);
 	}
 	if(m33 != 0.0){
-		det += m33 *
+		det += m33 * 
 			kmb::Matrix3x3::determinant(
 				m00,m01,m02,
 				m10,m11,m12,
@@ -433,7 +433,7 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 
 	int ind = -1;
 	double m = 0.0;
-
+	// 0 列
 	for(int i=0;i<4;++i){
 		double d = fabs(mat.get(i,0));
 		if( d > m ){
@@ -451,7 +451,7 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 	mat.row_transf(0, 2, -mat.get(2,0));
 	mat.row_transf(0, 3, -mat.get(3,0));
 
-
+	// 1 列
 	ind = -1;
 	m = 0.0;
 	for(int i=1;i<4;++i){
@@ -471,7 +471,7 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 	mat.row_transf(1, 3, -mat.get(3,1));
 	mat.row_transf(1, 0, -mat.get(0,1));
 
-
+	// 2 列
 	ind = -1;
 	m = 0.0;
 	for(int i=2;i<4;++i){
@@ -491,7 +491,7 @@ kmb::Matrix4x4::solve(const Vector4D& b,Vector4D& x) const
 	mat.row_transf(2, 0, -mat.get(0,2));
 	mat.row_transf(2, 1, -mat.get(1,2));
 
-
+	// 3 列
 	if( mat.get(3,3) == 0.0 ){
 		return false;
 	}
@@ -519,10 +519,10 @@ kmb::Matrix4x4::solveSafely(const Vector4D& b,Vector4D& x,double thresh) const
 	};
 
 	kmb::Matrix_DoubleArray mat(4,5,coef);
-
+	
 	int ind = -1;
 	double m = 0.0;
-
+	// 0 列
 	for(int i=0;i<4;++i){
 		double d = fabs(mat.get(i,0));
 		if( d > m ){
@@ -540,7 +540,7 @@ kmb::Matrix4x4::solveSafely(const Vector4D& b,Vector4D& x,double thresh) const
 	mat.row_transf(0, 2, -mat.get(2,0));
 	mat.row_transf(0, 3, -mat.get(3,0));
 
-
+	// 1 列
 	ind = -1;
 	m = 0.0;
 	for(int i=1;i<4;++i){
@@ -560,7 +560,7 @@ kmb::Matrix4x4::solveSafely(const Vector4D& b,Vector4D& x,double thresh) const
 	mat.row_transf(1, 3, -mat.get(3,1));
 	mat.row_transf(1, 0, -mat.get(0,1));
 
-
+	// 2 列
 	ind = -1;
 	m = 0.0;
 	for(int i=2;i<4;++i){
@@ -580,7 +580,7 @@ kmb::Matrix4x4::solveSafely(const Vector4D& b,Vector4D& x,double thresh) const
 	mat.row_transf(2, 0, -mat.get(0,2));
 	mat.row_transf(2, 1, -mat.get(1,2));
 
-
+	// 3 列
 	if( fabs(mat.get(3,3)) < thresh ){
 		return false;
 	}
@@ -624,7 +624,7 @@ kmb::Matrix4x4::isAffineType(void) const
 	}
 }
 
-kmb::Matrix4x4
+kmb::Matrix4x4 
 kmb::Matrix4x4::createRotation(const Vector3D& axis, double angle)
 {
 	double m[16];
@@ -636,7 +636,7 @@ kmb::Matrix4x4::createRotation(const Vector3D& axis, double angle)
 	m[0] = c+x*x*(1.0-c);	m[4] = x*y*(1.0-c)-z*s;	m[8] = x*z*(1.0-c)+y*s;
 	m[1] = x*y*(1.0-c)+z*s;	m[5] = c+y*y*(1.0-c);	m[9] = y*z*(1.0-c)-x*s;
 	m[2] = x*z*(1.0-c)-y*s;	m[6] = y*z*(1.0-c)+x*s;	m[10]= c+z*z*(1.0-c);
-
+	
 	m[12] = 0.0;
 	m[13] = 0.0;
 	m[14] = 0.0;
@@ -666,9 +666,9 @@ kmb::Matrix4x4::createAffine(const kmb::Matrix3x3& transform, const kmb::Vector3
 {
 	kmb::Matrix4x4* mat = NULL;
 	mat = new kmb::Matrix4x4(
-		transform.get(0,0), transform.get(0,1), transform.get(0,2), displace[0],
-		transform.get(1,0), transform.get(1,1), transform.get(1,2), displace[1],
-		transform.get(2,0), transform.get(2,1), transform.get(2,2), displace[2],
+		transform.get(0,0), transform.get(0,1), transform.get(0,2), displace[0], 
+		transform.get(1,0), transform.get(1,1), transform.get(1,2), displace[1], 
+		transform.get(2,0), transform.get(2,1), transform.get(2,2), displace[2], 
 		0.0, 0.0, 0.0, 1.0 );
 	return mat;
 }

@@ -119,20 +119,20 @@ kmb::MeshDB::convertToLinearBody( kmb::bodyIdType bodyId )
 	return kmb::Body::nullBodyId;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//
+// 単純な Body の追加
+// coupleName が NULL でないときは
+// otherMesh => thisMesh の節点番号の対応を DataBindings<kmb::nodeIdType> に記憶する
+// stype は "import"
+// coupleName = NULL の時は節点番号の対応はこのメソッド内でのみ使う
+//
+// coupleName で与えられるデータは 
+// ctype が SLAVE の時 : otherMesh に記録する（デフォルト値）
+//          MASTER     : this に記録する
+//          BOTH       : otherMesh と this の両方に記録する
+//          None       : どちらにも記録しない
+//
+// 現状は追加される Body は３次元のみ対応
 kmb::bodyIdType
 kmb::MeshDB::importBody(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, const char* coupleName,kmb::coupleType ctype)
 {
@@ -184,13 +184,13 @@ kmb::MeshDB::importBody(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, const 
 
 	kmb::Node node;
 
-
-
+	// 要素の追加
+	// 追加できなかった節点は nullNodeId になっている
 	kmb::nodeIdType* cell = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	kmb::ElementContainer::iterator eIter = otherBody->begin();
 	long l = 0;
 	if( slaveCoupleData && masterCoupleData ){
-
+		// すでに追加済みの節点のチェックは slaveCouple Data で行う
 		while( !eIter.isFinished() ){
 			const int len = eIter.getNodeCount();
 			for(int i=0;i<len;++i){
@@ -210,7 +210,7 @@ kmb::MeshDB::importBody(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, const 
 			++eIter;
 		}
 	}else if( slaveCoupleData ){
-
+		// すでに追加済みの節点のチェックは slaveCouple Data で行う
 		while( !eIter.isFinished() ){
 			const int len = eIter.getNodeCount();
 			for(int i=0;i<len;++i){
@@ -228,9 +228,9 @@ kmb::MeshDB::importBody(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, const 
 			++eIter;
 		}
 	}else if( masterCoupleData ){
-
-
-
+		// otherMesh の節点 Id と自分の節点 Id の対応を覚えておく
+		// masterCoupleData にはキーではなくて値として入っているので検索はしない
+		// otherMesh の同じ節点が this では異なる節点となる場合もある
 		std::map< kmb::nodeIdType, kmb::nodeIdType > nodeMapper;
 		while( !eIter.isFinished() ){
 			const int len = eIter.getNodeCount();
@@ -251,7 +251,7 @@ kmb::MeshDB::importBody(kmb::MeshData& otherMesh, kmb::bodyIdType bodyId, const 
 			++eIter;
 		}
 	}else{
-
+		// otherMesh の節点 Id と自分の節点 Id の対応を覚えておく
 		std::map< kmb::nodeIdType, kmb::nodeIdType > nodeMapper;
 		while( !eIter.isFinished() ){
 			const int len = eIter.getNodeCount();
@@ -309,14 +309,14 @@ kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshData& otherMesh, kmb::bodyIdTyp
 	kmb::Node node;
 	long l = 0;
 
-
-
+	// 要素の追加
+	// 追加できなかった節点は nullNodeId になっている
 	kmb::bodyIdType myBodyId = this->beginElement( otherBody->getCount() );
 	kmb::nodeIdType* cell = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	kmb::nodeIdType nearestNodeId = kmb::nullNodeId;
 	kmb::ElementContainer::iterator eIter = otherBody->begin();
 	if( coupleData ){
-
+		// coupleData が与えられた場合は、すでに追加済みの節点は追加しない
 		while( !eIter.isFinished() ){
 			const int len = eIter.getNodeCount();
 			for(int i=0;i<len;++i){
@@ -338,7 +338,7 @@ kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshData& otherMesh, kmb::bodyIdTyp
 			++eIter;
 		}
 	}else{
-
+		// otherMesh の節点 Id と自分の節点 Id の対応を覚えておく
 		std::map< kmb::nodeIdType, kmb::nodeIdType > nodeMapper;
 		while( !eIter.isFinished() ){
 			const int len = eIter.getNodeCount();
@@ -366,15 +366,15 @@ kmb::MeshDB::importBodyWithNodeMatching(kmb::MeshData& otherMesh, kmb::bodyIdTyp
 	return myBodyId;
 }
 
+// node matching の結果を使って
+// body の追加。node matching の結果が使えるときは、node は追加せずにその結果を使う。
+// 例：
+// this->matchNodeToNode( otherMesh, bodyId, targetBody, tolerance, nodeMapper )
+// などで node matching を取得してから
+// importBody( otherMesh, bodyId, nodeMapper )
+// のように使う
 
-
-
-
-
-
-
-
-
+// nodeMapper[ otherMesh の NodeId ] = this の NodeId
 kmb::bodyIdType
 kmb::MeshDB::importBody(kmb::MeshData& otherMesh,kmb::bodyIdType bodyID,std::map<kmb::nodeIdType,kmb::nodeIdType>& nodeMapper)
 {
@@ -387,16 +387,16 @@ kmb::MeshDB::importBody(kmb::MeshData& otherMesh,kmb::bodyIdType bodyID,std::map
 	if( node3Ds == NULL && otherMesh.getNodeDim() == 3 ){
 		node3Ds = new kmb::Point3DContainerMap();
 	}
-
-
+	// 節点の追加
+	// otherMesh の節点 ID と自分の節点 ID の対応を覚えておく
 	std::set< kmb::nodeIdType >::iterator nIter = nodeSet.begin();
 	while( nIter != nodeSet.end() ){
 		kmb::nodeIdType yourID = (*nIter);
-
+		// すでに nodeMapper に登録されている節点 ID は登録しない
 		if( nodeMapper.find( yourID ) == nodeMapper.end() ){
 			kmb::Node node;
 			if( otherMesh.getNode( yourID, node ) ){
-
+				// addNode では内部でコピーを作ってポインタは共有しない
 				kmb::nodeIdType myID = this->addNode( node );
 				nodeMapper.insert( std::pair< kmb::nodeIdType, kmb::nodeIdType >(yourID,myID) );
 			}else{
@@ -405,8 +405,8 @@ kmb::MeshDB::importBody(kmb::MeshData& otherMesh,kmb::bodyIdType bodyID,std::map
 		}
 		++nIter;
 	}
-	nodeSet.clear();
-
+	nodeSet.clear(); // メモリの解放
+	// 要素の追加
 	kmb::ElementContainerMap* body = new kmb::ElementContainerMap();
 	kmb::nodeIdType* cell = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	kmb::ElementContainer::iterator eIter = otherBody->begin();
@@ -465,7 +465,7 @@ kmb::MeshDB::importAllBody(const kmb::MeshData& otherMesh)
 	if( node3Ds == NULL ){
 		node3Ds = new kmb::Point3DContainerMap();
 	}
-
+	// 節点の追加
 	kmb::nodeIdType offsetNodeId = this->getMaxNodeId() + 1;
 	kmb::Point3D pt;
 	kmb::Point3DContainer::const_iterator pIter = otherMesh.getNodes()->begin();
@@ -475,7 +475,7 @@ kmb::MeshDB::importAllBody(const kmb::MeshData& otherMesh)
 		}
 		++pIter;
 	}
-
+	// 要素の追加
 	kmb::bodyIdType bCount = otherMesh.getBodyCount();
 	kmb::nodeIdType nodeTable[20];
 	for(kmb::bodyIdType i=0;i<bCount;++i){

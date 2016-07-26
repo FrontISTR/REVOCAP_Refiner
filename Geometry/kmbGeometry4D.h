@@ -74,13 +74,13 @@ public:
 	Point4D& operator+=(const Vector4D& other);
 	Point4D& operator-=(const Vector4D& other);
 	virtual bool operator==(const Point4D& other) const;
-
+	// ２点間の距離
 	double distance(const Point4D& other) const;
 	double distance(double x,double y,double z,double w) const;
 	double distanceSq(const Point4D& other) const;
 	double distanceSq(double x,double y,double z,double w) const;
-
-
+	// static 関数群
+	// 距離
 #ifndef REVOCAP_SUPPORT_RUBY
 	static double distance(const Point4D& a,const Point4D& b);
 	static double distanceSq(const Point4D& a,const Point4D& b);
@@ -115,7 +115,7 @@ public:
 		v[3] -= other.v[3];
 		return *this;
 	}
-
+	/// スカラー積
 	Vector4D scalar(const double s) const;
 	Vector4D operator*(const double s) const{
 		return Vector4D(s*v[0],s*v[1],s*v[2],s*v[3]);
@@ -123,13 +123,13 @@ public:
 	friend Vector4D operator*(const double scalar,const Vector4D& vect){
 		return vect * scalar;
 	}
-
+	/// 内積
 	double operator*(const Vector4D& other) const{
 		return v[0]*other.v[0] + v[1]*other.v[1] + v[2]*other.v[2] + v[3]*other.v[3];
 	}
 	double lengthSq(void) const;
 	double length(void) const;
-	double abs(void) const;
+	double abs(void) const; // length と同じ意味
 	double normalize();
 };
 
@@ -137,11 +137,11 @@ class Matrix3x3;
 class Vector3D;
 class Tuple3D;
 
-
-
-
-
-
+// matrix の並び順
+// m[0] m[4] m[8]  m[12]
+// m[1] m[5] m[9]  m[13]
+// m[2] m[6] m[10] m[14]
+// m[3] m[7] m[11] m[15]
 
 
 class Matrix4x4 : public SquareMatrix
@@ -149,11 +149,11 @@ class Matrix4x4 : public SquareMatrix
 public:
 	Matrix4x4(void);
 	Matrix4x4(double m[16]);
-
-
-
-
-
+	// 代入される順番に注意
+	// m[0] m[4] m[8]  m[12]  = m00 m01 m02 m03
+	// m[1] m[5] m[9]  m[13]    m10 m11 m12 m13
+	// m[2] m[6] m[10] m[14]    m20 m21 m22 m23
+	// m[3] m[7] m[11] m[15]    m30 m31 m32 m33
 	Matrix4x4(
 		double m00,double m01,double m02,double m03,
 		double m10,double m11,double m12,double m13,
@@ -174,10 +174,10 @@ public:
 
 	bool identity(void);
 	bool zero(void);
-
+	/// 転置行列
 	bool transpose(void);
 	void transpose(const Matrix4x4& other);
-
+	/// 行列式
 	double determinant(void) const;
 	double trace(void) const;
 	static double determinant(
@@ -190,37 +190,37 @@ public:
 		double m10,double m11,double m12,double m13,
 		double m20,double m21,double m22,double m23,
 		double m30,double m31,double m32,double m33);
-
+	/// this * x = b なる方程式の解の x を返す
 	Vector4D* solve(const Vector4D& b) const;
 	bool solve(const Vector4D& b,Vector4D& x) const;
 	bool solveSafely(const Vector4D& b,Vector4D& x,double thresh=1.0e-6) const;
-
-
-
+	/// 行列の掛け算
+	// [A t] * v = (a*v + t) / (s*v + r)
+	// [s r]
 	void convert(Tuple3D& tuple) const;
 	void convert(Tuple4D& tuple) const;
 	void convert(double &x, double &y, double &z) const;
 	Vector3D operator*(const Vector3D& vect);
 	Vector4D operator*(const Vector4D& vect);
 	Matrix4x4 operator*(const Matrix4x4& other);
-
+	/// 行列の足し算、引き算
 	Matrix4x4 operator+(const Matrix4x4& other);
 	Matrix4x4 operator-(const Matrix4x4& other);
-
+	// 代入演算子
 	Matrix4x4& operator=(const Matrix4x4& other);
 	Matrix4x4& operator=(const Matrix3x3& other);
 
-
+	/// AFFINE type 
 	bool isAffineType(void) const;
-
+	// 角度はラジアンで与える
 	static Matrix4x4 createRotation(const Vector3D& axis, double angle);
 	static Matrix4x4* createLookAt(const Vector3D& eye, const Vector3D& center, const Vector3D& up);
 	static Matrix4x4* createAffine(const Matrix3x3& transform, const Vector3D& displace);
 	bool getLookAt(Vector3D& eye, Vector3D& center, Vector3D& up) const;
 
-
+	// 平行移動成分
 	void translate(double x,double y,double z);
-
+	// スカラー倍（平行移動成分も変わる）
 	void scale(double r);
 protected:
 	double m[16];

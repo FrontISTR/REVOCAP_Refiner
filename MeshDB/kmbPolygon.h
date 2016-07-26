@@ -23,10 +23,10 @@
 #      "Innovative General-Purpose Coupled Analysis System"            #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
+//
+// Segment の集合としての多角形を扱う
+// 対角線を与えて分割することなどを行う
+//
 
 #pragma once
 
@@ -64,11 +64,11 @@ public:
 	bool include(kmb::nodeIdType nodeId) const;
 	kmb::nodeIdType getNodeId(kmb::nodeIdType nodeId,int offset=0) const;
 
-
+	// setEdges は clone = true のときすべての要素の複製を作って登録する
 	void setEdges(kmb::ElementContainer *edges,bool clone=true);
-
+	// const の時は無条件で複製を作る
 	void setEdges(const kmb::ElementContainer *edges);
-
+	// FACE GROUP から登録する
 	void setEdgesByFaceGroup(const kmb::DataBindings* facegroup,const kmb::ElementContainer* patches);
 	const kmb::ElementContainer* getEdges(void) const;
 
@@ -81,19 +81,19 @@ public:
 		( const kmb::Point2DContainer* points,
 		  std::vector< std::pair<kmb::nodeIdType, kmb::nodeIdType> > &diagonals,
 		  std::vector< kmb::Polygon* > &polygons);
-
+	// 閉じているかを確認
 	bool isClosed(void) const;
-
-
-
+	// 端点の取得
+	// 連結なら true を返す。非連結なら false を返す。
+	// loop のときは initial と end はともに kmb::nullNodeId
 	bool getEndPoints( kmb::nodeIdType &initial, kmb::nodeIdType &end ) const;
-
+	// 二重点があるかどうか
 	kmb::nodeIdType hasDoubleNode(void) const;
 private:
 
-
-
-
+	// prevId, nodeId, nodePairs が与えられた時に
+	// 次の節点 nextId を角度を考慮して求めて、
+	// deleteflag = true のときは その辺 [nodeId, nextId] を nodePair から削除する
 	static kmb::nodeIdType getNextNode(
 			kmb::nodeIdType prevId,
 			kmb::nodeIdType nodeId,
@@ -102,13 +102,13 @@ private:
 			bool deleteflag);
 
 public:
-
+	// topology だけから判断する
 	static kmb::nodeIdType getNextNode
 		( const kmb::ElementContainer* edges, const kmb::NodeNeighborInfo& neighborInfo, kmb::nodeIdType nodeID, bool order=true );
 	static kmb::elementIdType getNextElement
 		( const kmb::ElementContainer* edges, const kmb::NodeNeighborInfo& neighborInfo, kmb::elementIdType elementID, bool order=true );
-
-
+	// order = true 始点が nodeID の要素を検索
+	//         false 終点が nodeID の要素を検索
 	static kmb::elementIdType getElementByNode
 		( kmb::ElementContainer* edges, kmb::NodeNeighborInfo& neighborInfo, kmb::nodeIdType nodeID, bool order=true );
 };

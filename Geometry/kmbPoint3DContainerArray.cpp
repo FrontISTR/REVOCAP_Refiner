@@ -16,18 +16,19 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 const char* kmb::Point3DContainerArray::CONTAINER_TYPE = "double_array";
 
 kmb::Point3DContainerArray::Point3DContainerArray(void)
-: pointArray(NULL)
+: kmb::Point3DContainerDirectAccessable()
+, pointArray(NULL)
 , index(0)
 , size(0)
 {
@@ -137,7 +138,7 @@ kmb::Point3DContainerArray::getCount(void) const
 	return size;
 }
 
-void
+void 
 kmb::Point3DContainerArray::clear(void)
 {
 	if( pointArray ){
@@ -159,6 +160,14 @@ kmb::Point3DContainerArray::deletePoint(nodeIdType id)
 		return true;
 	}else{
 		return false;
+	}
+}
+
+void kmb::Point3DContainerArray::commit(kmb::nodeIdType nodeId)
+{
+	index = nodeId+1;
+	for(unsigned int i=0;i<index;i++){
+		boundBox.update( pointArray[3*i+0], pointArray[3*i+1], pointArray[3*i+2] );
 	}
 }
 
@@ -222,7 +231,7 @@ kmb::Point3DContainerArray::find(kmb::nodeIdType nodeId) const
 	return kmb::Point3DContainer::const_iterator(_it);
 }
 
-
+//---------------- _iterator -----------------
 
 kmb::nodeIdType
 kmb::Point3DContainerArray::_iteratorArray::getId(void) const
@@ -285,15 +294,15 @@ kmb::Point3DContainerArray::_iteratorArray::setXYZ(double x,double y,double z) c
 	return true;
 }
 
-kmb::Point3DContainer::_iterator*
+kmb::Point3DContainer::_iterator* 
 kmb::Point3DContainerArray::_iteratorArray::operator++(void)
 {
 	++(this->index);
 	if( this->index < points->getCount() ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }
@@ -305,8 +314,8 @@ kmb::Point3DContainerArray::_iteratorArray::operator++(int n)
 	if( this->index < points->getCount() ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }
@@ -449,7 +458,7 @@ kmb::Point3DContainerXYZArray::getCount(void) const
 	return size;
 }
 
-void
+void 
 kmb::Point3DContainerXYZArray::clear(void)
 {
 	if( xArray && yArray && zArray ){
@@ -538,7 +547,7 @@ kmb::Point3DContainerXYZArray::find(kmb::nodeIdType nodeId) const
 	return kmb::Point3DContainer::const_iterator(_it);
 }
 
-
+//---------------- _iterator -----------------
 
 kmb::nodeIdType
 kmb::Point3DContainerXYZArray::_iteratorXYZ::getId(void) const
@@ -601,15 +610,15 @@ kmb::Point3DContainerXYZArray::_iteratorXYZ::setXYZ(double x,double y,double z) 
 	return true;
 }
 
-kmb::Point3DContainer::_iterator*
+kmb::Point3DContainer::_iterator* 
 kmb::Point3DContainerXYZArray::_iteratorXYZ::operator++(void)
 {
 	++(this->index);
 	if( this->index < points->getCount() ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }
@@ -621,8 +630,8 @@ kmb::Point3DContainerXYZArray::_iteratorXYZ::operator++(int n)
 	if( this->index < points->getCount() ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }

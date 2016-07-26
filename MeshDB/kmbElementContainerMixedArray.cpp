@@ -356,7 +356,12 @@ kmb::nodeIdType& kmb::ElementContainerMixedArray::operator()(kmb::elementIdType 
 	return nodeTable[ni+localId];
 }
 
+void kmb::ElementContainerMixedArray::commit(kmb::elementIdType elementId)
+{
+	count = elementId + 1;
+}
 
+//----------------- iterator -------------------
 
 kmb::ElementContainerMixedArray::_iteratorMA::_iteratorMA(void)
 : index(0)

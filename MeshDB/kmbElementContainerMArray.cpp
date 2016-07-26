@@ -254,7 +254,6 @@ kmb::ElementContainerMArray::begin(void)
 	_it = new kmb::ElementContainerMArray::_iteratorMArray();
 	if( _it ){
 		_it->elementContainer = this;
-
 		this->elementArray.first( _it->aIndex );
 	}
 	return kmb::ElementContainer::iterator(_it,offsetId);
@@ -270,7 +269,6 @@ kmb::ElementContainerMArray::begin(void) const
 	_it = new kmb::ElementContainerMArray::_iteratorMArray();
 	if( _it ){
 		_it->elementContainer = const_cast<kmb::ElementContainerMArray*>(this);
-
 		this->elementArray.first( _it->aIndex );
 	}
 	return kmb::ElementContainer::const_iterator(_it,offsetId);
@@ -312,7 +310,7 @@ kmb::ElementContainerMArray::find(kmb::elementIdType id) const
 	return kmb::ElementContainer::const_iterator(NULL);
 }
 
-
+//-------------- iterator -----------------
 
 kmb::ElementContainerMArray::_iteratorMArray::_iteratorMArray(void)
 : kmb::ElementContainer::_iterator()

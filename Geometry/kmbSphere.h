@@ -40,34 +40,34 @@ public:
 	Sphere(void);
 	virtual ~Sphere(void);
 public:
-
+	/// 設定系
 	void setCenter(Point3D &pt);
 	void setCenter(double x,double y,double z);
 	void setRadius(double r);
 	double getRadius(void) const;
 	Point3D getCenter(void) const;
-
+	/// 判定関数
 	virtual kmb::Region::locationType intersect(const kmb::Point3D &point) const;
 	virtual double distanceSq(const kmb::Point3D &point) const;
-
+	// 中心からの距離 - 半径
 	virtual double distance(const kmb::Point3D &point) const;
 	virtual bool intersect(const kmb::BoxRegion& box) const;
-
-
-
+	// 球面の方程式での評価
+	// 中心からの距離の２乗 - 半径の２乗
+	// 球の内部ならばこの値は 0 以下
 	double eval(const kmb::Point3D &point) const;
-
-
+	// 生成関数群
+	// 内接球
 	static Sphere* createInscribedSphere(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
-
+	// 半径
 	static double getInscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
-
+	// 中心
 	static Point3D getInscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
-
+	// 外接球
 	static Sphere* createCircumscribedSphere(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
-
+	// 半径
 	static double getCircumscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
-
+	// 中心
 	static Point3D getCircumscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c,const Point3D &d);
 };
 

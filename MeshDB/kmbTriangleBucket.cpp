@@ -130,259 +130,11 @@ kmb::TriangleBucket::appendAll(void)
 					}
 				}
 			}
-/*
-			int subCount = appendSubBucket(i0,i1,j0,j1,k0,k1,a,b,c,eIter.getId());
-			if( subCount == 0 ){
-			}
-			count += subCount;
-*/
 		}
 		++eIter;
 	}
 	return count;
 }
-
-/*
-int
-kmb::TriangleBucket::appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,kmb::Point3D &a,kmb::Point3D &b,kmb::Point3D &c,kmb::elementIdType elemId)
-{
-	if( i0 == i1 && j0 == j1 && k0 == k1 ){
-		insert( i0,j0,k0,elemId );
-		return 1;
-	}
-
-	int which = -1;
-	if( i1-i0 >= j1-j0 ){
-		if( i1-i0 >= k1-k0 ){
-
-			which = 0;
-		}else{
-
-			which = 2;
-		}
-	}else{
-		if( j1-j0 >= k1-k0 ){
-
-			which = 1;
-		}else{
-
-			which = 2;
-		}
-	}
-	kmb::Point3D p, q;
-	switch( which ){
-	case 0:
-		{
-
-			int i = (i0 + i1)/2;
-
-			double x = getSubRegionMaxX(i,j0,k0);
-			switch( kmb::PlaneYZ::getIntersectionTriangle(x,a,b,c,p,q) ){
-			case -2:
-				return appendSubBucket(i0,i,j0,j1,k0,k1,a,b,c,elemId);
-			case -1:
-				return appendSubBucket(i+1,i1,j0,j1,k0,k1,a,b,c,elemId);
-			case 0:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,b,c,q,elemId) +
-					appendSubBucket(i0,  i,j0,j1,k0,k1,b,q,p,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,a,p,q,elemId);
-			case 1:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,c,a,q,elemId) +
-					appendSubBucket(i0,  i,j0,j1,k0,k1,c,q,p,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,b,p,q,elemId);
-			case 2:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,a,b,q,elemId) +
-					appendSubBucket(i0,  i,j0,j1,k0,k1,a,q,p,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,c,p,q,elemId);
-			case 3:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,a,p,q,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,b,c,q,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,b,q,p,elemId);
-			case 4:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,b,p,q,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,c,a,q,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,c,q,p,elemId);
-			case 5:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,c,p,q,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,a,b,q,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,a,q,p,elemId);
-			case 6:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,a,p,c,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,a,b,p,elemId);
-			case 7:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,b,p,a,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,b,c,p,elemId);
-			case 8:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,c,p,b,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,c,a,p,elemId);
-			case 9:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,a,b,p,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,a,p,c,elemId);
-			case 10:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,b,c,p,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,b,p,a,elemId);
-			case 11:
-				return
-					appendSubBucket(i0,  i,j0,j1,k0,k1,c,a,p,elemId) +
-					appendSubBucket(i+1,i1,j0,j1,k0,k1,c,p,b,elemId);
-			default:
-				return 0;
-			}
-		}
-	case 1:
-		{
-
-			int j = (j0 + j1)/2;
-
-			double y = getSubRegionMaxY(i0,j,k0);
-			switch( kmb::PlaneZX::getIntersectionTriangle(y,a,b,c,p,q) ){
-			case -2:
-				return appendSubBucket(i0,i1,j0,j,k0,k1,a,b,c,elemId);
-			case -1:
-				return appendSubBucket(i0,i1,j+1,j1,k0,k1,a,b,c,elemId);
-			case 0:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,b,c,q,elemId) +
-					appendSubBucket(i0,i1,j0, j, k0,k1,b,q,p,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,a,p,q,elemId);
-			case 1:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,c,a,q,elemId) +
-					appendSubBucket(i0,i1,j0, j, k0,k1,c,q,p,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,b,p,q,elemId);
-			case 2:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,a,b,q,elemId) +
-					appendSubBucket(i0,i1,j0, j, k0,k1,a,q,p,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,c,p,q,elemId);
-			case 3:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,a,p,q,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,b,c,q,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,b,q,p,elemId);
-			case 4:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,b,p,q,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,c,a,q,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,c,q,p,elemId);
-			case 5:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,c,p,q,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,a,b,q,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,a,q,p,elemId);
-			case 6:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,a,p,c,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,a,b,p,elemId);
-			case 7:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,b,p,a,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,b,c,p,elemId);
-			case 8:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,c,p,b,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,c,a,p,elemId);
-			case 9:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,a,b,p,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,a,p,c,elemId);
-			case 10:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,b,c,p,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,b,p,a,elemId);
-			case 11:
-				return
-					appendSubBucket(i0,i1,j0, j, k0,k1,c,a,p,elemId) +
-					appendSubBucket(i0,i1,j+1,j1,k0,k1,c,p,b,elemId);
-			default:
-				return 0;
-			}
-		}
-	case 2:
-		{
-
-			int k = (k0 + k1)/2;
-
-			double z = getSubRegionMaxZ(i0,j0,k);
-			switch( kmb::PlaneXY::getIntersectionTriangle(z,a,b,c,p,q) ){
-			case -2:
-				return appendSubBucket(i0,i1,j0,j1,k0, k, a,b,c,elemId);
-			case -1:
-				return appendSubBucket(i0,i1,j0,j1,k+1,k1,a,b,c,elemId);
-			case 0:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, b,c,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k0, k, b,q,p,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,a,p,q,elemId);
-			case 1:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, c,a,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k0, k, c,q,p,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,b,p,q,elemId);
-			case 2:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, a,b,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k0, k, a,q,p,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,c,p,q,elemId);
-			case 3:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, a,p,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,b,c,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,b,q,p,elemId);
-			case 4:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, b,p,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,c,a,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,c,q,p,elemId);
-			case 5:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, c,p,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,a,b,q,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,a,q,p,elemId);
-			case 6:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, a,p,c,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,a,b,p,elemId);
-			case 7:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, b,p,a,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,b,c,p,elemId);
-			case 8:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, c,p,b,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,c,a,p,elemId);
-			case 9:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, a,b,p,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,a,p,c,elemId);
-			case 10:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, b,c,p,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,b,p,a,elemId);
-			case 11:
-				return
-					appendSubBucket(i0,i1,j0,j1,k0, k, c,a,p,elemId) +
-					appendSubBucket(i0,i1,j0,j1,k+1,k1,c,p,b,elemId);
-			default:
-				return 0;
-			}
-		}
-	default:
-		return 0;
-	}
-}
-*/
 
 bool
 kmb::TriangleBucket::getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,double &dist,kmb::elementIdType &tri) const
@@ -432,7 +184,7 @@ kmb::TriangleBucket::getNearest(double x,double y,double z,double &dist,kmb::ele
 		double span = sqrt( minimizer.getMin() );
 		getSubIndices( x-span, y-span, z-span, i1, j1, k1 );
 		getSubIndices( x+span, y+span, z+span, i2, j2, k2 );
-
+		// (i0,j0,k0) 以外を探す
 		for(int i=i1;i<=i2;++i){
 			for(int j=j1;j<=j2;++j){
 				for(int k=k1;k<=k2;++k){
@@ -445,8 +197,8 @@ kmb::TriangleBucket::getNearest(double x,double y,double z,double &dist,kmb::ele
 			}
 		}
 	}else{
-
-
+		// (i0,j0,k0) の Bucket にない
+		// 全部調べる
 		kmb::BoxRegion box;
 		kmb::Bucket< kmb::elementIdType >::const_iterator tIter = this->begin();
 		kmb::Bucket< kmb::elementIdType >::const_iterator endIter = this->end();

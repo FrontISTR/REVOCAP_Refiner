@@ -23,7 +23,7 @@
 #      "Innovative General-Purpose Coupled Analysis System"            #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
+// 要素の検索に関する処理
 
 #include "MeshDB/kmbMeshDB.h"
 #include "MeshDB/kmbElementContainer.h"
@@ -45,12 +45,12 @@ kmb::MeshDB::generateElementSearchCache( kmb::bodyIdType bodyId, const char* cac
 	if( body != NULL && points != NULL )
 	{
 		if( strcmp("octree",cacheType) == 0 ){
-
+			// octree setting
 			this->elementOctree.setContainer( points, body );
 			this->elementOctree.appendAll();
 			return this->elementOctree.getCount();
 		}else if( strcmp("bucket",cacheType) == 0 ){
-
+			// bucket setting
 			this->elementBucket.setContainer( points, body );
 			kmb::BoundingBox bbox = this->getBoundingBox();
 			bbox.expandDiameter(1.2);
@@ -79,11 +79,11 @@ kmb::MeshDB::searchElement(kmb::bodyIdType bodyId,double x,double y,double z,dou
 	}
 
 	if( this->elementBucket.getCount() > 0 ){
-
+		// bucket に要素が登録されているとき
 		findElementId = this->elementBucket.searchElementInBody(body,x,y,z,tolerance);
 		return findElementId;
 	}else if( this->elementOctree.getCount() > 0 ){
-
+		// octree に要素が登録されているとき
 		double dist = this->elementOctree.getNearest(x,y,z,findElementId);
 		if( dist <= tolerance ){
 			return findElementId;
@@ -91,7 +91,7 @@ kmb::MeshDB::searchElement(kmb::bodyIdType bodyId,double x,double y,double z,dou
 			return kmb::Element::nullElementId;
 		}
 	}else{
-
+		//------------ naive search -------------------//
 		kmb::Minimizer minimizer;
 		kmb::Node n0,n1,n2,n3;
 		kmb::Point3D pt(x,y,z);
@@ -161,8 +161,8 @@ kmb::MeshDB::searchElement(kmb::bodyIdType bodyId,double x,double y,double z,dou
 		}else if( body->isUniqueDim(3) ){
 			kmb::ElementContainer::const_iterator eIter = body->begin();
 			while( !eIter.isFinished() ){
-
-
+				// ここで (x,y,z) を含むかどうかを判定する
+				// 含む場合は距離 0 とする
 				double dist = 0.0;
 				if( evaluator->getMinInnerVolume(eIter,x,y,z) >= 0.0 ){
 					dist = 0.0;
@@ -201,10 +201,10 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 		return kmb::Element::nullElementId;
 	}
 	if( this->elementBucket.getCount() > 0 ){
-
+		// bucket に要素が登録されているとき
 		findElementId = this->elementBucket.searchElementInData(data,body,x,y,z,tolerance);
 	}else if( data->getBindingMode() == kmb::DataBindings::ElementGroup ){
-
+		//------------ naive search -------------------//
 		kmb::Maximizer maximizer;
 		kmb::Minimizer minimizer;
 		kmb::Node n0,n1,n2,n3;
@@ -275,7 +275,7 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 				kmb::elementIdType eid = dIter.getId();
 				kmb::ElementContainer::const_iterator eIter = body->find( eid );
 				if( !eIter.isFinished() ){
-
+					// ここで (x,y,z) を含むかどうかを判定する
 					if( maximizer.update( evaluator->getMinInnerVolume( eIter, x, y, z ) ) ){
 						findElementId = eIter.getId();
 					}
@@ -287,7 +287,7 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 			}
 		}
 	}else if( data->getBindingMode() == kmb::DataBindings::FaceGroup ){
-
+		//------------ naive search -------------------//
 		kmb::Minimizer minimizer;
 		kmb::Node n0,n1,n2,n3;
 		kmb::Point3D pt(x,y,z);
@@ -384,9 +384,9 @@ kmb::MeshDB::searchElementInData(const char* name,double x,double y,double z,dou
 	return findElementId;
 }
 
-
-
-
+// Body は同一の要素であることが条件
+// TRIANGLE と TETRAHEDRON が混じっているような Body はダメ
+// 三角形と線分に対しては、maxCoeff に要素からの距離と各頂点からの距離を代入して返す
 /*
 kmb::elementIdType
 kmb::MeshDB::searchElement(kmb::bodyIdType bodyId,double x,double y,double z,double* maxCoeff,double tolerance) const
@@ -498,7 +498,7 @@ kmb::MeshDB::searchElement(kmb::bodyIdType bodyId,double x,double y,double z,dou
 				}
 				++eIter;
 			}
-
+			// tolerance より小さければ見つからなかったことにする
 			if( maximizer.getMax() <= tolerance ){
 				findElementId = kmb::Element::nullElementId;
 			}
@@ -525,7 +525,7 @@ kmb::MeshDB::searchElement(kmb::bodyIdType bodyId,double x,double y,double z,dou
 				}
 				++eIter;
 			}
-
+			// tolerance より小さければ見つからなかったことにする
 			if( maximizer.getMax() <= tolerance ){
 				findElementId = kmb::Element::nullElementId;
 			}
@@ -578,9 +578,9 @@ kmb::MeshDB::searchElementWithNormal(kmb::bodyIdType bodyId,double x,double y,do
 				}
 				++eIter;
 			}
-
-
-
+//			if( minimizer.getMin() > tolerance ){
+//				findElementId = kmb::Element::nullElementId;
+//			}
 		}else if( body->isUniqueType( kmb::QUAD ) || body->isUniqueType( kmb::QUAD2 )){
 			kmb::ElementContainer::const_iterator eIter = body->begin();
 			while( !eIter.isFinished() )
@@ -821,7 +821,7 @@ kmb::MeshDB::getNearestNode(double x,double y,double z,kmb::nodeIdType &nearestI
 	}
 }
 
-
+// 冗長バージョン
 /*
 double
 kmb::MeshDB::getNearestElement(kmb::bodyIdType bodyId,double x,double y,double z,kmb::elementIdType &nearestId)

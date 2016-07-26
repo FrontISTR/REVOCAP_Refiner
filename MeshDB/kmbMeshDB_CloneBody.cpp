@@ -30,7 +30,7 @@
 #include <set>
 #include <map>
 
-
+//------------------- 要素グループの複製 --------------------------//
 
 kmb::bodyIdType kmb::MeshDB::
 cloneBody(kmb::bodyIdType bodyID)
@@ -40,7 +40,7 @@ cloneBody(kmb::bodyIdType bodyID)
 	kmb::nodeIdType* cells = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	if( orgBody != NULL && cells != NULL ){
 		id = this->beginElement( orgBody->getCount() );
-
+		// 要素のコピー
 		kmb::ElementContainer::iterator
 			eIter = orgBody->begin();
 		while( eIter != orgBody->end() )
@@ -63,7 +63,7 @@ cloneReverseBody(kmb::bodyIdType bodyID)
 	kmb::nodeIdType* cells = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	if( orgBody != NULL && cells != NULL ){
 		id = this->beginElement( orgBody->getCount() );
-
+		// 要素のコピー
 		kmb::ElementContainer::iterator eIter = orgBody->begin();
 		while( eIter != orgBody->end() )
 		{
@@ -85,9 +85,9 @@ kmb::MeshDB::cloneBodyWithNode(bodyIdType bodyID)
 	kmb::Node node;
 	kmb::nodeIdType* cells = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	if( orgBody != NULL && cells != NULL ){
-
+		// 節点のコピー
 		std::set<kmb::nodeIdType> nodeSet;
-
+		// 古い nodeID と新しい nodeID の対応表 nodeMapper[ oldID ] = newID
 		std::map<kmb::nodeIdType,kmb::nodeIdType> nodeMapper;
 		orgBody->getNodesOfBody( nodeSet );
 		std::set<kmb::nodeIdType>::iterator nIter = nodeSet.begin();
@@ -101,7 +101,7 @@ kmb::MeshDB::cloneBodyWithNode(bodyIdType bodyID)
 			++nIter;
 		}
 
-
+		// 要素のコピー
 		id = this->beginElement( orgBody->getCount() );
 		kmb::ElementContainer::iterator eIter = orgBody->begin();
 		while( eIter != orgBody->end() )
@@ -124,9 +124,9 @@ kmb::MeshDB::cloneReverseBodyWithNode(bodyIdType bodyID)
 	kmb::Node node;
 	kmb::nodeIdType* cells = new kmb::nodeIdType[ kmb::Element::MAX_NODE_COUNT ];
 	if( orgBody != NULL && cells != NULL ){
-
+		// 節点のコピー
 		std::set<kmb::nodeIdType> nodeSet;
-
+		// 古い nodeID と新しい nodeID の対応表 nodeMapper[ oldID ] = newID
 		std::map<kmb::nodeIdType,kmb::nodeIdType> nodeMapper;
 		orgBody->getNodesOfBody( nodeSet );
 		std::set<kmb::nodeIdType>::iterator nIter = nodeSet.begin();
@@ -140,7 +140,7 @@ kmb::MeshDB::cloneReverseBodyWithNode(bodyIdType bodyID)
 			++nIter;
 		}
 
-
+		// 要素のコピー
 		id = this->beginElement( orgBody->getCount() );
 		kmb::ElementContainer::iterator eIter = orgBody->begin();
 		while( eIter != orgBody->end() )

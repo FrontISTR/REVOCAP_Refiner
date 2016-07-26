@@ -14,8 +14,8 @@
 ----------------------------------------------------------------------*/
 /*
  *
- * ƒTƒ“ƒvƒ‹Às—á•ƒeƒXƒg—pƒvƒƒOƒ‰ƒ€
- * •¡”í—Ş‚Ì—v‘f×•ªƒ`ƒFƒbƒN—pi—v‘fƒ^ƒCƒv‚²‚Æ‚É‚Ü‚Æ‚ß‚é•û–@j
+ * ã‚µãƒ³ãƒ—ãƒ«å®Ÿè¡Œä¾‹ï¼†ãƒ†ã‚¹ãƒˆç”¨ãƒ—ãƒ­ã‚°ãƒ©ãƒ 
+ * è¤‡æ•°ç¨®é¡ã®è¦ç´ ç´°åˆ†ãƒã‚§ãƒƒã‚¯ç”¨ï¼ˆè¦ç´ ã‚¿ã‚¤ãƒ—ã”ã¨ã«ã¾ã¨ã‚ã‚‹æ–¹æ³•ï¼‰
  *
  */
 
@@ -29,7 +29,7 @@
 
 int main(void)
 {
-	/* ˜Z–Ê‘Ì‚Ìã‚ÉOŠp’Œ‚ğæ‚¹‚é */
+	/* å…­é¢ä½“ã®ä¸Šã«ä¸‰è§’æŸ±ã‚’ä¹—ã›ã‚‹ */
 	float64_t coords[30] = {
 		0.0, 0.0, -1.0,
 		1.0, 0.0, -1.0,
@@ -50,41 +50,41 @@ int main(void)
 	int32_t wedges[6] = {
 		5, 9, 6, 8, 10, 7,
 	};
-	/* ×•ªŒã‚Ì˜Z–Ê‘Ì‚Ìß“_”z—ñFo—Í‚Í1*8=8ŒÂ */
+	/* ç´°åˆ†å¾Œã®å…­é¢ä½“ã®ç¯€ç‚¹é…åˆ—ï¼šå‡ºåŠ›ã¯1*8=8å€‹ */
 	int32_t* refineHexas = NULL;
-	/* ×•ªŒã‚ÌOŠp’Œ‚Ìß“_”z—ñFo—Í‚Í1*8=8ŒÂ */
+	/* ç´°åˆ†å¾Œã®ä¸‰è§’æŸ±ã®ç¯€ç‚¹é…åˆ—ï¼šå‡ºåŠ›ã¯1*8=8å€‹ */
 	int32_t* refineWedges = NULL;
-	/* ×•ª‚·‚é—v‘f‚ÌŒ^(’è”’l) */
+	/* ç´°åˆ†ã™ã‚‹è¦ç´ ã®å‹(å®šæ•°å€¤) */
 	int8_t etype = RCAP_HEXAHEDRON;
 	int32_t nodeOffset = 1;
 	int32_t elementOffset = 1;
-	/* ‰Šúß“_‚ÌŒÂ” */
+	/* åˆæœŸç¯€ç‚¹ã®å€‹æ•° */
 	size_t nodeCount = 10;
-	/* ‰Šú—v‘f‚ÌŒÂ” */
+	/* åˆæœŸè¦ç´ ã®å€‹æ•° */
 	size_t elementCount = 2;
-	/* ×•ªŒã‚Ì—v‘f‚ÌŒÂ” */
+	/* ç´°åˆ†å¾Œã®è¦ç´ ã®å€‹æ•° */
 	size_t refineHexaCount = 0;
 	size_t refineWedgeCount = 0;
 	size_t refineElementCount = 0;
 
-	/* ‹«ŠEğŒiß“_ƒOƒ‹[ƒvj */
+	/* å¢ƒç•Œæ¡ä»¶ï¼ˆç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ï¼‰ */
 	int32_t ng0[5] = {1,2,5,6,9};
 	int32_t* result_ng0 = NULL;
 	size_t ng0Count = 5;
 
-	/* ƒJƒEƒ“ƒ^ */
+	/* ã‚«ã‚¦ãƒ³ã‚¿ */
 	int32_t i,j;
 
-	/* ß“_”Ô†‚ÌƒIƒtƒZƒbƒg’l‚ğ—^‚¦‚é */
+	/* ç¯€ç‚¹ç•ªå·ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆå€¤ã‚’ä¸ãˆã‚‹ */
 	rcapInitRefiner( nodeOffset, elementOffset );
-	/* À•W’l‚ğ Refiner ‚É—^‚¦‚é */
+	/* åº§æ¨™å€¤ã‚’ Refiner ã«ä¸ãˆã‚‹ */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
 
 	printf("REVOCAP_Refiner sample program : Multi-Type Refine\n");
 	printf("----- Original Model -----\n");
 	printf("---\n");
 
-	/* ×•ª‘O‚Ìß“_” */
+	/* ç´°åˆ†å‰ã®ç¯€ç‚¹æ•° */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 10 );
 	printf("node:\n");
@@ -94,7 +94,7 @@ int main(void)
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
 
-	/* ×•ª‘O‚Ì—v‘f” */
+	/* ç´°åˆ†å‰ã®è¦ç´ æ•° */
 	assert( elementCount == 2 );
 	printf("element:\n");
 	printf("  - size: %zu\n", elementCount );
@@ -115,7 +115,7 @@ int main(void)
 		j++;
 	}
 
-	/* ß“_ƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	rcapAppendNodeGroup("ng0",ng0Count,ng0);
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	printf("Node Group : Count = %zu\n", ng0Count );
@@ -133,7 +133,7 @@ int main(void)
 	printf("----- Refined Model -----\n");
 	printf("---\n");
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	etype = RCAP_HEXAHEDRON;
 	elementCount = 1;
 	refineHexaCount = rcapGetRefineElementCount( elementCount, etype );
@@ -153,7 +153,7 @@ int main(void)
 	refineElementCount += refineWedgeCount;
 	rcapCommit();
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
@@ -165,7 +165,7 @@ int main(void)
 	}
 	free( resultCoords );
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -185,7 +185,7 @@ int main(void)
 		j++;
 	}
 
-	/* ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ— */
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
 	rcapGetNodeGroup("ng0",ng0Count,result_ng0);

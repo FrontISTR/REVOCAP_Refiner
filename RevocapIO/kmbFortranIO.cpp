@@ -50,7 +50,7 @@ kmb::FortranIO::getReverseEndian(void) const
 	return endianFlag;
 }
 
-
+// 最初にint型で文字列の大きさ、その後で文字列本体、最後にもう一度 int で大きさ
 int
 kmb::FortranIO::readString(std::ifstream &input, std::string &str)
 {
@@ -100,19 +100,12 @@ kmb::FortranIO::writeFloat(std::ofstream &output,float f)
 	char buf[32];
 	char pow[8];
 	sprintf( buf, " % 8.6E", f );
-	if( strlen(buf) == 15 ){
+	if( strlen(buf) == 15 ){ // 指数が３ケタの時
 		strcpy(pow,(&buf[13]));
 		buf[12] = '\0';
 		strcat(buf,pow);
 	}
 	output << buf;
-
-
-
-
-
-
-
 	return 0;
 }
 

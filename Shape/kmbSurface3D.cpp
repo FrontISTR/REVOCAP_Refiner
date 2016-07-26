@@ -88,14 +88,14 @@ kmb::Surface3D::getMiddlePointByNearest( double u0, double v0, double u1, double
 	bool res = false;
 	double um = 0.5*(u0+u1);
 	double vm = 0.5*(v0+v1);
-
+	// (u,v) 座標の中点が第1候補
 	if( getPoint(um,vm,pt) && minimizer.update( pm.distanceSq(pt) ) ){
 		u = um;
 		v = vm;
 		point.set(pt);
 		res = true;
 	}
-
+	// 曲面上の点で (u,v) 座標の中点より幾何学的中点に近いものがあれば置き換え
 	if( getNearest(pm,um,vm) && getPoint(um,vm,pt) && minimizer.update( pm.distanceSq(pt) ) ){
 		u = um;
 		v = vm;
@@ -163,7 +163,7 @@ kmb::Surface3D::getNearest( const kmb::Point3D& point, double &u, double &v ) co
 		bool calculated;
 		kmb::Point3D pt;
 		kmb::Vector3D uVec, vVec, uuVec, uvVec, vvVec;
-
+		// pt uVec vVec uuVec uvVec vvVec に (u,v) での値が入っていたら true
 		bool calc(double u,double v){
 			if( u == t0 && v == t1 && calculated ){
 				return true;
@@ -231,7 +231,7 @@ kmb::Surface3D::getNearest( const kmb::Point3D& point, double &u, double &v ) co
 		v = opt_t[1];
 		return true;
 	}
-
+	// 収束しない場合は黄金比法
 	if( opt.calcMin_GS( dist_obj, opt_t, min_t, max_t ) ){
 		u = opt_t[0];
 		v = opt_t[1];

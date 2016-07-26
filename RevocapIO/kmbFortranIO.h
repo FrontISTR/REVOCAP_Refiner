@@ -12,9 +12,9 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
+//
+// Fortran の unformat 形式を読むためのサブルーチン集
+//
 
 #pragma once
 
@@ -32,12 +32,14 @@ class FortranIO
 {
 public:
 	template<typename T>
-	static void reverse_endian(T* p)
+	static void reverse_endian(T* p,int n=1)
 	{
-		std::reverse(
-			reinterpret_cast<uint8_t*>(p),
-			reinterpret_cast<uint8_t*>(p) + sizeof(T)
-		);
+		for(int i=0;i<n;++i){
+			std::reverse(
+				reinterpret_cast<uint8_t*>(p+i),
+				reinterpret_cast<uint8_t*>(p+i) + sizeof(T)
+			);
+		}
 	}
 protected:
 	bool unformatFlag;
@@ -58,6 +60,21 @@ protected:
 		input.read(reinterpret_cast<char*>(&size),sizeof(int));
 		return len;
 	}
+	template<typename T> int readArray(std::ifstream &input, T* &val){
+		int size = 0;
+		input.read(reinterpret_cast<char*>(&size),sizeof(int));
+		if( endianFlag ) reverse_endian<int>(&size);
+		const int len = size / sizeof(T);
+		val = new T[len];
+		T value = 0;
+		for(int i=0;i<len;++i){
+			input.read(reinterpret_cast<char*>(&value),sizeof(T));
+			if( endianFlag ) reverse_endian<T>(&value);
+			val[i] = value;
+		}
+		input.read(reinterpret_cast<char*>(&size),sizeof(int));
+		return len;
+	}
 	template<typename T> int writeArray(std::ofstream &output, std::vector<T> &val){
 		size_t len = val.size();
 		int size = static_cast<int>( len * sizeof(T) );
@@ -72,9 +89,9 @@ protected:
 		return static_cast<int>(len);
 	}
 	virtual int readString(std::ifstream &input, std::string &str);
-
+	// 文字列の前後の空白を取る
 	void strip(std::string &str);
-
+	// 単精度出力
 	int writeFloat(std::ofstream &output,float f);
 public:
 	FortranIO(void);

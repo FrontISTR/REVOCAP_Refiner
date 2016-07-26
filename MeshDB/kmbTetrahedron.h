@@ -38,8 +38,8 @@ public:
 	Tetrahedron(kmb::nodeIdType *ary);
 	virtual ~Tetrahedron(void);
 
-
-
+	// 向きを無視して節点番号順が同じ図形をあらわすか
+	// index は 0 から 3 までの整数の置換
 	static bool isEquivalent(int index[4]);
 
 	static void shapeFunction(double s,double t,double u,double* coeff);

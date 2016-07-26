@@ -19,9 +19,9 @@ namespace kmb{
 class Tolerance
 {
 public:
-
+	// 幾何計算における 0 とみなせる大きさ
 	static const double geometric;
-
+	// 数値計算における 0 と見なせる大きさ
 	static const double numeric;
 };
 

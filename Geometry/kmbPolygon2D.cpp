@@ -106,7 +106,7 @@ kmb::Polygon2D::getOrientation(void) const
 			angle += kmb::Point2D::angle( p0, p1, p2 );
 		}
 	}
-	if( fabs(angle-2*PI) < 0.1 ){
+	if( fabs(angle-2*PI) < 0.1 ){  // 少し余裕を持って
 		return kmb::Polygon2D::CLOCKWISE;
 	}else if( fabs(angle+2*PI) < 0.1 ){
 		return kmb::Polygon2D::UNTICLOCKWISE;
@@ -131,7 +131,8 @@ kmb::Polygon2D::intersect( kmb::Point2D &point ) const
 			angle += kmb::Point2D::angle( p0, point, p1 );
 		}
 	}
-
+	// 反時計回りの内側にあるかどうか
+	// 少し余裕を持って判定する
 	if( fabs(angle+2*PI) < 0.1 ){
 		return kmb::Region::INSIDE;
 	}else{
@@ -148,12 +149,12 @@ kmb::Polygon2D::appendNodeId( kmb::nodeIdType nodeId )
 void
 kmb::Polygon2D::dividePolygon(kmb::nodeIdType n0,kmb::nodeIdType n1,Polygon2D* &p0,Polygon2D* &p1)
 {
-
+	// n0 と n1 のある場所を探す
 	int i0 = getNodeIndex( n0 );
 	int i1 = getNodeIndex( n1 );
 	const int len = this->getSize();
 	if( i0>=0 && i1>=0 && i0!=i1){
-		p0 = new kmb::Polygon2D();
+		p0 = new kmb::Polygon2D(); // n0 から n1
 		if( p0 ){
 			p0->setPointContainer( points );
 			for(int i=i0;i!=i1;i=(i+1)%len){
@@ -161,7 +162,7 @@ kmb::Polygon2D::dividePolygon(kmb::nodeIdType n0,kmb::nodeIdType n1,Polygon2D* &
 			}
 			p0->appendNodeId( nodeArray[i1] );
 		}
-		p1 = new kmb::Polygon2D();
+		p1 = new kmb::Polygon2D(); // n1 から n0
 		if( p1 ){
 			p1->setPointContainer( points );
 			for(int i=i1;i!=i0;i=(i+1)%len){
@@ -178,16 +179,16 @@ kmb::Polygon2D::dividePolygon(kmb::nodeIdType n0,kmb::nodeIdType n1,Polygon2D* &
 void
 kmb::Polygon2D::branchPolygon(kmb::nodeIdType n0,kmb::nodeIdType n1,Polygon2D &negative,Polygon2D* &cancel)
 {
-
+	// n0 と n1 のある場所を探す
 	int i0 = this->getNodeIndex( n0 );
 	int i1 = negative.getNodeIndex( n1 );
 	const int len = this->getSize();
 	const int lenNeg = negative.getSize();
-
-
-
-
-
+	//
+	// n0 -> n0 (外側を一周)
+	// n0 -> n1 (外側から内側へ)
+	// n1 -> n1 (内側を一周)
+	//
 	if( i0>=0 && i1>=0 && i0!=i1){
 		cancel = new kmb::Polygon2D();
 		cancel->setPointContainer( points );

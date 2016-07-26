@@ -13,10 +13,10 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * �T���v�����s�ၕ�e�X�g�p�v���O����
+ * サンプル実行例＆テスト用プログラム
  *
- * ����͂����Ƃ��P���ȏꍇ�Ƃ��āA2�̎l�ʑ̂���Ȃ郂�f����
- * �ו�����T���v���ł���B
+ * これはもっとも単純な場合として、2つの四面体からなるモデルを
+ * 細分するサンプルである。
  *
  */
 
@@ -31,9 +31,9 @@
 int main(void)
 {
 	/*
-	 * �g�����̗�
-	 * ���߂�5�͍ו�����O�̐ߓ_���W
-	 * �Ǐ��I�ɂ� 1 ���珇�ɐߓ_�ԍ����t�^����Ă���Ɖ��߂���
+	 * 使い方の例
+	 * 初めの5つは細分する前の節点座標
+	 * 局所的には 1 から順に節点番号が付与されていると解釈する
 	 */
 	float64_t coords[15] = {
 		0.0, 0.0, 0.0,
@@ -43,53 +43,53 @@ int main(void)
 		1.0, 1.0, 1.0
 	};
 	/*
-	 * �ו���̐ߓ_�ԍ����i�[����
+	 * 細分後の節点番号を格納する
 	 */
 	float64_t* resultCoords = NULL;
-	/* �ߓ_�ԍ��� GlobalId */
+	/* 節点番号の GlobalId */
 	int32_t globalIds[5] = { 100, 101, 102, 103, 104 };
-	/* ���b�V���̐ߓ_�z��Ɍ����ߓ_�ԍ��̍ŏ��̒l
-	 * �ʏ� C ����ĂԂƂ��� 0 fortran ����Ăԏꍇ�� 1
-	 * �����ł� C ���痘�p���Ă��邪�A������ 1 ���炵���ꍇ���l����
+	/* メッシュの節点配列に現れる節点番号の最初の値
+	 * 通常 C から呼ぶときは 0 fortran から呼ぶ場合は 1
+	 * ここでは C から利用しているが、あえて 1 ずらした場合を考える
 	 */
 	int32_t nodeOffset = 1;
 	int32_t elementOffset = 1;
-	/* �l�ʑ̂̐ߓ_�z��F���͂�2�� */
+	/* 四面体の節点配列：入力は2個 */
 	int32_t tetras[8] = {
 		1, 2, 3, 4,
 		2, 3, 4, 5
 	};
-	/* �ו���̎l�ʑ̂̐ߓ_�z��F�o�͂�2*8=16��*/
+	/* 細分後の四面体の節点配列：出力は2*8=16個*/
 	int32_t* refineTetras = NULL;
-	/* �ו�����v�f�̌^(�萔�l) */
+	/* 細分する要素の型(定数値) */
 	int8_t etype = RCAP_TETRAHEDRON;
-	/* �����ߓ_�̌� */
+	/* 初期節点の個数 */
 	size_t nodeCount = 5;
-	/* �����v�f�̌� */
+	/* 初期要素の個数 */
 	size_t elementCount = 2;
-	/* �ו���̗v�f�̌� */
+	/* 細分後の要素の個数 */
 	size_t refineElementCount = 0;
-	/* �ו���̐ߓ_�̌� */
+	/* 細分後の節点の個数 */
 	size_t refineNodeCount = 0;
-	/* �v�f�̍ו��Ɠ����ɍX�V����ߓ_�O���[�v */
+	/* 要素の細分と同時に更新する節点グループ */
 	int32_t ng0[3] = {1,2,3};
 	size_t ngCount = 3;
 	int32_t* result_ng0 = NULL;
-	/* �v�f�̍ו��Ɠ����ɍX�V����ʃO���[�v */
-	/* �v�f�ԍ��Ɨv�f���ʔԍ��̏��Ɍ��݂ɕ��ׂ� */
-	int32_t fg0[4] = {1,3,2,1};   /* [1,2,3] �� [2,5,4] */
+	/* 要素の細分と同時に更新する面グループ */
+	/* 要素番号と要素内面番号の順に交互に並べる */
+	int32_t fg0[4] = {1,3,2,1};   /* [1,2,3] と [2,5,4] */
 	size_t fgCount = 2;
 	int32_t* result_fg0 = NULL;
-	/* �v�f�̍ו��Ɠ����ɍX�V����v�f�O���[�v */
+	/* 要素の細分と同時に更新する要素グループ */
 	int32_t eg0[1] = {2};
 	size_t egCount = 1;
 	int32_t* result_eg0 = NULL;
-	/* �֐��̖߂�l�i�[�p */
+	/* 関数の戻り値格納用 */
 	int32_t seg[2] = {-1,-1};
 	int8_t orgtype = RCAP_UNKNOWNTYPE;
 	int32_t middle = -1;
 	int32_t flag = 0;
-	/* ���[�v�̃J�E���^ */
+	/* ループのカウンタ */
 	int32_t i = 0;
 	int32_t j = 0;
 
@@ -102,17 +102,17 @@ int main(void)
 	assert( sizeof(float32_t) == 4 );
 	assert( sizeof(float64_t) == 8 );
 
-	/* �ߓ_�ԍ��̃I�t�Z�b�g�l��^���� */
+	/* 節点番号のオフセット値を与える */
 	rcapInitRefiner( nodeOffset, elementOffset );
 
 	printf("----- Original Model -----\n");
 	printf("---\n");
 	/*
-	 * globalId �ƍ��W�l�� Refiner �ɋ�����
-	 * localIds �� NULL ����������� coords �� nodeOffset ���珇�Ԃɕ���ł�����̂Ɖ��߂���
+	 * globalId と座標値を Refiner に教える
+	 * localIds は NULL をあたえると coords は nodeOffset から順番に並んでいるものと解釈する
 	 */
 	rcapSetNode64( nodeCount, coords, globalIds, NULL );
-	/* �ו��O�̐ߓ_�� */
+	/* 細分前の節点数 */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 5 );
 	printf("node:\n");
@@ -121,7 +121,7 @@ int main(void)
 	for(i=0;(size_t)i<nodeCount;++i){
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
-	/* �ו��O�̗v�f�� */
+	/* 細分前の要素数 */
 	assert( elementCount == 2 );
 	printf("element:\n");
 	printf("  - size: %zu\n", elementCount );
@@ -130,7 +130,7 @@ int main(void)
 		printf("      - [%d, TETRAHEDRON, %d, %d, %d, %d]\n", i+elementOffset,
 			tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
 	}
-	/* �ߓ_�O���[�v�̓o�^ */
+	/* 節点グループの登録 */
 	rcapAppendNodeGroup("innovate",ngCount,ng0);
 	ngCount = rcapGetNodeGroupCount("innovate");
 	assert( ngCount == 3 );
@@ -143,7 +143,7 @@ int main(void)
 	for(i=0;(size_t)i<ngCount;++i){
 		printf("    - %d\n", ng0[i]);
 	}
-	/* �ʃO���[�v�̓o�^ */
+	/* 面グループの登録 */
 	rcapAppendFaceGroup("revolute",fgCount,fg0);
 	fgCount = rcapGetFaceGroupCount("revolute");
 	assert( fgCount == 2 );
@@ -155,7 +155,7 @@ int main(void)
 	for(i=0;(size_t)i<fgCount;++i){
 		printf("    - [%d, %d]\n", fg0[2*i], fg0[2*i+1]);
 	}
-	/* �v�f�O���[�v�̓o�^ */
+	/* 要素グループの登録 */
 	rcapAppendElementGroup("eg",egCount,eg0);
 	egCount = rcapGetElementGroupCount("eg");
 	assert( egCount == 1 );
@@ -168,7 +168,7 @@ int main(void)
 		printf("    - %d\n", eg0[i]);
 	}
 
-	/* �v�f�̍ו� */
+	/* 要素の細分 */
 	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	assert( refineElementCount == 16 );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
@@ -179,7 +179,7 @@ int main(void)
 	printf("----- Refined Model -----\n");
 	printf("---\n");
 
-	/* �ו���̐ߓ_ */
+	/* 細分後の節点 */
 	refineNodeCount = rcapGetNodeCount();
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
@@ -196,20 +196,20 @@ int main(void)
 		}
 	}
 
-	/* ���Ԑߓ_�̃`�F�b�N */
+	/* 中間節点のチェック */
 	for(j=0;(size_t)j<4*refineElementCount;++j){
 		orgtype = rcapGetOriginal( refineTetras[j], seg );
 		if( orgtype == RCAP_SEGMENT ){
 			middle = rcapGetMiddle( orgtype, seg );
-			/* ���Ԑߓ_ => ���̗��[ => ���Ԑߓ_ ���������̂��������� */
+			/* 中間節点 => 元の両端 => 中間節点 が同じものをさすこと */
 			assert( middle == refineTetras[j] );
 		}else{
-			/* ���Ԑߓ_�ł͂Ȃ� => �����炠��ߓ_ */
+			/* 中間節点ではない => 元からある節点 */
 			assert( refineTetras[j] <= (int32_t)nodeCount );
 		}
 	}
 
-	/* �ו���̗v�f */
+	/* 細分後の要素 */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -218,7 +218,7 @@ int main(void)
 			refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
 	}
 
-	/* �ו���̐ߓ_�O���[�v�̍X�V */
+	/* 細分後の節点グループの更新 */
 	ngCount = rcapGetNodeGroupCount("innovate");
 	assert( ngCount > 0 );
 	result_ng0 = (int32_t*)calloc( ngCount, sizeof(int32_t) );
@@ -230,8 +230,8 @@ int main(void)
 	printf("    size: %d\n",ngCount);
 	printf("    id:\n");
 
-	/* �ו���̐ߓ_�O���[�v�̃`�F�b�N */
-	/* ���̐ߓ_�O���[�v���܂� */
+	/* 細分後の節点グループのチェック */
+	/* 元の節点グループを含む */
 	for(i=0;i<3;++i){
 		flag = 0;
 		for(j=0;(size_t)j<ngCount;++j){
@@ -241,12 +241,12 @@ int main(void)
 		}
 		assert( flag == 1 );
 	}
-	/* �ו���̐ߓ_�O���[�v�̊m�F */
+	/* 細分後の節点グループの確認 */
 	for(j=0;(size_t)j<ngCount;++j){
 		printf("    - %d\n", result_ng0[j]);
 		orgtype = rcapGetOriginal( result_ng0[j], seg );
 		if( orgtype == RCAP_SEGMENT ){
-			/* ���Ԑߓ_ => ���̗��[ */
+			/* 中間節点 => 元の両端 */
 			flag = 0;
 			for(i=0;i<3;++i){
 				if( seg[0] == ng0[i] ){
@@ -262,7 +262,7 @@ int main(void)
 			}
 			assert( flag == 1 );
 		}else{
-			/* ���Ԑߓ_�ł͂Ȃ� */
+			/* 中間節点ではない */
 			flag = 0;
 			for(i=0;i<3;++i){
 				if( result_ng0[j] == ng0[i] ){
@@ -274,7 +274,7 @@ int main(void)
 	}
 	free( result_ng0 );
 
-	/* �ו���̖ʃO���[�v�̍X�V */
+	/* 細分後の面グループの更新 */
 	fgCount = rcapGetFaceGroupCount("revolute");
 	printf("  - name: revolute\n");
 	printf("    mode: FACEGROUP\n");
@@ -291,7 +291,7 @@ int main(void)
 		free( result_fg0 );
 	}
 
-	/* �ו���̗v�f�O���[�v�̍X�V */
+	/* 細分後の要素グループの更新 */
 	egCount = rcapGetElementGroupCount("eg");
 	printf("  - name: eg\n");
 	printf("    mode: ELEMENTGROUP\n");

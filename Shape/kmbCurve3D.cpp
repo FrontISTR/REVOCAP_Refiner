@@ -107,7 +107,7 @@ kmb::Curve3D::getNearest( const kmb::Point3D& point, double& t ) const
 		kmb::Point3D pt;
 		kmb::Vector3D vec;
 		kmb::Vector3D acc;
-
+		// pt vec acc に t での値が入っていたら true
 		bool calc(double t){
 			if( t == t0 && calculated ){
 				return true;
@@ -147,15 +147,15 @@ kmb::Curve3D::getNearest( const kmb::Point3D& point, double& t ) const
 	double min_t, max_t;
 	getDomain(min_t,max_t);
 	double t0 = 0.0;
-
+	// ニュートン法の初期値を距離関数から決める
 	opt.calcMinOnGrid( dist_obj, t0, min_t, max_t, 10 );
-
+	// 減速ニュートン法
 	double t1 = opt.calcZero_DN( opt_obj, t0 );
 	if( min_t <= t1 && t1 <= max_t ){
 		t = t1;
 		return true;
 	}
-
+	// 収束しない場合は黄金比法
 	t1 = opt.calcMin_GS( dist_obj, min_t, max_t );
 	if( min_t <= t1 && t1 <= max_t ){
 		t = t1;

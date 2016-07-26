@@ -39,24 +39,24 @@ private:
 	Point2D center;
 	double radius;
 public:
-
+	/// 設定系
 	void setCenter(const Point2D &pt);
 	void setCenter(double x,double y);
 	void setRadius(double r);
 	double getRadius(void) const;
 	Point2D getCenter(void) const;
-
-
+	/// 生成関数群
+	// 内接円
 	static Circle* createInscribedCircle(const Point2D &a,const Point2D &b,const Point2D &c);
-
+	// 半径
 	static double getInscribedRadius(const Point2D &a,const Point2D &b,const Point2D &c);
-
+	// 中心
 	static Point2D getInscribedCenter(const Point2D &a,const Point2D &b,const Point2D &c);
-
+	// 外接円
 	static Circle* createCircumscribedCircle(const Point2D &a,const Point2D &b,const Point2D &c);
-
+	// 半径
 	static double getCircumscribedRadius(const Point2D &a,const Point2D &b,const Point2D &c);
-
+	// 中心
 	static Point2D getCircumscribedCenter(const Point2D &a,const Point2D &b,const Point2D &c);
 };
 
@@ -70,7 +70,7 @@ private:
 	Vector3D normal;
 	double radius;
 public:
-
+	/// 設定系
 	void setCenter(const Point3D& pt);
 	void setCenter(const double x,const double y,const double z);
 	void setNormal(const Vector3D& pt);
@@ -79,12 +79,12 @@ public:
 	Point3D getCenter(void) const;
 	Vector3D getNormal(void) const;
 	double getRadius(void) const;
-
-
+	/// 生成関数
+	// 内接球
 	static Circle3D* createInscribedCircle(const Point3D &a,const Point3D &b,const Point3D &c);
 	static Point3D getInscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c);
 	static double getInscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c);
-
+	// 外接球
 	static Circle3D* createCircumscribedCircle(const Point3D &a,const Point3D &b,const Point3D &c);
 	static Point3D getCircumscribedCenter(const Point3D &a,const Point3D &b,const Point3D &c);
 	static double getCircumscribedRadius(const Point3D &a,const Point3D &b,const Point3D &c);

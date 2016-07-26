@@ -14,8 +14,8 @@
 ----------------------------------------------------------------------*/
 /*
  *
- * ƒTƒ“ƒvƒ‹Às—á•ƒeƒXƒg—pƒvƒƒOƒ‰ƒ€
- * BoundaryNodeGroup ‚Æ BoundaryNodeVariable ‚Ì‹““®ƒ`ƒFƒbƒN—p
+ * ã‚µãƒ³ãƒ—ãƒ«å®Ÿè¡Œä¾‹ï¼†ãƒ†ã‚¹ãƒˆç”¨ãƒ—ãƒ­ã‚°ãƒ©ãƒ 
+ * BoundaryNodeGroup ã¨ BoundaryNodeVariable ã®æŒ™å‹•ãƒã‚§ãƒƒã‚¯ç”¨
  *
  */
 
@@ -30,7 +30,7 @@
 
 int main(void)
 {
-	/* ˜Z–Ê‘Ì‚ğ‚T•ªŠ„‚µ‚½‚à‚Ì‚ğ2‚Â•À‚×‚é */
+	/* å…­é¢ä½“ã‚’ï¼•åˆ†å‰²ã—ãŸã‚‚ã®ã‚’2ã¤ä¸¦ã¹ã‚‹ */
 	float64_t coords[36] = {
 		0.0, 0.0, -1.0,
 		1.0, 0.0, -1.0,
@@ -45,7 +45,7 @@ int main(void)
 		1.0, 1.0,  1.0,
 		0.0, 1.0,  1.0,
 	};
-	/* ×•ªŒã‚ÌÀ•WF•K—v‚É‰‚¶‚Ä calloc ‚·‚é */
+	/* ç´°åˆ†å¾Œã®åº§æ¨™ï¼šå¿…è¦ã«å¿œã˜ã¦ calloc ã™ã‚‹ */
 	float64_t* resultCoords = NULL;
 	int32_t tetras[40] = {
 		1, 2, 4, 5,
@@ -59,34 +59,34 @@ int main(void)
 		5, 7, 8,12,
 		5,10, 7,12
 	};
-	/* ×•ªŒã‚Ìl–Ê‘Ì‚Ìß“_”z—ñFo—Í‚Í10*8=80ŒÂ */
+	/* ç´°åˆ†å¾Œã®å››é¢ä½“ã®ç¯€ç‚¹é…åˆ—ï¼šå‡ºåŠ›ã¯10*8=80å€‹ */
 	int32_t* refineTetras = NULL;
-	/* ×•ª‚·‚é—v‘f‚ÌŒ^(’è”’l) */
+	/* ç´°åˆ†ã™ã‚‹è¦ç´ ã®å‹(å®šæ•°å€¤) */
 	int8_t etype = RCAP_TETRAHEDRON;
 	int32_t nodeOffset = 1;
 	int32_t elementOffset = 1;
-	/* ‰Šúß“_‚ÌŒÂ” */
+	/* åˆæœŸç¯€ç‚¹ã®å€‹æ•° */
 	size_t nodeCount = 12;
-	/* ‰Šú—v‘f‚ÌŒÂ” */
+	/* åˆæœŸè¦ç´ ã®å€‹æ•° */
 	size_t elementCount = 10;
-	/* ×•ªŒã‚Ì—v‘f‚ÌŒÂ” */
+	/* ç´°åˆ†å¾Œã®è¦ç´ ã®å€‹æ•° */
 	size_t refineElementCount = 0;
-	/* ×•ªŒã‚Ìß“_‚ÌŒÂ” */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã®å€‹æ•° */
 	size_t refineNodeCount = 0;
 
-	/* Œ³‚Ìü•ª‚Ìæ“¾ */
+	/* å…ƒã®ç·šåˆ†ã®å–å¾— */
 	int32_t seg[2] = {-1,-1};
 	int8_t orgtype = RCAP_UNKNOWNTYPE;
 
-	/* ‹«ŠEğŒ */
+	/* å¢ƒç•Œæ¡ä»¶ */
 	int32_t ng0[4] = {1,2,5,6};
 	int32_t* result_ng0 = NULL;
 	size_t ng0Count = 4;
 	int32_t bng0[3] = {5,6,7};
 	int32_t* result_bng0 = NULL;
 	size_t bng0Count = 3;
-	int32_t bnv0[3] = {5,6,7};  /* ß“_ */
-	int32_t bnv1[3] = {1,2,3};  /* ß“_ã‚Ì’l */
+	int32_t bnv0[3] = {5,6,7};  /* ç¯€ç‚¹ */
+	int32_t bnv1[3] = {1,2,3};  /* ç¯€ç‚¹ä¸Šã®å€¤ */
 	int32_t* result_bnv0 = NULL;
 	int32_t* result_bnv1 = NULL;
 	size_t bnv0Count = 3;
@@ -95,9 +95,9 @@ int main(void)
 	int32_t middle = -1;
 	int32_t flag = 0;
 	char mode[32];
-	/* ß“_”Ô†‚ÌƒIƒtƒZƒbƒg’l‚ğ—^‚¦‚é */
+	/* ç¯€ç‚¹ç•ªå·ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆå€¤ã‚’ä¸ãˆã‚‹ */
 	rcapInitRefiner( nodeOffset, elementOffset );
-	/* ’†“_‚Ì Variable ‚Í¬‚³‚¢•û‚ğ—^‚¦‚é */
+	/* ä¸­ç‚¹ã® Variable ã¯å°ã•ã„æ–¹ã‚’ä¸ãˆã‚‹ */
 	rcapSetInterpolateMode( "MIN" );
 	rcapGetInterpolateMode( mode );
 	assert( strncmp( "MIN", mode, 3 )==0 );
@@ -105,9 +105,9 @@ int main(void)
 	printf("REVOCAP_Refiner sample program : Boundary Node Variable Refine\n");
 	printf("----- Original Model -----\n");
 	printf("---\n");
-	/* À•W’l‚ğ Refiner ‚É‹³‚¦‚é */
+	/* åº§æ¨™å€¤ã‚’ Refiner ã«æ•™ãˆã‚‹ */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
-	/* ×•ª‘O‚Ìß“_” */
+	/* ç´°åˆ†å‰ã®ç¯€ç‚¹æ•° */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 12 );
 	printf("node:\n");
@@ -117,7 +117,7 @@ int main(void)
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
 
-	/* ×•ª‘O‚Ì—v‘f” */
+	/* ç´°åˆ†å‰ã®è¦ç´ æ•° */
 	assert( elementCount == 10 );
 	printf("element:\n");
 	printf("  - size: %zu\n", elementCount );
@@ -127,7 +127,7 @@ int main(void)
 			tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
 	}
 
-	/* ß“_ƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	rcapAppendNodeGroup("ng0",ng0Count,ng0);
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	assert( ng0Count == 4 );
@@ -141,7 +141,7 @@ int main(void)
 		printf("    - %d\n", ng0[i]);
 	}
 
-	/* ‹«ŠEß“_ƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* å¢ƒç•Œç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	rcapAppendBNodeGroup("bng0",bng0Count,bng0);
 	bng0Count = rcapGetBNodeGroupCount("bng0");
 	assert( bng0Count == 3 );
@@ -154,7 +154,7 @@ int main(void)
 		printf("    - %d\n", bng0[i]);
 	}
 
-	/* ‹«ŠEß“_•Ï”‚Ì“o˜^ */
+	/* å¢ƒç•Œç¯€ç‚¹å¤‰æ•°ã®ç™»éŒ² */
 	rcapAppendBNodeVarInt("bnv0",bnv0Count,bnv0,bnv1);
 	bnv0Count = rcapGetBNodeVarIntCount("bnv0");
 	assert( bnv0Count == 3 );
@@ -169,7 +169,7 @@ int main(void)
 
 	/*---------------------- REFINE -----------------------------------------*/
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
 	elementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras );
@@ -178,7 +178,7 @@ int main(void)
 	printf("----- Refined Model -----\n");
 	printf("---\n");
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
@@ -190,7 +190,7 @@ int main(void)
 	}
 	free( resultCoords );
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -199,7 +199,7 @@ int main(void)
 			refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
 	}
 
-	/* ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	assert( ng0Count > 0 );
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
@@ -216,7 +216,7 @@ int main(void)
 	free( result_ng0 );
 	result_ng0 = NULL;
 
-	/* ‹«ŠEß“_ƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* å¢ƒç•Œç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	bng0Count = rcapGetBNodeGroupCount("bng0");
 	result_bng0 = (int32_t*)calloc( bng0Count, sizeof(int32_t) );
 	rcapGetBNodeGroup("bng0",bng0Count,result_bng0);
@@ -230,7 +230,7 @@ int main(void)
 	}
 	free( result_bng0 );
 
-	/* ‹«ŠEß“_•Ï”‚Ì“o˜^ */
+	/* å¢ƒç•Œç¯€ç‚¹å¤‰æ•°ã®ç™»éŒ² */
 	bnv0Count = rcapGetBNodeVarIntCount("bnv0");
 	result_bnv0 = (int32_t*)calloc( bnv0Count, sizeof(int32_t) );
 	result_bnv1 = (int32_t*)calloc( bnv0Count, sizeof(int32_t) );
@@ -244,13 +244,13 @@ int main(void)
 		printf("    - [%d, %d]\n", result_bnv0[i], result_bnv1[i]);
 	}
 
-	/* ‚±‚±‚Åƒ`ƒFƒbƒNI */
+	/* ã“ã“ã§ãƒã‚§ãƒƒã‚¯ï¼ */
 	for(i=0;(size_t)i<bnv0Count;++i){
 		orgtype = rcapGetOriginal( result_bnv0[i], seg );
 		if( orgtype == RCAP_SEGMENT ){
 			middle = rcapGetMiddle( orgtype, seg );
 			assert( middle == result_bnv0[i] );
-			/* ¬‚³‚¢•û‚É‚È‚Á‚Ä‚¢‚é‚±‚Æ‚ğŠm‚©‚ß‚é */
+			/* å°ã•ã„æ–¹ã«ãªã£ã¦ã„ã‚‹ã“ã¨ã‚’ç¢ºã‹ã‚ã‚‹ */
 			flag = 0;
 			for(j=0;(size_t)j<bnv0Count;++j){
 				if( bnv0[j] == seg[0] ){

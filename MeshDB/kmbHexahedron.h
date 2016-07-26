@@ -44,12 +44,12 @@ public:
 
 	static int divideIntoTetrahedrons(const kmb::ElementBase* element,kmb::nodeIdType tetrahedrons[][4]);
 
-
-
+	// 向きを無視して節点番号順が同じ図形をあらわすか
+	// index は 0 から 7 までの整数の置換
 	static bool isEquivalent(int index[8]);
-
-
-
+	// hexa に対して、quad0 と quad1 が対面関係にあるか
+	// ある場合は最初の節点のずれている個数 0,1,2,3 を返す
+	// 対面関係にない場合は -1 を返す
 	static int isOppositeFace(const kmb::ElementBase* hexa,const kmb::ElementBase* quad0,const kmb::ElementBase* quad1);
 public:
 	static const int connectionTable[8][8];

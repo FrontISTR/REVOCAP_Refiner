@@ -25,6 +25,13 @@ class DataBindings;
 class PhysicalValue;
 class ElementContainer;
 
+class MinMaxInfo : public MinMaxWithId<kmb::idType>
+{
+public:
+	MinMaxInfo(void) : MinMaxWithId<kmb::idType>(){};
+	virtual ~MinMaxInfo(void){};
+};
+
 class DataEvaluator
 {
 public:
@@ -38,7 +45,6 @@ public:
 	bool getMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox& bbox) const;
 	bool getAbsMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox1D& bbox) const;
 	bool getMinMaxOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements, kmb::BoundingBox1D& bbox) const;
-
 	bool getAverageOnBody(const kmb::DataBindings* data, const kmb::ElementContainer* elements,double* average) const;
 private:
 	const Point3DContainer* points;

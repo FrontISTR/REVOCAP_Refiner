@@ -81,7 +81,7 @@ kmb::Tuple4D::operator =(const Tuple4D& other)
 	return *this;
 }
 
-
+/// スカラー積
 
 kmb::Vector4D
 kmb::Vector4D::scalar(const double s) const{
@@ -91,7 +91,7 @@ kmb::Vector4D::scalar(const double s) const{
 double
 kmb::Vector4D::lengthSq(void) const
 {
-	return
+	return 
 		this->v[0] * this->v[0] +
 		this->v[1] * this->v[1] +
 		this->v[2] * this->v[2] +

@@ -39,13 +39,13 @@ public:
 	Triangle(kmb::nodeIdType *ary);
 	virtual ~Triangle(void);
 
-
-
+	// 辺の交換
+	// abc と acd から abd と bcd に変換する
 	static bool edgeSwap(kmb::ElementBase &triangle0,kmb::ElementBase &triangle1);
-
-
+	// 三角形に特化した一致判定
+	// 1 : 一致 -1 : 逆向き 0 : その他
 	static int isCoincident(kmb::nodeIdType t00,kmb::nodeIdType t01,kmb::nodeIdType t02,kmb::nodeIdType t10,kmb::nodeIdType t11,kmb::nodeIdType t12);
-
+	// ３点のうち一致している点があるかを判定する
 	static bool isCoincidentNodes(kmb::nodeIdType t0,kmb::nodeIdType t1,kmb::nodeIdType t2);
 public:
 	static const int connectionTable[3][3];

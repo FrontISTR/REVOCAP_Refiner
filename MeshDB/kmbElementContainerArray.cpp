@@ -350,7 +350,7 @@ kmb::ElementContainerArray::find(kmb::elementIdType id) const
 	}
 }
 
-
+//-------------- iterator -----------------
 
 kmb::ElementContainerArray::_iteratorArray::_iteratorArray(void)
 : index(0)
@@ -451,7 +451,7 @@ kmb::ElementContainerArray::_iteratorArray::operator[](const int cellIndex) cons
 	}
 }
 
-
+// 途中 NULL があれば端折る
 kmb::ElementContainer::_iterator*
 kmb::ElementContainerArray::_iteratorArray::operator++(void)
 {

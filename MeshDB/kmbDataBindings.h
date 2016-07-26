@@ -109,51 +109,51 @@ protected:
 public:
 	virtual ~DataBindings(void){}
 	virtual const char* getContainerType(void) const = 0;
-
+	//------------- 値の型 -----------------------
 protected:
 	PhysicalValue::valueType type;
 public:
 	PhysicalValue::valueType getValueType(void) const { return type; }
 	virtual int getDimension(void) const { return kmb::PhysicalValue::getDimension(type); };
-
+	//------------- 値の結合モード ----------------
 protected:
 	bindingMode bMode;
 public:
 	bindingMode getBindingMode(void) const { return bMode; };
-
+//----------------- データのタグ ----------
 protected:
 	std::string specType;
 public:
 	std::string getSpecType(void) const { return specType; };
 	void setSpecType(std::string sname){ specType = sname; };
-
+//----------------- 対象となる BodyId (要素コンテナのId) ----------
 protected:
 	kmb::bodyIdType targetBodyId;
 public:
 	kmb::bodyIdType getTargetBodyId(void) const { return targetBodyId; };
 	void setTargetBodyId(kmb::bodyIdType bodyId){ targetBodyId = bodyId; };
-
+//----------------- Id 操作関数 -------------------
 public:
-
-
+	// 登録されている Id または Id と値の組を削除する
+	// スマートポインタの場合はメモリを開放しない
 	virtual void clear(void);
-
+	// 登録されている Id の個数を返す
 	virtual size_t getIdCount(void) const = 0;
-
+	// Id を登録する
 	virtual bool addId(kmb::idType id);
 	virtual bool addId(kmb::Face id);
-
+	// Id が登録されているかを返す
 	virtual bool hasId(kmb::idType id) const;
 	virtual bool hasId(kmb::Face id) const;
-
+	// 登録されている Id を削除する
 	virtual bool deleteId(kmb::idType id);
 	virtual bool deleteId(kmb::Face id);
-
+	// 登録されている Id を置き換える
 	virtual bool replaceId(kmb::idType old_id,kmb::idType new_id);
 	virtual bool replaceId(kmb::Face old_id,kmb::Face new_id);
 	virtual int replaceNodeId( std::map< kmb::nodeIdType, kmb::nodeIdType> &idmap );
-
-
+//------------------ 物理量操作 -------------------
+	// すでに与えられている場合も上書きする
 	virtual bool setPhysicalValue(kmb::PhysicalValue* val);
 	virtual bool setPhysicalValue(kmb::idType id, kmb::PhysicalValue* value);
 	virtual bool setPhysicalValue(kmb::Face f, kmb::PhysicalValue* value);
@@ -161,12 +161,12 @@ public:
 	virtual bool setPhysicalValue(kmb::Face f, double *value);
 	virtual bool setPhysicalValue(kmb::idType id, long *value);
 	virtual bool setPhysicalValue(kmb::Face f, long *value);
-
+	// 成分ごと
 	virtual bool setValue(kmb::idType id, double value,int index=0);
 	virtual bool setValue(kmb::Face f, double value,int index=0);
 	virtual bool setValue(kmb::idType id, long value,int index=0);
 	virtual bool setValue(kmb::Face f, long value,int index=0);
-
+	// 浮動小数点値の場合にスカラー倍する
 	virtual bool scalar(double r);
 
 	virtual kmb::PhysicalValue* getPhysicalValue(void) const;
@@ -176,10 +176,10 @@ public:
 	virtual bool getPhysicalValue(kmb::Face f, double *value) const;
 	virtual bool getPhysicalValue(kmb::idType id, long *value) const;
 	virtual bool getPhysicalValue(kmb::Face f, long *value) const;
-
+//------------------ イテレータ -------------------
 public:
-
-
+	// 実態
+	// 継承したクラスではこれを拡張する
 	class _iterator
 	{
 	public:
@@ -193,11 +193,11 @@ public:
 		virtual bool setValue(long *value){ return false; };
 		virtual _iterator* operator++(void) = 0;
 		virtual _iterator* operator++(int n) = 0;
-		virtual _iterator* clone(void) = 0;
+		virtual _iterator* clone(void) = 0; // 代入演算子の定義に必要
 	};
 
 public:
-
+	// ラッパ
 	class const_iterator;
 	class iterator
 	{
@@ -217,13 +217,13 @@ public:
 		bool getValue(long *value) const;
 		bool setValue(double *value);
 		bool setValue(long *value);
-
+		// 代入
 		iterator& operator=(const iterator& other);
-		iterator& operator++(void);
-		iterator  operator++(int n);
+		iterator& operator++(void);  // 前置 ++
+		iterator  operator++(int n); // 後置 ++
 		bool operator==(const iterator &other) const;
 		bool operator!=(const iterator &other) const;
-
+		// 終了判定 == end() でもいいけど、こっちの方が速い
 		bool isFinished(void) const{ return (_iter==NULL); }
 	};
 
@@ -243,23 +243,23 @@ public:
 		const kmb::PhysicalValue* getValue(void) const;
 		bool getValue(double *value)  const;
 		bool getValue(long *value)  const;
-
+		// 代入
 		const_iterator& operator=(const const_iterator& other);
 		const_iterator& operator=(const iterator& other);
-		const_iterator& operator++(void);
-		const_iterator  operator++(int n);
+		const_iterator& operator++(void);  // 前置 ++
+		const_iterator  operator++(int n); // 後置 ++
 		bool operator==(const const_iterator &other) const;
 		bool operator!=(const const_iterator &other) const;
-
+		// 終了判定 == end() でもいいけど、こっちの方が速い
 		bool isFinished(void) const{ return (_iter==NULL); }
 	};
 
 	virtual iterator begin(void) = 0;
 	virtual const_iterator begin(void) const = 0;
-
-
-	static const iterator endIterator;
-	static const const_iterator endConstIterator;
+	// 値を返すと返すたびにコンストラクタとデストラクタが呼ばれるよ
+	// 参照返しにする
+	static const iterator endIterator; // NULL 値
+	static const const_iterator endConstIterator; // NULL 値
 	const iterator& end(void){
 		return DataBindings::endIterator;
 	};
@@ -285,7 +285,7 @@ public:
 		return "DataBindingsGlobal";
 	};
 protected:
-
+	// 定数値を与える
 	kmb::PhysicalValue* value;
 public:
 	virtual bool setPhysicalValue(kmb::PhysicalValue* val){
@@ -341,7 +341,7 @@ public:
 	};
 protected:
 	std::set<T> group;
-
+	// 定数値を与える場合
 	kmb::PhysicalValue* value;
 public:
 	virtual bool setPhysicalValue(kmb::PhysicalValue* val){
@@ -373,7 +373,7 @@ public:
 	virtual void clear(void){
 		group.clear();
 	};
-
+	// Id を変換する
 	virtual bool replaceId(kmb::idType old_id,kmb::idType new_id){
 		T old_t = static_cast<T>(old_id);
 		T new_t = static_cast<T>(new_id);
@@ -413,7 +413,7 @@ public:
 	virtual size_t getIdCount(void) const{
 		return group.size();
 	};
-
+//------------------ イテレータ -------------------
 public:
 	class _iterator : public DataBindings::_iterator
 	{
@@ -501,7 +501,7 @@ public:
 	};
 protected:
 	std::set<kmb::Face> group;
-
+	// 定数値を与える場合
 	kmb::PhysicalValue* value;
 public:
 	virtual bool setPhysicalValue(kmb::PhysicalValue* val){
@@ -571,7 +571,7 @@ public:
 			++jIter;
 		}
 	};
-
+//------------------ イテレータ -------------------
 public:
 	class _iterator : public DataBindings::_iterator
 	{
@@ -640,8 +640,8 @@ public:
 	}
 };
 
-
-
+// domain が T, range が V
+// V は kmb::PhysicalValue を継承したクラス
 template<typename T,typename V>
 class DataVariable : public DataBindings
 {
@@ -691,7 +691,7 @@ public:
 			if( dIter != mapper.end() ){
 				dIter->second->setValue(value);
 			}else{
-
+				// V の型が double* を受けられなければ初期値が入る
 				kmb::PhysicalValue* v = new V();
 				v->setValue(value);
 				mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
@@ -706,7 +706,7 @@ public:
 			if( dIter != mapper.end() ){
 				dIter->second->setValue(value);
 			}else{
-
+				// V の型が long* を受けられなければ初期値が入る
 				kmb::PhysicalValue* v = new V();
 				v->setValue(value);
 				mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
@@ -718,11 +718,11 @@ public:
 	virtual bool setValue(T t, double value,int index=0){
 		typename std::map<T,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 		if( dIter != mapper.end() ){
-
+			// V が double の型を index で受けられるときだけ
 			dIter->second->setValue( value, index );
 			return true;
 		}else{
-
+			// V が double の型を index で受けられないときは初期値が入る
 			kmb::PhysicalValue* v = new V();
 			v->setValue( value, index );
 			mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
@@ -732,11 +732,11 @@ public:
 	virtual bool setValue(T t, long value,int index=0){
 		typename std::map<T,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 		if( dIter != mapper.end() ){
-
+			// V が long の型を index で受けられるときだけ
 			dIter->second->setValue( value, index );
 			return true;
 		}else{
-
+			// V が long の型を index で受けられないときは初期値が入る
 			kmb::PhysicalValue* v = new V();
 			v->setValue( value, index );
 			mapper.insert( std::pair<T,kmb::PhysicalValue*>(t,v) );
@@ -819,7 +819,7 @@ public:
 			}
 			++pIter;
 		}
-
+		// 中のポインタを delete せずにコンテナだけを初期化する
 		mapper.clear();
 		typename std::map<T,kmb::PhysicalValue*>::iterator qIter = tempMap.begin();
 		while( qIter != tempMap.end() )
@@ -851,7 +851,7 @@ public:
 				}
 				++pIter;
 			}
-
+			// 中のポインタを delete せずにコンテナだけを初期化する
 			mapper.clear();
 			typename std::map<T,kmb::PhysicalValue*>::iterator qIter = tempMap.begin();
 			while( qIter != tempMap.end() )
@@ -868,7 +868,7 @@ public:
 	virtual size_t getIdCount() const{
 		return mapper.size();
 	};
-
+//------------------ イテレータ -------------------
 public:
 	class _iterator : public DataBindings::_iterator
 	{
@@ -997,7 +997,7 @@ public:
 			if( dIter != mapper.end() ){
 				dIter->second->setValue(value);
 			}else{
-
+				// V の型が double* を受けられなければ初期値が入る
 				kmb::PhysicalValue* v = new V();
 				v->setValue(value);
 				mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
@@ -1012,7 +1012,7 @@ public:
 			if( dIter != mapper.end() ){
 				dIter->second->setValue(value);
 			}else{
-
+				// V の型が long* を受けられなければ初期値が入る
 				kmb::PhysicalValue* v = new V();
 				v->setValue(value);
 				mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
@@ -1024,11 +1024,11 @@ public:
 	virtual bool setValue(kmb::Face t, double value,int index=0){
 		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 		if( dIter != mapper.end() ){
-
+			// V が double の型を index で受けられるときだけ
 			dIter->second->setValue( value, index );
 			return true;
 		}else{
-
+			// V が double の型を index で受けられないときは初期値が入る
 			kmb::PhysicalValue* v = new V();
 			v->setValue( value, index );
 			mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
@@ -1038,11 +1038,11 @@ public:
 	virtual bool setValue(kmb::Face t, long value,int index=0){
 		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator dIter = mapper.find(t);
 		if( dIter != mapper.end() ){
-
+			// V が long の型を index で受けられるときだけ
 			dIter->second->setValue( value, index );
 			return true;
 		}else{
-
+			// V が long の型を index で受けられないときは初期値が入る
 			kmb::PhysicalValue* v = new V();
 			v->setValue( value, index );
 			mapper.insert( std::pair<kmb::Face,kmb::PhysicalValue*>(t,v) );
@@ -1125,7 +1125,7 @@ public:
 			}
 			++pIter;
 		}
-
+		// 中のポインタを delete せずにコンテナだけを初期化する
 		mapper.clear();
 		typename std::map<kmb::Face,kmb::PhysicalValue*>::iterator qIter = tempMap.begin();
 		while( qIter != tempMap.end() )
@@ -1140,7 +1140,7 @@ public:
 	virtual size_t getIdCount() const{
 		return mapper.size();
 	};
-
+//------------------ イテレータ -------------------
 public:
 	class _iterator : public DataBindings::_iterator
 	{

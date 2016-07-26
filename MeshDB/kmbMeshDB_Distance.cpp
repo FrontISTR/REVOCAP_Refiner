@@ -42,38 +42,20 @@ kmb::MeshDB::getDistance(kmb::nodeIdType nodeId0, kmb::nodeIdType nodeId1) const
 	if( this->node3Ds ){
 		kmb::Point3D p0, p1;
 		double d = this->node3Ds->distanceSq(nodeId0,nodeId1);
-		if( d >= 0.0 ){
+		if( d < DBL_MAX ){
 			return sqrt(d);
 		}
 	}
 	return DBL_MAX;
 }
 
-
+// 座標から最近点を検索
 
 double
-kmb::MeshDB::getNearestNodeInBody(double x,double y,double z,kmb::bodyIdType bodyID,kmb::nodeIdType& nearestId) const
+kmb::MeshDB::getNearestNodeInBody(double x,double y,double z,kmb::bodyIdType bodyId,kmb::nodeIdType& nearestId) const
 {
-	kmb::Minimizer minimizer;
-	kmb::Node node;
-	const kmb::ElementContainer* body = this->getBodyPtr(bodyID);
-	if( body != NULL && this->node3Ds != NULL ){
-		ElementContainer::const_iterator eIter = body->begin();
-		while( eIter != body->end() )
-		{
-			const int len = eIter.getNodeCount();
-			for(int i=0;i<len;++i){
-				const kmb::nodeIdType nodeId = eIter.getCellId(i);
-				if( this->getNode( nodeId, node ) ){
-					if( minimizer.update( node.distanceSq(x,y,z) ) ){
-						nearestId = nodeId;
-					}
-				}
-			}
-			++eIter;
-		}
-	}
-	return sqrt( minimizer.getMin() );
+	Point3D pt(x,y,z);
+	return getNearestNodeInBody(pt,bodyId,nearestId);
 }
 
 double
@@ -101,7 +83,7 @@ kmb::MeshDB::getNearestNodeInBody(const kmb::Point3D& point, kmb::bodyIdType bod
 	return sqrt( minimizer.getMin() );
 }
 
-
+// NodeId から自分以外の最近点を検索
 double
 kmb::MeshDB::getNearestNode(const kmb::nodeIdType id,kmb::nodeIdType& nearestId) const
 {

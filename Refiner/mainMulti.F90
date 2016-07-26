@@ -13,14 +13,14 @@
 !#                                                                      #
 !----------------------------------------------------------------------*/
 !
-! REVOCAP_Refiner ƒTƒ“ƒvƒ‹ƒvƒƒOƒ‰ƒ€
+! REVOCAP_Refiner ã‚µãƒ³ãƒ—ãƒ«ãƒ—ãƒ­ã‚°ãƒ©ãƒ 
 !
 ! g++ -c -DGFORTRAN rcapRefiner.cpp
 ! gfortran mainMulti.F90 rcapRefiner.o -lstdc++ -lRcapRefiner -L../lib/i486-linux/
 !
-! Šg’£q‚ğ F90 ‚É‚·‚é‚ÆAgfortran ‚ÅƒvƒŠƒvƒƒZƒbƒT‚ğ‚©‚¯‚Ä‚­‚ê‚é
+! æ‹¡å¼µå­ã‚’ F90 ã«ã™ã‚‹ã¨ã€gfortran ã§ãƒ—ãƒªãƒ—ãƒ­ã‚»ãƒƒã‚µã‚’ã‹ã‘ã¦ãã‚Œã‚‹
 !
-! OŠp’Œ‚ğc‚É“ñ‚Âd‚Ë‚ÄA‰º‚Ì‚à‚Ì‚É˜Z–Ê‘Ì‚ğ‚Â‚¯‚Ä‚¢‚é
+! ä¸‰è§’æŸ±ã‚’ç¸¦ã«äºŒã¤é‡ã­ã¦ã€ä¸‹ã®ã‚‚ã®ã«å…­é¢ä½“ã‚’ã¤ã‘ã¦ã„ã‚‹
 !
 !
 PROGRAM RefinerSampleMulti
@@ -28,7 +28,7 @@ PROGRAM RefinerSampleMulti
   INCLUDE "rcapRefiner.inc"
   INTEGER*4 :: I,J,K
 
-! ß“_”z—ñ
+! ç¯€ç‚¹é…åˆ—
   DOUBLE PRECISION :: coords(3*13)
   DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: resultCoords
 
@@ -56,7 +56,7 @@ PROGRAM RefinerSampleMulti
   INTEGER*4 :: nodeOffset = 1
   INTEGER*4 :: elementOffset = 1
 
-! ‰Šú‰»Fß“_”Ô†‚Æ—v‘f”Ô†‚ÌŠJn”Ô†‚ğw’è‚·‚é
+! åˆæœŸåŒ–ï¼šç¯€ç‚¹ç•ªå·ã¨è¦ç´ ç•ªå·ã®é–‹å§‹ç•ªå·ã‚’æŒ‡å®šã™ã‚‹
   CALL rcapInitRefiner(nodeOffset,elementOffset)
 
   coords = (/&
@@ -90,7 +90,7 @@ PROGRAM RefinerSampleMulti
   ng0 = (/ 1, 2, 4, 5, 10, 12 /)
   nv0 = (/ 1, 1, 2, 1, 2, 2 /)
 
-! global Id ‚ÆÀ•W’l‚ğ Refiner ‚É‹³‚¦‚é
+! global Id ã¨åº§æ¨™å€¤ã‚’ Refiner ã«æ•™ãˆã‚‹
   CALL rcapSetNode64( nodeCount, coords, globalIds, 0 )
   PRINT *, "----- Original Model -----"
 
@@ -114,7 +114,7 @@ PROGRAM RefinerSampleMulti
     END IF
   END DO
 
-! CHAR(0) ‚ğ concat ‚µ‚Ä‚¨‚­
+! CHAR(0) ã‚’ concat ã—ã¦ãŠã
   str = "BND"//CHAR(0)
   nodeCount = 6
   CALL rcapAppendBNodeVarInt(str,nodeCount,ng0,nv0)
@@ -122,8 +122,8 @@ PROGRAM RefinerSampleMulti
   PRINT '(I8,I8)', (ng0(I), nv0(I), I=1, nodeCount)
 
 ! ---------------------- REFINE -----------------------------------------
-! —v‘f‚Ì×•ª
-! ×•ªŒã‚Ìß“_”z—ñ‚ÌŒÂ”‚ğ’²‚×‚é
+! è¦ç´ ã®ç´°åˆ†
+! ç´°åˆ†å¾Œã®ç¯€ç‚¹é…åˆ—ã®å€‹æ•°ã‚’èª¿ã¹ã‚‹
 
   PRINT *, "----- Refined Model -----"
   refineNodeCount = rcapGetRefineElementMultiCount( elementCount, elementTypes, refineElementCount )
@@ -161,7 +161,7 @@ PROGRAM RefinerSampleMulti
 
   CALL rcapCommit()
 
-! ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv‚Ìæ“¾
+! ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®å–å¾—
   str = "BND"//CHAR(0)
   res = rcapGetBNodeVarIntCount(str)
   ALLOCATE( result_ng0(res) )
@@ -174,7 +174,7 @@ PROGRAM RefinerSampleMulti
   DEALLOCATE( result_ng0 )
   DEALLOCATE( result_nv0 )
 
-! ‘æ‚Q’i‚Ì×•ª‚Ì‘O‚ÉƒLƒƒƒbƒVƒ…‚ğƒNƒŠƒA
+! ç¬¬ï¼’æ®µã®ç´°åˆ†ã®å‰ã«ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã‚’ã‚¯ãƒªã‚¢
   CALL rcapClearRefiner()
   CALL rcapTermRefiner()
 

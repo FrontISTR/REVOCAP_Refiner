@@ -154,9 +154,9 @@ kmb::TriangleItem::deleteChain(kmb::TriangleItem* item)
 	return count;
 }
 
-
-
-
+// 近傍情報の変更
+// tri0 の n 番目の近傍を tri1
+// tri1 の old の近傍を tri0
 void
 kmb::TriangleItem::swapNeighbors(kmb::TriangleItem* tri0,kmb::TriangleItem* tri1,int n,kmb::TriangleItem* old)
 {

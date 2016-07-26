@@ -23,42 +23,44 @@
 #      "Innovative General-Purpose Coupled Analysis System"            #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//
+// RevocapMeshDumpIO 仕様
+//
+// バイナリファイル
+// version 情報 （文字列は８個のchar + バージョン番号は４バイト整数値）
+// 型情報 int double 等の sizeof の記述
+// nodeCount
+// nodeId x y z (nodeCount分繰り返し)
+// bodyCount
+//  bodyName
+//  elementCount (bodyCount分繰り返し）
+//   elementType elementId nodeArray (elementCount分繰り返し）
+// dbCount
+//  boundingmode, idcount, name, stype, valuetype, targetbodyId (dbCount分繰り返し)
+//   variable の場合: (id, value : idcount分繰り返し) 
+//   group の場合: value, (id : idcount分繰り返し) 
+//   global の場合: value
+//
+// 文字列は len + 実体(\0を除く)
 
 #ifdef WIN32
-
-
-
-
+// 引数の型が違うのでこのままでは使えない
+// #if _MSC_VER >= 1400
+//  #define fopen fopen_s
+// #endif
 #endif
 
 #include "RevocapIO/kmbRevocapMeshDumpIO.h"
 #include "MeshDB/kmbMeshData.h"
 #include "Common/kmbCommon.h"
+#include "RevocapIO/kmbDefineIO.h"
 
+#include <fstream>
 #include <cstdio>
 #include <cstring>
 
 const char* kmb::RevocapMeshDumpIO::headerString = "REVOMESH";
+const int kmb::RevocapMeshDumpIO::headerLength = 8;
 
 bool
 kmb::RevocapMeshDumpIO::checkTypeSize(void)
@@ -74,7 +76,7 @@ kmb::RevocapMeshDumpIO::checkTypeSize(void)
 }
 
 kmb::RevocapMeshDumpIO::RevocapMeshDumpIO(void)
-: fp(NULL)
+//: fp(NULL)
 {
 }
 
@@ -82,1069 +84,1229 @@ kmb::RevocapMeshDumpIO::~RevocapMeshDumpIO(void)
 {
 }
 
-bool
-kmb::RevocapMeshDumpIO::getVersion(int &ver)
+void kmb::RevocapMeshDumpIO::setSizeInfoVersion1(void)
 {
-	size_t res = 0;
-	if( fp != NULL )
-	{
-		fseek( fp, 0, SEEK_SET );
-		char buf[16];
-		res = fread( buf, sizeof(char), 8, fp );
-		if( res < 8 ){
-			return false;
-		}
-		buf[9] = 0;
-		if( strncmp(buf,kmb::RevocapMeshDumpIO::headerString,
-			strlen(kmb::RevocapMeshDumpIO::headerString)) == 0 ){
-			int32_t v = -1;
-			res = fread( &v, sizeof(int32_t), 1, fp );
-			if( res < 1 ){
-				return false;
-			}
-			ver = static_cast<int>(v);
-			switch( ver )
-			{
-			case 1:
-
-				sInfo.bodyCount = sizeof( size_t );
-				sInfo.nodeCount = sizeof( size_t );
-				sInfo.nodeId = sizeof( kmb::nodeIdType );
-				sInfo.xyz = sizeof( double );
-				sInfo.bodyCount = sizeof( size_t );
-				sInfo.bodyId = sizeof( kmb::bodyIdType );
-				sInfo.elementCount = sizeof( size_t );
-				sInfo.elementId = sizeof( kmb::elementIdType );
-				sInfo.elementType = sizeof( kmb::elementType );
-				sInfo.dataCount = sizeof( int );
-				sInfo.bindingMode = sizeof( int );
-				sInfo.idCount = sizeof( size_t );
-				sInfo.valueType = sizeof( int );
-				sInfo.value = sizeof( double );
-				sInfo.faceId = sizeof( kmb::idType );
-				break;
-			default:
-				break;
-			}
-			return true;
-		}
-	}
-	return false;;
+	sInfo.nodeCount = 4;
+	sInfo.nodeId = 4;
+	sInfo.xyz = 8;
+	sInfo.bodyCount = 4;
+	sInfo.bodyId = 4;
+	sInfo.elementCount = 4;
+	sInfo.elementId = 4;
+	sInfo.elementType = 4;
+	sInfo.dataCount = 4;
+	sInfo.bindingMode = 4;
+	sInfo.idCount = 4;
+	sInfo.valueType = 4;
+	sInfo.value = 8;
+	sInfo.intValue = 4;
+	sInfo.faceId = 4;
 }
 
-bool
-kmb::RevocapMeshDumpIO::setVersion(const int ver)
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::getVersion(int &ver,std::istream &input)
 {
-	if( fp != NULL ){
-		fseek( fp, 0, SEEK_SET );
-		fwrite( kmb::RevocapMeshDumpIO::headerString, sizeof(char), 8, fp );
-		uint32_t v = ver;
-		fwrite( &v, sizeof(uint32_t), 1, fp );
+	if( input.fail() ){
+		return kmb::RevocapIO::kFileOpenError;
+	}
+	char buf[16];
+	input.seekg(0, std::ios::beg);
+	input.read(buf,8);
+	if( input.fail() ){
+		return kmb::RevocapIO::kFileReadError;
+	}
+	buf[8] = '\0';
+	std::cout << buf << std::endl;
+	if( strncmp(buf,kmb::RevocapMeshDumpIO::headerString,kmb::RevocapMeshDumpIO::headerLength) == 0 ){
+		int32_t v = -1;
+		input.read(reinterpret_cast<char*>(&v),sizeof(int32_t));
+		if( input.fail() ){
+			return kmb::RevocapIO::kFileReadError;
+		}
+		ver = static_cast<int>(v);
+		std::cout << "version " << ver << std::endl;
 		switch( ver )
 		{
 		case 1:
-			sInfo.nodeCount = sizeof( size_t );
-			sInfo.nodeId = sizeof( kmb::nodeIdType );
-			sInfo.xyz = sizeof( double );
-			sInfo.bodyCount = sizeof( size_t );
-			sInfo.bodyId = sizeof( kmb::bodyIdType );
-			sInfo.elementCount = sizeof( size_t );
-			sInfo.elementId = sizeof( kmb::elementIdType );
-			sInfo.elementType = sizeof( kmb::elementType );
-			sInfo.dataCount = sizeof( int );
-			sInfo.bindingMode = sizeof( int );
-			sInfo.idCount = sizeof( size_t );
-			sInfo.valueType = sizeof( int );
-			sInfo.value = sizeof( double );
-			sInfo.faceId = sizeof( kmb::idType );
+			// ver 1 の時はヘッダに書かれていないのでデフォルト値
+			setSizeInfoVersion1();
 			break;
 		default:
 			break;
 		}
-		return true;
-	}else{
-		return false;
 	}
+	return kmb::RevocapIO::kSuccess;
 }
 
-int
-kmb::RevocapMeshDumpIO::loadNodeData(kmb::MeshData* mesh)
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::setVersion(const int ver,std::ostream &output)
 {
-	size_t res = 0;
-	if( fp && mesh ){
-		size_t nCount = 0;
-		switch( sInfo.nodeCount )
-		{
-		case 4:
-		{
-			uint32_t n = 0;
-			res = fread( &n, sizeof(uint32_t), 1, fp);
-			nCount = static_cast<size_t>(n);
-			break;
-		}
-		case 8:
-		{
-			uint64_t n = 0;
-			res = fread( &n, sizeof(uint64_t), 1, fp);
-			nCount = static_cast<size_t>(n);
-			break;
-		}
-		default:
-			return 0;
-		}
-		if( sInfo.nodeId == 4 && sInfo.xyz == 8 && res == 1){
-			float64_t node[3] = {0.0,0.0,0.0};
-			int32_t nodeId = kmb::nullNodeId;
-			mesh->beginNode( nCount );
-			int nSize = static_cast<int>(nCount);
-			for(kmb::nodeIdType i=0;i<nSize;++i){
-				res = fread( &nodeId, sizeof(int32_t), 1, fp);
-				if( res < 1 ) break;
-				res = fread( node, sizeof(float64_t), 3, fp);
-				if( res < 3 ) break;
-				mesh->addNodeWithId(node[0],node[1],node[2],nodeId);
-			}
-			mesh->endNode();
-			return nSize;
-		}
+	if( output.fail() ){
+		return kmb::RevocapIO::kFileOpenError;
 	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::saveNodeData(const kmb::MeshData* mesh)
-{
-	if( fp && mesh ){
-		int nSize = 0;
-		switch( sInfo.nodeCount )
-		{
-		case 4:
-		{
-			uint32_t nCount = static_cast<uint32_t>( mesh->getNodeCount() );
-			fwrite( &nCount, sizeof(uint32_t), 1, fp);
-			nSize = static_cast<int>( nCount );
-			break;
-		}
-		case 8:
-		{
-			uint64_t nCount = static_cast<uint64_t>( mesh->getNodeCount() );
-			fwrite( &nCount, sizeof(uint64_t), 1, fp);
-			nSize = static_cast<int>( nCount );
-			break;
-		}
-		default:
-			return 0;
-		}
-
-		if( sInfo.nodeId == 4 && sInfo.xyz == 8 ){
-			float64_t node[3] = {0.0,0.0,0.0};
-			int32_t nodeId = kmb::nullNodeId;
-			kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
-			kmb::Point3DContainer::const_iterator nEnd = mesh->getNodes()->end();
-			while( nIter != nEnd ){
-				nodeId = nIter.getId();
-				nIter.getXYZ( node[0], node[1], node[2] );
-				fwrite( &nodeId, sizeof(int32_t), 1, fp);
-				fwrite( node, sizeof(float64_t), 3, fp);
-				++nIter;
-			}
-			return nSize;
-		}
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::loadElementData(kmb::MeshData* mesh)
-{
-	size_t res = 0;
-	if( fp && mesh ){
-		kmb::bodyIdType bCount = 0;
-		switch( sInfo.bodyCount )
-		{
-		case 4:
-		{
-			uint32_t n = 0;
-			res = fread( &n, sizeof(uint32_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		case 8:
-		{
-			uint64_t n = 0;
-			res = fread( &n, sizeof(uint64_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		default:
-			return 0;
-		}
-		if( sInfo.elementCount == 4 &&
-			sInfo.elementId == 4 &&
-
-			sInfo.elementType == 4 &&
-			sInfo.nodeId == 4 &&
-			res == 1 )
-		{
-			int32_t eType = kmb::UNKNOWNTYPE;
-			int32_t elementId = kmb::Element::nullElementId;
-			uint32_t eCount = 0;
-			int32_t* nodes = new int32_t[kmb::Element::MAX_NODE_COUNT];
-			size_t nCount = 0;
-			for(kmb::bodyIdType bodyId=0;bodyId<bCount;++bodyId){
-				res = fread( &eCount, sizeof(uint32_t), 1, fp);
-				if( res < 1 ) break;
-				mesh->beginElement( eCount );
-				for(uint32_t i=0;i<eCount;++i){
-					res = fread( &eType, sizeof(int32_t), 1, fp);
-					if( res < 1 ) break;
-					res = fread( &elementId, sizeof(int32_t), 1, fp);
-					if( res < 1 ) break;
-					nCount = static_cast<size_t>( kmb::Element::getNodeCount( static_cast<kmb::elementType>(eType) ) );
-					res = fread( nodes, sizeof(int32_t), nCount, fp);
-					if( res < nCount )	break;
-					kmb::nodeIdType* cells = NULL;
-					cells = new kmb::nodeIdType[nCount];
-					for(unsigned int j=0;j<nCount;++j){
-						cells[j] = nodes[j];
-					}
-					mesh->addElementWithId( static_cast<kmb::elementType>(eType), cells, elementId );
-				}
-				mesh->endElement();
-			}
-			delete[] nodes;
-			return static_cast<int>( bCount );
-		}
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::saveElementData(const kmb::MeshData* mesh)
-{
-	if( fp && mesh ){
-		kmb::bodyIdType bCount = 0;
-		switch( sInfo.bodyCount )
-		{
-		case 4:
-		{
-			uint32_t n = static_cast<uint32_t>( mesh->getBodyCount() );
-			fwrite( &n, sizeof(uint32_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		case 8:
-		{
-			uint64_t n = static_cast<uint64_t>( mesh->getBodyCount() );
-			fwrite( &n, sizeof(uint64_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		default:
-			return 0;
-		}
-		if( sInfo.elementCount == 4 &&
-			sInfo.elementId == 4 &&
-			sInfo.elementType == 4 &&
-			sInfo.nodeId == 4 )
-		{
-			int32_t* nodes = new int32_t[kmb::Element::MAX_NODE_COUNT];
-			for(kmb::bodyIdType i=0;i<bCount;++i){
-				const kmb::Body* body = mesh->getBodyPtr(i);
-				if( body != NULL ){
-					uint32_t eCount = static_cast<uint32_t>( mesh->getElementCount(i) );
-					fwrite( &eCount, sizeof(uint32_t), 1, fp);
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					kmb::ElementContainer::const_iterator eEnd = body->end();
-					while( eIter != eEnd ){
-						int32_t eType = eIter.getType();
-						int32_t elementId = eIter.getId();
-						if( eType != kmb::UNKNOWNTYPE && elementId != kmb::Element::nullElementId ){
-							fwrite( &eType, sizeof(int32_t), 1, fp);
-							fwrite( &elementId, sizeof(int32_t), 1, fp);
-							int nSize = kmb::Element::getNodeCount( static_cast<kmb::elementType>(eType) );
-							for(int j=0;j<nSize;++j){
-								nodes[j] = eIter.getCellId(j);
-							}
-							fwrite( nodes, sizeof(int32_t), nSize, fp);
-						}else{
-							eType = kmb::UNKNOWNTYPE;
-							fwrite( &eType, sizeof(int32_t), 1, fp);
-							fwrite( &elementId, sizeof(int32_t), 1, fp);
-						}
-						++eIter;
-					}
-				}else{
-					uint32_t eCount = 0;
-					fwrite( &eCount, sizeof(uint32_t), 1, fp);
-				}
-			}
-			delete[] nodes;
-			return static_cast<int>( bCount );
-		}
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::loadElementDataNeglectingId(kmb::MeshData* mesh)
-{
-	size_t res = 0;
-	if( fp && mesh ){
-		kmb::bodyIdType bCount = 0;
-		switch( sInfo.bodyCount )
-		{
-		case 4:
-		{
-			uint32_t n = 0;
-			res = fread( &n, sizeof(uint32_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		case 8:
-		{
-			uint64_t n = 0;
-			res = fread( &n, sizeof(uint64_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		default:
-			return 0;
-		}
-		if( sInfo.elementCount == 4 &&
-			sInfo.elementId == 4 &&
-			sInfo.elementType == 4 &&
-			sInfo.nodeId == 4 &&
-			res == 1 )
-		{
-			int appendedBodyNum = 0;
-			int32_t eType = kmb::UNKNOWNTYPE;
-			int32_t elementId = kmb::Element::nullElementId;
-			uint32_t eCount = 0;
-			int32_t* nodes = new int32_t[kmb::Element::MAX_NODE_COUNT];
-			size_t nCount = 0;
-			for(kmb::bodyIdType bodyId=0;bodyId<bCount;++bodyId){
-				res = fread( &eCount, sizeof(uint32_t), 1, fp);
-				if( eCount > 0 && res == 1 ){
-					++appendedBodyNum;
-					mesh->beginElement( eCount );
-					for(uint32_t i=0;i<eCount;++i){
-						res = fread( &eType, sizeof(int32_t), 1, fp);
-						if( res < 1 ) break;
-						res = fread( &elementId, sizeof(int32_t), 1, fp);
-						if( res < 1 ) break;
-						nCount = static_cast< size_t >( kmb::Element::getNodeCount( static_cast<kmb::elementType>(eType) ) );
-						res = fread( nodes, sizeof(int32_t), nCount, fp);
-						if( res < nCount ) break;
-						kmb::nodeIdType* cells = NULL;
-						cells = new kmb::nodeIdType[nCount];
-						for(unsigned int j=0;j<nCount;++j){
-							cells[j] = nodes[j];
-						}
-						mesh->addElement( static_cast<kmb::elementType>(eType), cells );
-					}
-					mesh->endElement();
-				}
-			}
-			delete[] nodes;
-			return appendedBodyNum;
-		}
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::saveElementDataNeglectingId(const kmb::MeshData* mesh)
-{
-	if( fp && mesh ){
-		kmb::bodyIdType bCount = 0;
-		switch( sInfo.bodyCount )
-		{
-		case 4:
-		{
-			uint32_t n = static_cast<uint32_t>( mesh->getBodyCount() );
-			fwrite( &n, sizeof(uint32_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		case 8:
-		{
-			uint64_t n = static_cast<uint64_t>( mesh->getBodyCount() );
-			fwrite( &n, sizeof(uint64_t), 1, fp);
-			bCount = static_cast<kmb::bodyIdType>(n);
-			break;
-		}
-		default:
-			return 0;
-		}
-		if( sInfo.elementCount == 4 &&
-			sInfo.elementId == 4 &&
-			sInfo.elementType == 4 &&
-			sInfo.nodeId == 4 )
-		{
-			int32_t elementId = 0;
-			int32_t* nodes = new int32_t[kmb::Element::MAX_NODE_COUNT];
-			for(kmb::bodyIdType i=0;i<bCount;++i){
-				const kmb::Body* body = mesh->getBodyPtr(i);
-				if( body != NULL ){
-					uint32_t eCount = static_cast<uint32_t>( mesh->getElementCount(i) );
-					fwrite( &eCount, sizeof(uint32_t), 1, fp);
-					kmb::ElementContainer::const_iterator eIter = body->begin();
-					kmb::ElementContainer::const_iterator eEnd = body->end();
-					while( eIter != eEnd ){
-						int32_t eType = eIter.getType();
-						if( eType != kmb::UNKNOWNTYPE && elementId != kmb::Element::nullElementId ){
-							fwrite( &eType, sizeof(int32_t), 1, fp);
-							fwrite( &elementId, sizeof(int32_t), 1, fp);
-							int nSize = kmb::Element::getNodeCount( static_cast<kmb::elementType>(eType) );
-							for(int j=0;j<nSize;++j){
-								nodes[j] = eIter.getCellId(j);
-							}
-							fwrite( nodes, sizeof(int32_t), nSize, fp);
-						}else{
-							eType = kmb::UNKNOWNTYPE;
-							fwrite( &eType, sizeof(int32_t), 1, fp);
-							fwrite( &elementId, sizeof(int32_t), 1, fp);
-						}
-						++eIter;
-						++elementId;
-					}
-				}else{
-					uint32_t eCount = 0;
-					fwrite( &eCount, sizeof(uint32_t), 1, fp);
-				}
-			}
-			delete[] nodes;
-			return static_cast<int>( bCount );
-		}
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::loadBindingData(kmb::MeshData* mesh)
-{
-	size_t res = 0;
-	if( fp && mesh && feof(fp) == 0 ){
-		if( sInfo.dataCount == sizeof( size_t ) &&
-			sInfo.bindingMode == sizeof( int ) &&
-			sInfo.idCount == sizeof( size_t ) &&
-			sInfo.valueType == sizeof( int ) &&
-			sInfo.value == sizeof( double ) &&
-			sInfo.bodyId == sizeof( kmb::bodyIdType ) )
-		{
-			size_t dataNum = 0;
-			res = fread( &dataNum, sizeof(size_t), 1, fp);
-			if( res < 1 ) return -1;
-			while( dataNum > 0 ){
-				uint32_t num = 0;
-				res = fread( &num, sizeof(uint32_t), 1, fp);
-				if( res < 1 ) break;
-
-				int bmode = 0;
-				res = fread( &bmode, sizeof(int), 1, fp);
-				if( res < 1 ) break;
-
-				size_t idCount = 0;
-				res = fread( &idCount, sizeof(size_t), 1, fp);
-				if( res < 1 ) break;
-				kmb::DataBindings** dataArray = new kmb::DataBindings*[num];
-				for(uint32_t i=0;i<num;++i){
-					uint32_t len = 0;
-
-					res = fread( &len, sizeof(uint32_t), 1, fp);
-					if( res < 1 ) break;
-					char* name = NULL;
-					name = new char[len+1];
-					res = fread( name, sizeof(char), len, fp);
-					if( res < 1 ) break;
-					name[len] = '\0';
-
-					res = fread( &len, sizeof(uint32_t), 1, fp);
-					if( res < 1 ) break;
-					char* stype = NULL;
-					stype = new char[len+1];
-					res = fread( stype, sizeof(char), len, fp);
-					if( res < len ) break;
-					stype[len] = '\0';
-
-					int vtype = 0;
-					res = fread( &vtype, sizeof(int), 1, fp);
-					if( res < 1 ) break;
-
-					kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
-					res = fread( &bodyId, sizeof(kmb::bodyIdType), 1, fp);
-					if( res < 1 ) break;
-					kmb::DataBindings* data =
-						mesh->createDataBindings
-							(name,
-							static_cast< kmb::DataBindings::bindingMode>(bmode),
-							static_cast< kmb::PhysicalValue::valueType>(vtype),
-							stype,bodyId);
-					dataArray[i] = data;
-				}
-				loadBindingDataId( dataArray, num, idCount );
-				delete[] dataArray;
-				dataNum -= num;
-			}
-		}
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::saveBindingData(const kmb::MeshData* mesh)
-{
-	if( fp && mesh ){
-		if( sInfo.dataCount == sizeof( size_t ) &&
-			sInfo.bindingMode == sizeof( int ) &&
-			sInfo.idCount == sizeof( size_t ) &&
-			sInfo.valueType == sizeof( int ) &&
-			sInfo.value == sizeof( double ) &&
-			sInfo.bodyId == sizeof( kmb::bodyIdType ) )
-		{
-			size_t dataNum = static_cast<size_t>( mesh->getDataCount() );
-			fwrite( &dataNum, sizeof(size_t), 1, fp);
-			std::multimap< std::string, kmb::DataBindings* >::const_iterator dIter = mesh->getDataBindingsMap().begin();
-			while( dIter != mesh->getDataBindingsMap().end() ){
-				uint32_t num = 1;
-				fwrite( &num, sizeof(uint32_t), 1, fp);
-
-				int bmode = static_cast<int>( dIter->second->getBindingMode() );
-				fwrite( &bmode, sizeof(int), 1, fp);
-
-				size_t idCount = static_cast<size_t>( dIter->second->getIdCount() );
-				fwrite( &idCount, sizeof(size_t), 1, fp);
-
-				uint32_t len = static_cast<uint32_t>( dIter->first.size() );
-				fwrite( &len, sizeof(uint32_t), 1, fp);
-				fwrite( dIter->first.c_str(), sizeof(char), len, fp );
-
-				len = static_cast<uint32_t>( dIter->second->getSpecType().size() );
-				fwrite( &len, sizeof(uint32_t), 1, fp);
-				fwrite( dIter->second->getSpecType().c_str(), sizeof(char), len, fp );
-
-				int vtype = static_cast<int>( dIter->second->getValueType() );
-				fwrite( &vtype, sizeof(int), 1, fp);
-
-				kmb::bodyIdType bodyId = dIter->second->getTargetBodyId();
-				fwrite( &bodyId, sizeof( kmb::bodyIdType ), 1, fp );
-				kmb::DataBindings** dataArray = new kmb::DataBindings*[1];
-				dataArray[0] = dIter->second;
-				saveBindingDataId( dataArray, 1, idCount );
-				++dIter;
-			}
-		}
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::loadBindingDataId(kmb::DataBindings** dataArray,int num,size_t idcount)
-{
-	size_t res = 0;
-	if( num <= 0){
-		return 0;
-	}
-	if( sInfo.value == sizeof( double ) &&
-		sInfo.bodyId == sizeof( kmb::bodyIdType ) &&
-		sInfo.elementId == sizeof( kmb::elementIdType ) &&
-		sInfo.nodeId == sizeof( kmb::nodeIdType ) &&
-		sInfo.faceId == sizeof( kmb::idType ) )
+	output.seekp(0, std::ios::beg);
+	std::cout << kmb::RevocapMeshDumpIO::headerString << std::endl;
+	output.write(kmb::RevocapMeshDumpIO::headerString,kmb::RevocapMeshDumpIO::headerLength);
+	std::cout << "version " << ver << std::endl;
+	uint32_t v = ver;
+	output.write(reinterpret_cast<char*>(&v),sizeof(uint32_t));
+	switch( ver )
 	{
-		kmb::DataBindings::bindingMode bmode = dataArray[0]->getBindingMode();
-		switch( bmode )
-		{
+	case 1:
+		setSizeInfoVersion1();
+		break;
+	default:
+		break;
+	}
+	return kmb::RevocapIO::kSuccess;
+}
+
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::loadNodeData(kmb::MeshData* mesh,std::istream &input)
+{
+	if( input.fail() ){
+		return kmb::RevocapIO::kFileReadError;
+	}
+	if( mesh == NULL ){
+		return kmb::RevocapIO::kMeshNullError;
+	}
+	size_t nCount = 0;
+	switch( sInfo.nodeCount )
+	{
+	case 4:
+	{
+		uint32_t n = 0;
+		input.read(reinterpret_cast<char*>(&n),sizeof(uint32_t));
+		nCount = static_cast<size_t>(n);
+		break;
+	}
+	case 8:
+	{
+		uint64_t n = 0;
+		input.read(reinterpret_cast<char*>(&n),sizeof(uint64_t));
+		nCount = static_cast<size_t>(n);
+		break;
+	}
+	default:
+		return kmb::RevocapIO::kHeaderSizeError;
+	}
+	if( input.fail() ){
+		return kmb::RevocapIO::kFileReadError;
+	}
+	std::cout << "nodeCount = " << nCount << std::endl;
+	if( sInfo.nodeId == 4 && sInfo.xyz == 8 ){
+		float64_t node[3] = {0.0,0.0,0.0};
+		int32_t nodeId = kmb::nullNodeId;
+		mesh->beginNode( nCount );
+		int nSize = static_cast<int>(nCount);
+		for(kmb::nodeIdType i=0;i<nSize;++i){
+			input.read( reinterpret_cast<char*>(&nodeId), sizeof(int32_t) );
+			if( input.fail() ){
+				return kmb::RevocapIO::kFileReadError;
+			}
+			input.read( reinterpret_cast<char*>(node), sizeof(float64_t)*3 );
+			if( input.fail() ){
+				return kmb::RevocapIO::kFileReadError;
+			}
+			mesh->addNodeWithId(node[0],node[1],node[2],nodeId);
+		}
+		mesh->endNode();
+		return kmb::RevocapIO::kSuccess;
+	}
+	return kmb::RevocapIO::kNodeSizeNotImplemented;
+}
+
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::saveNodeData(const kmb::MeshData* mesh,std::ostream &output)
+{
+	if( output.fail() ){
+		return kmb::RevocapIO::kFileWriteError;
+	}
+	if( mesh == NULL ){
+		return kmb::RevocapIO::kMeshNullError;
+	}
+	switch( sInfo.nodeCount )
+	{
+	case 4:
+	{
+		uint32_t nCount = static_cast<uint32_t>( mesh->getNodeCount() );
+		output.write( reinterpret_cast<char*>(&nCount), sizeof(uint32_t) );
+		break;
+	}
+	case 8:
+	{
+		uint64_t nCount = static_cast<uint64_t>( mesh->getNodeCount() );
+		output.write( reinterpret_cast<char*>(&nCount), sizeof(uint64_t) );
+		break;
+	}
+	default:
+		return kmb::RevocapIO::kHeaderSizeError;
+	}
+	double x,y,z;
+	if( sInfo.nodeId == 4 && sInfo.xyz == 8 ){
+		float64_t node[3] = {0.0,0.0,0.0};
+		int32_t nodeId = kmb::nullNodeId;
+		kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
+		kmb::Point3DContainer::const_iterator nEnd = mesh->getNodes()->end();
+		while( nIter != nEnd ){
+			nodeId = nIter.getId();
+			nIter.getXYZ( x, y, z );
+			node[0] = x;
+			node[1] = y;
+			node[2] = z;
+			output.write( reinterpret_cast<char*>(&nodeId), sizeof(int32_t) );
+			output.write( reinterpret_cast<char*>(node), sizeof(float64_t)*3 );
+			++nIter;
+		}
+		return kmb::RevocapIO::kSuccess;
+	}
+	return kmb::RevocapIO::kSuccess;
+}
+
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::loadElementData(kmb::MeshData* mesh,std::istream &input)
+{
+	if( input.fail() ){
+		return kmb::RevocapIO::kFileReadError;
+	}
+	if( mesh == NULL ){
+		return kmb::RevocapIO::kMeshNullError;
+	}
+	kmb::bodyIdType bCount = 0;
+	switch( sInfo.bodyCount )
+	{
+	case 4:
+	{
+		uint32_t n = 0;
+		input.read( reinterpret_cast<char*>(&n), sizeof(uint32_t) );
+		bCount = static_cast<kmb::bodyIdType>(n);
+		break;
+	}
+	case 8:
+	{
+		uint64_t n = 0;
+		input.read( reinterpret_cast<char*>(&n), sizeof(uint64_t) );
+		bCount = static_cast<kmb::bodyIdType>(n);
+		break;
+	}
+	default:
+		return kmb::RevocapIO::kHeaderSizeError;
+	}
+	if( sInfo.elementCount == 4 &&
+		sInfo.elementId == 4 &&
+		sInfo.elementType == 4 &&
+		sInfo.nodeId == 4 )
+	{
+		int32_t eType = kmb::UNKNOWNTYPE;
+		int32_t elementId = kmb::Element::nullElementId;
+		uint32_t len = 0;
+		uint32_t eCount = 0;
+		int32_t* nodes = new int32_t[kmb::Element::MAX_NODE_COUNT];
+		kmb::nodeIdType* cells = new kmb::nodeIdType[kmb::Element::MAX_NODE_COUNT];
+		size_t nCount = 0; // 要素ごとの節点個数
+		for(kmb::bodyIdType bodyId=0;bodyId<bCount;++bodyId){
+			input.read( reinterpret_cast<char*>(&len), sizeof(uint32_t) );
+			if( input.fail() ){ return kmb::RevocapIO::kFileReadError; }
+			char* name = new char[len+1];
+			input.read( name, sizeof(char)*len );
+			name[len] = '\0';
+			input.read( reinterpret_cast<char*>(&eCount), sizeof(uint32_t) );
+			if( input.fail() ){ return kmb::RevocapIO::kFileReadError; }
+			std::cout << "bodyId " << bodyId << std::endl;
+			std::cout << "elementCount " << eCount << std::endl;
+			std::cout << "bodyName " << name << std::endl;
+			mesh->beginElement( eCount );
+			for(uint32_t i=0;i<eCount;++i){
+				input.read( reinterpret_cast<char*>(&eType), sizeof(int32_t) );
+				if( input.fail() ){ return kmb::RevocapIO::kFileReadError; }
+				input.read( reinterpret_cast<char*>(&elementId), sizeof(int32_t) );
+				if( input.fail() ){ return kmb::RevocapIO::kFileReadError; }
+				nCount = static_cast<size_t>( kmb::Element::getNodeCount( static_cast<kmb::elementType>(eType) ) );
+				input.read( reinterpret_cast<char*>(nodes), sizeof(int32_t)*nCount );
+				if( input.fail() ){ return kmb::RevocapIO::kFileReadError; }
+				for(unsigned int j=0;j<nCount;++j){
+					cells[j] = nodes[j];
+				}
+				mesh->addElementWithId( static_cast<kmb::elementType>(eType), cells, elementId );
+			}
+			mesh->endElement();
+			mesh->setBodyName(bodyId,name);
+			delete[] name;
+		}
+		delete[] cells;
+		delete[] nodes;
+		return kmb::RevocapIO::kSuccess;
+	}
+	return kmb::RevocapIO::kElementSizeNotImplemented;
+}
+
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::saveElementData(const kmb::MeshData* mesh,std::ostream &output)
+{
+	std::cout << "saveElementData" << std::endl;
+	if( output.fail() ){
+		return kmb::RevocapIO::kFileWriteError;
+	}
+	if( mesh == NULL ){
+		return kmb::RevocapIO::kMeshNullError;
+	}
+	kmb::bodyIdType bCount = 0;
+	switch( sInfo.bodyCount )
+	{
+	case 4:
+	{
+		uint32_t n = static_cast<uint32_t>( mesh->getBodyCount() );
+		output.write( reinterpret_cast<char*>(&n), sizeof(uint32_t) );
+		bCount = static_cast<kmb::bodyIdType>(n);
+		break;
+	}
+	case 8:
+	{
+		uint64_t n = static_cast<uint64_t>( mesh->getBodyCount() );
+		output.write( reinterpret_cast<char*>(&n), sizeof(uint64_t) );
+		bCount = static_cast<kmb::bodyIdType>(n);
+		break;
+	}
+	default:
+		return kmb::RevocapIO::kHeaderSizeError;
+	}
+	std::cout << (int)sInfo.elementCount << " " <<
+		(int)sInfo.elementId << " " <<
+		(int)sInfo.elementType << " " <<
+		(int)sInfo.nodeId << std::endl;
+	if( sInfo.elementCount == 4 &&
+		sInfo.elementId == 4 &&
+		sInfo.elementType == 4 &&
+		sInfo.nodeId == 4 )
+	{
+		int32_t* nodes = new int32_t[kmb::Element::MAX_NODE_COUNT];
+		for(kmb::bodyIdType i=0;i<bCount;++i){
+			const kmb::Body* body = mesh->getBodyPtr(i);
+			if( body != NULL ){
+				const char* name = body->getBodyName();
+				std::cout << name << std::endl;
+				uint32_t len = (name==NULL) ? 0 : static_cast<uint32_t>(strlen(name));
+				output.write( reinterpret_cast<char*>(&len), sizeof(uint32_t) );
+				output.write( name, len );
+				uint32_t eCount = static_cast<uint32_t>( mesh->getElementCount(i) );
+				output.write( reinterpret_cast<char*>(&eCount), sizeof(uint32_t) );
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				kmb::ElementContainer::const_iterator eEnd = body->end();
+				while( eIter != eEnd ){
+					int32_t eType = eIter.getType();
+					int32_t elementId = eIter.getId();
+					if( eType != kmb::UNKNOWNTYPE && elementId != kmb::Element::nullElementId ){
+						output.write( reinterpret_cast<char*>(&eType), sizeof(int32_t) );
+						output.write( reinterpret_cast<char*>(&elementId), sizeof(int32_t) );
+						int nSize = kmb::Element::getNodeCount( static_cast<kmb::elementType>(eType) );
+						for(int j=0;j<nSize;++j){
+							nodes[j] = eIter.getCellId(j);
+						}
+						output.write( reinterpret_cast<char*>(nodes), sizeof(int32_t)*nSize );
+					}else{
+						eType = kmb::UNKNOWNTYPE;
+						output.write( reinterpret_cast<char*>(&eType), sizeof(int32_t) );
+						output.write( reinterpret_cast<char*>(&elementId), sizeof(int32_t) );
+					}
+					++eIter;
+				}
+			}else{
+				uint32_t eCount = 0;
+				output.write( reinterpret_cast<char*>(&eCount), sizeof(uint32_t) );
+			}
+		}
+		delete[] nodes;
+		return kmb::RevocapIO::kSuccess;
+	}
+	return kmb::RevocapIO::kElementSizeNotImplemented;
+}
+
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::loadBindingData(kmb::MeshData* mesh,std::istream &input)
+{
+	if( input.fail() ){
+		return kmb::RevocapIO::kFileReadError;
+	}
+	if( mesh == NULL ){
+		return kmb::RevocapIO::kMeshNullError;
+	}
+	// bmode
+	// idcount
+	// name
+	// stype
+	// vtype
+	// bodyId
+	if( sInfo.dataCount == sizeof( uint32_t ) &&
+		sInfo.bindingMode == sizeof( int32_t ) &&
+		sInfo.idCount == sizeof( uint32_t ) &&
+		sInfo.valueType == sizeof( int32_t ) &&
+		sInfo.bodyId == sizeof( int32_t ) )
+	{
+		uint32_t dataNum = 0;
+		input.read( reinterpret_cast<char*>(&dataNum), sizeof(uint32_t) );
+		std::cout << "dataNum = " << dataNum << std::endl;
+		for(uint32_t i=0;i<dataNum;++i){
+			// bmode
+			int32_t bmode = kmb::DataBindings::Unknown;
+			input.read( reinterpret_cast<char*>(&bmode), sizeof(int32_t) );
+			// idcount
+			uint32_t idcount = 0;
+			input.read( reinterpret_cast<char*>(&idcount), sizeof(uint32_t) );
+			// name
+			uint32_t len = 0;
+			input.read( reinterpret_cast<char*>(&len), sizeof(uint32_t) );
+			char* name = new char[len+1];
+			input.read( name, sizeof(char)*len );
+			name[len] = '\0';
+			// stype
+			uint32_t slen = 0;
+			input.read( reinterpret_cast<char*>(&slen), sizeof(uint32_t) );
+			char* stype = new char[slen+1];
+			input.read( stype, sizeof(char)*slen );
+			stype[slen] = '\0';
+			// vtype
+			int32_t vtype = kmb::PhysicalValue::Unknown;
+			input.read( reinterpret_cast<char*>(&vtype), sizeof(int32_t) );
+			// bodyId
+			int32_t bodyId = kmb::Body::nullBodyId;
+			input.read( reinterpret_cast<char*>(&bodyId), sizeof(int32_t) );
+			std::cout << name << " " << bmode << " " << vtype << " " << idcount << std::endl;
+			kmb::DataBindings* data = mesh->createDataBindings(name,
+				static_cast<kmb::DataBindings::bindingMode>(bmode),
+				static_cast<kmb::PhysicalValue::valueType>(vtype),
+				stype,bodyId);
+			delete[] name;
+			delete[] stype;
+			loadData(data,input,idcount);
+		}
+	}
+	return kmb::RevocapIO::kSuccess;
+}
+
+kmb::RevocapIO::ErrorCode
+kmb::RevocapMeshDumpIO::saveBindingData(const kmb::MeshData* mesh,std::ostream &output)
+{
+	if( output.fail() ){
+		return kmb::RevocapIO::kFileWriteError;
+	}
+	if( mesh == NULL ){
+		return kmb::RevocapIO::kMeshNullError;
+	}
+	if( sInfo.dataCount == sizeof( uint32_t ) &&
+		sInfo.bindingMode == sizeof( int32_t ) &&
+		sInfo.idCount == sizeof( uint32_t ) &&
+		sInfo.valueType == sizeof( int32_t ) &&
+		sInfo.bodyId == sizeof( int32_t ) )
+	{
+		uint32_t dataNum = static_cast<uint32_t>( mesh->getDataCount() );
+		std::cout << "dataNum = " << dataNum << std::endl;
+		output.write( reinterpret_cast<char*>(&dataNum), sizeof(uint32_t) );
+		std::multimap< std::string, kmb::DataBindings* >::const_iterator dIter = mesh->getDataBindingsMap().begin();
+		while( dIter != mesh->getDataBindingsMap().end() ){
+			// bmode
+			int32_t bmode = static_cast<int32_t>( dIter->second->getBindingMode() );
+			output.write( reinterpret_cast<char*>(&bmode), sizeof(int32_t) );
+			// idcount
+			uint32_t idCount = static_cast<uint32_t>( dIter->second->getIdCount() );
+			output.write( reinterpret_cast<char*>(&idCount), sizeof(uint32_t) );
+			// name
+			uint32_t len = static_cast<uint32_t>( dIter->first.size() );
+			output.write( reinterpret_cast<char*>(&len), sizeof(uint32_t) );
+			output.write( dIter->first.c_str(), len );
+			// stype
+			len = static_cast<uint32_t>( dIter->second->getSpecType().size() );
+			output.write( reinterpret_cast<char*>(&len), sizeof(uint32_t) );
+			output.write( dIter->second->getSpecType().c_str(), len );
+			// vtype
+			int32_t vtype = static_cast<int32_t>( dIter->second->getValueType() );
+			output.write( reinterpret_cast<char*>(&vtype), sizeof(int32_t) );
+			// bodyId
+			int32_t bodyId = static_cast<int32_t>(dIter->second->getTargetBodyId());
+			output.write( reinterpret_cast<char*>(&bodyId), sizeof(int32_t) );
+			std::cout << dIter->first << " " << bmode << " " << vtype << " " << idCount << std::endl;
+			saveData( dIter->second, output );
+			++dIter;
+		}
+	}
+	return kmb::RevocapIO::kSuccess;
+}
+
+kmb::RevocapIO::ErrorCode kmb::RevocapMeshDumpIO::loadData(kmb::DataBindings* data,std::istream &input,size_t count)
+{
+	if( input.fail() ){
+		return kmb::RevocapIO::kFileReadError;
+	}
+	if( data == NULL ){
+		return kmb::RevocapIO::kDataNullError;
+	}
+	if( sInfo.bodyId == sizeof( int32_t ) &&
+		sInfo.elementId == sizeof( int32_t ) &&
+		sInfo.nodeId == sizeof( int32_t ) &&
+		sInfo.faceId == sizeof( int32_t ) &&
+		sInfo.intValue == sizeof( int32_t ) &&
+		sInfo.value == sizeof( float64_t ) )
+	{
+		switch(data->getBindingMode()){
 		case kmb::DataBindings::BodyVariable:
-			{
-				kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &bodyId, sizeof(kmb::bodyIdType), 1, fp);
-					if( res < 1 ) break;
-					for(int j=0;j<num;++j){
-						loadValueAtId<kmb::bodyIdType>( dataArray[j], bodyId );
-					}
-				}
-			}
-			break;
 		case kmb::DataBindings::ElementVariable:
-			{
-				kmb::elementIdType elementId = kmb::Element::nullElementId;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &elementId, sizeof(kmb::elementIdType), 1, fp);
-					if( res < 1 ) break;
-					for(int j=0;j<num;++j){
-						loadValueAtId<kmb::elementIdType>( dataArray[j], elementId );
-					}
-				}
-			}
-			break;
 		case kmb::DataBindings::NodeVariable:
 			{
-				kmb::nodeIdType nodeId = kmb::nullNodeId;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &nodeId, sizeof(kmb::nodeIdType), 1, fp);
-					if( res < 1 ) break;
-					for(int j=0;j<num;++j){
-						loadValueAtId<kmb::nodeIdType>( dataArray[j], nodeId );
+				uint32_t idCount = static_cast<uint32_t>(count);
+				int32_t id = 0;
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							input.read( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+							data->setPhysicalValue(id,&v);
+						}
 					}
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+							data->setPhysicalValue(id,v);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+							data->setPhysicalValue(id,v);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+							data->setPhysicalValue(id,v);
+						}
+					}
+					break;
+				default:
+					break;
 				}
+				break;
 			}
-			break;
 		case kmb::DataBindings::FaceVariable:
 			{
-				kmb::elementIdType elementId = kmb::Element::nullElementId;
-				kmb::idType localId = -1;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &elementId, sizeof(kmb::elementIdType), 1, fp);
-					if( res < 1 ) break;
-					res = fread( &localId, sizeof(kmb::idType), 1, fp);
-					if( res < 1 ) break;
-					kmb::Face face( elementId, localId );
-					for(int j=0;j<num;++j){
-						loadValueAtId<kmb::Face>( dataArray[j], face );
+				uint32_t idCount = static_cast<uint32_t>(count);
+				int32_t id[2];
+				kmb::Face f;
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							input.read( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+							f.setId(id[0],id[1]);
+							data->setPhysicalValue(f,&v);
+						}
 					}
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+							f.setId(id[0],id[1]);
+							data->setPhysicalValue(f,v);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+							f.setId(id[0],id[1]);
+							data->setPhysicalValue(f,v);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+							f.setId(id[0],id[1]);
+							data->setPhysicalValue(f,v);
+						}
+					}
+					break;
+				default:
+					break;
 				}
+				break;
 			}
 			break;
 		case kmb::DataBindings::BodyGroup:
-			{
-				kmb::bodyIdType bodyId = kmb::Body::nullBodyId;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &bodyId, sizeof(kmb::bodyIdType), 1, fp);
-					if( res < 1 ) break;
-					for(int j=0;j<num;++j){
-						reinterpret_cast< kmb::DataBindingsGroup< kmb::bodyIdType >* >
-							( dataArray[j] )->addId( bodyId );
-					}
-				}
-				for(int j=0;j<num;++j){
-					loadValue( dataArray[j] );
-				}
-			}
-			break;
 		case kmb::DataBindings::ElementGroup:
-			{
-				kmb::elementIdType elementId = kmb::Element::nullElementId;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &elementId, sizeof(kmb::elementIdType), 1, fp);
-					if( res < 1 ) break;
-					for(int j=0;j<num;++j){
-						reinterpret_cast< kmb::DataBindingsGroup< kmb::elementIdType >* >
-							( dataArray[j] )->addId( elementId );
-					}
-				}
-				for(int j=0;j<num;++j){
-					loadValue( dataArray[j] );
-				}
-			}
-			break;
 		case kmb::DataBindings::NodeGroup:
 			{
-				kmb::nodeIdType nodeId = kmb::nullNodeId;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &nodeId, sizeof(kmb::nodeIdType), 1, fp);
-					if( res < 1 ) break;
-					for(int j=0;j<num;++j){
-						reinterpret_cast< kmb::DataBindingsGroup< kmb::nodeIdType >* >
-							( dataArray[j] )->addId( nodeId );
+				uint32_t idCount = static_cast<uint32_t>(count);
+				int32_t id = 0;
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						input.read( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+						data->setPhysicalValue(new kmb::ScalarValue(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							data->addId(id);
+						}
 					}
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+						data->setPhysicalValue(new kmb::Vector2Value(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							data->addId(id);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+						data->setPhysicalValue(new kmb::Vector3Value(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							data->addId(id);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+						data->setPhysicalValue(new kmb::Tensor6Value(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							data->addId(id);
+						}
+					}
+					break;
+				default:
+					break;
 				}
-				for(int j=0;j<num;++j){
-					loadValue( dataArray[j] );
-				}
+				break;
 			}
 			break;
 		case kmb::DataBindings::FaceGroup:
 			{
-				kmb::elementIdType elementId = kmb::Element::nullElementId;
-				kmb::idType localId = -1;
-				for(unsigned int i=0;i<idcount;++i){
-					res = fread( &elementId, sizeof(kmb::elementIdType), 1, fp);
-					if( res < 1 ) break;
-					res = fread( &localId, sizeof(kmb::idType), 1, fp);
-					if( res < 1 ) break;
-					for(int j=0;j<num;++j){
-						reinterpret_cast< kmb::DataBindingsGroup< kmb::Face >* >
-							( dataArray[j] )->addId( kmb::Face(elementId,localId) );
+				uint32_t idCount = static_cast<uint32_t>(count);
+				int32_t id[2];
+				kmb::Face f;
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						input.read( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+						data->setPhysicalValue(new kmb::ScalarValue(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							f.setId(id[0],id[1]);
+							data->addId(f);
+						}
 					}
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+						data->setPhysicalValue(new kmb::Vector2Value(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							f.setId(id[0],id[1]);
+							data->addId(f);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+						data->setPhysicalValue(new kmb::Vector3Value(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							f.setId(id[0],id[1]);
+							data->addId(f);
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+						data->setPhysicalValue(new kmb::Tensor6Value(v));
+						for(unsigned int i=0;i<idCount;++i){
+							input.read( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							f.setId(id[0],id[1]);
+							data->addId(f);
+						}
+					}
+					break;
+				default:
+					break;
 				}
-				for(int j=0;j<num;++j){
-					loadValue( dataArray[j] );
-				}
+				break;
 			}
 			break;
 		case kmb::DataBindings::Global:
-			for(int j=0;j<num;++j){
-				loadValue( dataArray[j] );
+			{
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << std::endl;
+						float64_t v;
+						input.read( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+						data->setPhysicalValue(new kmb::ScalarValue(v));
+					}
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << std::endl;
+						float64_t v[2];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+						data->setPhysicalValue(new kmb::Vector2Value(v));
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << std::endl;
+						float64_t v[3];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+						data->setPhysicalValue(new kmb::Vector3Value(v));
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << std::endl;
+						float64_t v[6];
+						input.read( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+						data->setPhysicalValue(new kmb::Tensor6Value(v));
+					}
+					break;
+				default:
+					break;
+				}
+				break;
 			}
 			break;
 		default:
 			break;
 		}
 	}
-	return 0;
+	return kmb::RevocapIO::kSuccess;
 }
 
-int
-kmb::RevocapMeshDumpIO::saveBindingDataId(kmb::DataBindings** dataArray,int num,size_t idcount)
+kmb::RevocapIO::ErrorCode kmb::RevocapMeshDumpIO::saveData(const kmb::DataBindings* data,std::ostream &output)
 {
-	if( num <= 0 ){
-		return 0;
+	if( output.fail() ){
+		return kmb::RevocapIO::kFileWriteError;
 	}
-	if( sInfo.value == sizeof( double ) &&
-		sInfo.bodyId == sizeof( kmb::bodyIdType ) &&
-		sInfo.elementId == sizeof( kmb::elementIdType ) &&
-		sInfo.nodeId == sizeof( kmb::nodeIdType ) &&
-		sInfo.faceId == sizeof( kmb::idType ) )
+	if( data == NULL ){
+		return kmb::RevocapIO::kDataNullError;
+	}
+	if( sInfo.bodyId == sizeof( int32_t ) &&
+		sInfo.elementId == sizeof( int32_t ) &&
+		sInfo.nodeId == sizeof( int32_t ) &&
+		sInfo.faceId == sizeof( int32_t ) &&
+		sInfo.intValue == sizeof( int32_t ) &&
+		sInfo.value == sizeof( float64_t ) )
 	{
-		kmb::DataBindings::bindingMode bmode = dataArray[0]->getBindingMode();
-		switch( bmode )
-		{
+		switch(data->getBindingMode()){
 		case kmb::DataBindings::BodyVariable:
-			{
-				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
-				while( vIter != vEnd ){
-					kmb::bodyIdType bodyId = static_cast<kmb::bodyIdType>( vIter.getId() );
-					fwrite( &bodyId, sizeof(kmb::bodyIdType), 1, fp);
-					for(int j=0;j<num;++j){
-						saveValueAtId<kmb::bodyIdType>( dataArray[j], bodyId );
-					}
-					++vIter;
-				}
-			}
-			break;
 		case kmb::DataBindings::ElementVariable:
-			{
-				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
-				while( vIter != vEnd ){
-					kmb::elementIdType elementId = static_cast<kmb::elementIdType>( vIter.getId() );
-					fwrite( &elementId, sizeof(kmb::elementIdType), 1, fp);
-					for(int j=0;j<num;++j){
-						saveValueAtId<kmb::elementIdType>( dataArray[j], elementId );
-					}
-					++vIter;
-				}
-			}
-			break;
 		case kmb::DataBindings::NodeVariable:
 			{
-				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
-				while( vIter != vEnd ){
-					kmb::nodeIdType nodeId = static_cast<kmb::nodeIdType>( vIter.getId() );
-					fwrite( &nodeId, sizeof(kmb::nodeIdType), 1, fp);
-					for(int j=0;j<num;++j){
-						saveValueAtId<kmb::nodeIdType>( dataArray[j], nodeId );
+				uint32_t idCount = static_cast<uint32_t>(data->getIdCount());
+				int32_t id = 0;
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						double d;
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							dIter.getValue(&d);
+							v = static_cast<float64_t>(d);
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							output.write( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+							++dIter;
+						}
 					}
-					++vIter;
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						double d[2];
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							dIter.getValue(d);
+							v[0] = static_cast<float64_t>(d[0]);
+							v[1] = static_cast<float64_t>(d[1]);
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						double d[3];
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							dIter.getValue(d);
+							v[0] = static_cast<float64_t>(d[0]);
+							v[1] = static_cast<float64_t>(d[1]);
+							v[2] = static_cast<float64_t>(d[2]);
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						double d[6];
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							dIter.getValue(d);
+							v[0] = static_cast<float64_t>(d[0]);
+							v[1] = static_cast<float64_t>(d[1]);
+							v[2] = static_cast<float64_t>(d[2]);
+							v[3] = static_cast<float64_t>(d[3]);
+							v[4] = static_cast<float64_t>(d[4]);
+							v[5] = static_cast<float64_t>(d[5]);
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+							++dIter;
+						}
+					}
+					break;
+				default:
+					break;
 				}
+				break;
 			}
 			break;
 		case kmb::DataBindings::FaceVariable:
 			{
-				kmb::DataBindings::iterator vIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator vEnd = dataArray[0]->end();
+				uint32_t idCount = static_cast<uint32_t>(data->getIdCount());
+				int32_t id[2];
 				kmb::Face f;
-				while( vIter != vEnd ){
-					if( vIter.getFace(f) ){
-						kmb::elementIdType elementId = f.getElementId();
-						kmb::idType localId = f.getLocalFaceId();
-						fwrite( &elementId, sizeof(kmb::elementIdType), 1, fp);
-						fwrite( &localId, sizeof(kmb::idType), 1, fp);
-						for(int j=0;j<num;++j){
-							saveValueAtId<kmb::Face>( dataArray[j], f );
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						double d;
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							dIter.getValue(&d);
+							v = static_cast<float64_t>(d);
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							output.write( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+							++dIter;
 						}
 					}
-					++vIter;
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						double d[2];
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							dIter.getValue(d);
+							v[0] = static_cast<float64_t>(d[0]);
+							v[1] = static_cast<float64_t>(d[1]);
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						double d[3];
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							dIter.getValue(d);
+							v[0] = static_cast<float64_t>(d[0]);
+							v[1] = static_cast<float64_t>(d[1]);
+							v[2] = static_cast<float64_t>(d[2]);
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						double d[6];
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							dIter.getValue(d);
+							v[0] = static_cast<float64_t>(d[0]);
+							v[1] = static_cast<float64_t>(d[1]);
+							v[2] = static_cast<float64_t>(d[2]);
+							v[3] = static_cast<float64_t>(d[3]);
+							v[4] = static_cast<float64_t>(d[4]);
+							v[5] = static_cast<float64_t>(d[5]);
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+							++dIter;
+						}
+					}
+					break;
+				default:
+					break;
 				}
+				break;
 			}
 			break;
 		case kmb::DataBindings::BodyGroup:
-			{
-				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator iEnd = dataArray[0]->end();
-				while( iIter != iEnd ){
-					kmb::bodyIdType bodyId = static_cast<kmb::bodyIdType>( iIter.getId() );
-					fwrite( &bodyId, sizeof(kmb::bodyIdType), 1, fp);
-					++iIter;
-				}
-				for(int j=0;j<num;++j){
-					saveValue( dataArray[j] );
-				}
-			}
-			break;
 		case kmb::DataBindings::ElementGroup:
-			{
-				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator iEnd = dataArray[0]->end();
-				while( iIter != iEnd ){
-					kmb::elementIdType elementId = static_cast<kmb::elementIdType>( iIter.getId() );
-					fwrite( &elementId, sizeof(kmb::elementIdType), 1, fp);
-					++iIter;
-				}
-				for(int j=0;j<num;++j){
-					saveValue( dataArray[j] );
-				}
-			}
-			break;
 		case kmb::DataBindings::NodeGroup:
 			{
-				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator iEnd = dataArray[0]->end();
-				while( iIter != iEnd ){
-					kmb::nodeIdType nodeId = static_cast<kmb::nodeIdType>( iIter.getId() );
-					fwrite( &nodeId, sizeof(kmb::nodeIdType), 1, fp);
-					++iIter;
+				uint32_t idCount = static_cast<uint32_t>(data->getIdCount());
+				int32_t id = 0;
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						double d;
+						data->getPhysicalValue()->getValue(&d);
+						v = static_cast<float64_t>(d);
+						output.write( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						double d[2];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						double d[3];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						v[2] = static_cast<float64_t>(d[2]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						double d[6];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						v[2] = static_cast<float64_t>(d[2]);
+						v[3] = static_cast<float64_t>(d[3]);
+						v[4] = static_cast<float64_t>(d[4]);
+						v[5] = static_cast<float64_t>(d[5]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							id = static_cast<int32_t>(dIter.getId());
+							output.write( reinterpret_cast<char*>(&id), sizeof(int32_t) );
+							++dIter;
+						}
+					}
+					break;
+				default:
+					break;
 				}
-				for(int j=0;j<num;++j){
-					saveValue( dataArray[j] );
-				}
+				break;
 			}
 			break;
 		case kmb::DataBindings::FaceGroup:
 			{
+				uint32_t idCount = static_cast<uint32_t>(data->getIdCount());
+				int32_t id[2];
 				kmb::Face f;
-				kmb::DataBindings::iterator iIter = dataArray[0]->begin();
-				kmb::DataBindings::iterator iEnd = dataArray[0]->end();
-				while( iIter != iEnd ){
-					if( iIter.getFace(f) ){
-						kmb::elementIdType elementId = f.getElementId();
-						kmb::idType localId = f.getLocalFaceId();
-						fwrite( &elementId, sizeof(kmb::elementIdType), 1, fp);
-						fwrite( &localId, sizeof(kmb::idType), 1, fp);
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << idCount << std::endl;
+						float64_t v;
+						double d;
+						data->getPhysicalValue()->getValue(&d);
+						v = static_cast<float64_t>(d);
+						output.write( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							++dIter;
+						}
 					}
-					++iIter;
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << idCount << std::endl;
+						float64_t v[2];
+						double d[2];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << idCount << std::endl;
+						float64_t v[3];
+						double d[3];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						v[2] = static_cast<float64_t>(d[2]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							++dIter;
+						}
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << idCount << std::endl;
+						float64_t v[6];
+						double d[6];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						v[2] = static_cast<float64_t>(d[2]);
+						v[3] = static_cast<float64_t>(d[3]);
+						v[4] = static_cast<float64_t>(d[4]);
+						v[5] = static_cast<float64_t>(d[5]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+						kmb::DataBindings::const_iterator dIter = data->begin();
+						while( !dIter.isFinished() ){
+							dIter.getFace(f);
+							id[0] = static_cast<int32_t>(f.getElementId());
+							id[1] = static_cast<int32_t>(f.getLocalFaceId());
+							output.write( reinterpret_cast<char*>(id), sizeof(int32_t)*2 );
+							++dIter;
+						}
+					}
+					break;
+				default:
+					break;
 				}
-				for(int j=0;j<num;++j){
-					saveValue( dataArray[j] );
-				}
+				break;
 			}
 			break;
 		case kmb::DataBindings::Global:
-			for(int j=0;j<num;++j){
-				saveValue( dataArray[j] );
+			{
+				switch(data->getValueType()){
+				case kmb::PhysicalValue::Scalar:
+					{
+						std::cout << "Scalar " << std::endl;
+						float64_t v;
+						double d;
+						data->getPhysicalValue()->getValue(&d);
+						v = static_cast<float64_t>(d);
+						output.write( reinterpret_cast<char*>(&v), sizeof(float64_t) );
+					}
+					break;
+				case kmb::PhysicalValue::Vector2:
+					{
+						std::cout << "Vector2 " << std::endl;
+						float64_t v[2];
+						double d[2];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*2 );
+					}
+					break;
+				case kmb::PhysicalValue::Vector3:
+					{
+						std::cout << "Vector3 " << std::endl;
+						float64_t v[3];
+						double d[3];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						v[2] = static_cast<float64_t>(d[2]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*3 );
+					}
+					break;
+				case kmb::PhysicalValue::Tensor6:
+					{
+						std::cout << "Tensor6 " << std::endl;
+						float64_t v[6];
+						double d[6];
+						data->getPhysicalValue()->getValue(d);
+						v[0] = static_cast<float64_t>(d[0]);
+						v[1] = static_cast<float64_t>(d[1]);
+						v[2] = static_cast<float64_t>(d[2]);
+						v[3] = static_cast<float64_t>(d[3]);
+						v[4] = static_cast<float64_t>(d[4]);
+						v[5] = static_cast<float64_t>(d[5]);
+						output.write( reinterpret_cast<char*>(v), sizeof(float64_t)*6 );
+					}
+					break;
+				default:
+					break;
+				}
+				break;
 			}
 			break;
 		default:
 			break;
 		}
 	}
-	return 0;
+	return kmb::RevocapIO::kSuccess;
 }
 
 int
-kmb::RevocapMeshDumpIO::loadValue(kmb::DataBindings* data)
+kmb::RevocapMeshDumpIO::loadMeshFromFile(const char *filename, kmb::MeshData *mesh )
 {
-	size_t res = 0;
-	switch( data->getValueType() )
-	{
-	case kmb::PhysicalValue::Scalar:
-		{
-			double v;
-			res = fread( &v, sizeof(double), 1, fp );
-			if( res == 1 ){
-				data->setPhysicalValue( new kmb::ScalarValue(v) );
-			}
-		}
-		break;
-	case kmb::PhysicalValue::Vector3:
-		{
-			double v[3];
-			res = fread( v, sizeof(double), 3, fp );
-			if( res == 3 ){
-				data->setPhysicalValue( new kmb::Vector3Value(v) );
-			}
-		}
-		break;
-	default:
-		break;
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::saveValue(kmb::DataBindings* data)
-{
-	switch( data->getValueType() )
-	{
-	case kmb::PhysicalValue::Scalar:
-		{
-			double v = reinterpret_cast< kmb::ScalarValue* >( data->getPhysicalValue() )->getValue();
-			fwrite( &v, sizeof(double), 1, fp );
-		}
-		break;
-	case kmb::PhysicalValue::Vector3:
-		{
-			kmb::Vector3Value* vData = reinterpret_cast< kmb::Vector3Value* >( data->getPhysicalValue() );
-			double v[3];
-			v[0] = vData->getValue(0);
-			v[1] = vData->getValue(1);
-			v[2] = vData->getValue(2);
-			fwrite( v, sizeof(double), 3, fp );
-		}
-		break;
-	default:
-		break;
-	}
-	return 0;
-}
-
-template<typename T> int
-kmb::RevocapMeshDumpIO::loadValueAtId(kmb::DataBindings* data,T t)
-{
-	size_t res = 0;
-	switch( data->getValueType() )
-	{
-	case kmb::PhysicalValue::Scalar:
-		{
-			double v;
-			res = fread( &v, sizeof(double), 1, fp );
-			if( res == 1 ){
-				data->setPhysicalValue(t, &v );
-			}
-		}
-		break;
-	case kmb::PhysicalValue::Vector3:
-		{
-			double v[3];
-			res = fread( v, sizeof(double), 3, fp );
-			if( res == 3 ){
-				data->setPhysicalValue(t, v );
-			}
-		}
-		break;
-	case kmb::PhysicalValue::Tensor6:
-		{
-			double v[6];
-			res = fread( v, sizeof(double), 6, fp );
-			if( res == 6 ){
-				data->setPhysicalValue(t, v );
-			}
-		}
-		break;
-	default:
-		break;
-	}
-	return 0;
-}
-
-template<typename T> int
-kmb::RevocapMeshDumpIO::saveValueAtId(kmb::DataBindings* data,T t)
-{
-	switch( data->getValueType() )
-	{
-	case kmb::PhysicalValue::Scalar:
-		{
-			double v = 0.0;
-			data->getPhysicalValue(t,&v);
-			fwrite( &v, sizeof(double), 1, fp );
-		}
-		break;
-	case kmb::PhysicalValue::Vector3:
-		{
-			double v[3];
-			data->getPhysicalValue(t,v);
-			fwrite( v, sizeof(double), 3, fp );
-		}
-		break;
-	case kmb::PhysicalValue::Tensor6:
-		{
-			double v[6];
-			data->getPhysicalValue(t,v);
-			fwrite( v, sizeof(double), 6, fp );
-		}
-		break;
-	default:
-		break;
-	}
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::loadFromFile(const char *filename, kmb::MeshData *mesh )
-{
-	if( mesh && (fp=fopen(filename,"rb")) == NULL ){
+	if( mesh==NULL ){
 		return -1;
 	}
 
-	int version = 0;
-	getVersion( version );
-
-	loadNodeData( mesh );
-
-	loadElementData( mesh );
-
-	loadBindingData( mesh );
-
-	fclose(fp);
-	fp = NULL;
-
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::loadFromFileNeglectingElementId(const char* filename,MeshData* mesh)
-{
-	if( mesh && (fp=fopen(filename,"rb")) == NULL ){
-		return -1;
-	}
-
-	int version = 0;
-	getVersion( version );
-
-	loadNodeData( mesh );
-
-	loadElementDataNeglectingId( mesh );
-
-	loadBindingData( mesh );
-
-	fclose(fp);
-	fp = NULL;
-	return 0;
-}
-
-int
-kmb::RevocapMeshDumpIO::saveToFile(const char *filename, const kmb::MeshData *mesh)
-{
-	if( mesh && (fp=fopen(filename,"wb")) == NULL ){
-		return -1;
-	}
-
+	std::ifstream input( filename, std::ios_base::in|std::ios_base::binary );
 	int version = 1;
-	setVersion( version );
+	getVersion( version, input );
 
-	saveNodeData( mesh );
+	loadNodeData( mesh, input );
 
-	saveElementData( mesh );
+	loadElementData( mesh, input );
 
-	saveBindingData( mesh );
+	loadBindingData( mesh, input );
 
-	fclose(fp);
-	fp = NULL;
+	input.close();
 	return 0;
 }
 
 int
-kmb::RevocapMeshDumpIO::saveToFileNeglectingElementId(const char* filename,const kmb::MeshData* mesh)
+kmb::RevocapMeshDumpIO::saveMeshToFile(const char *filename, const kmb::MeshData *mesh)
 {
-	if( mesh && (fp=fopen(filename,"wb")) == NULL ){
+	if( mesh==NULL ){
 		return -1;
 	}
-
+	std::ofstream output( filename, std::ios_base::out|std::ios_base::binary );
 	int version = 1;
-	setVersion( version );
+	setVersion( version, output );
 
-	saveNodeData( mesh );
+	saveNodeData( mesh, output );
 
-	saveElementDataNeglectingId( mesh );
+	saveElementData( mesh, output );
 
-	saveBindingData( mesh );
+	saveBindingData( mesh, output );
 
-	fclose(fp);
-	fp = NULL;
+	output.close();
 	return 0;
 }
-

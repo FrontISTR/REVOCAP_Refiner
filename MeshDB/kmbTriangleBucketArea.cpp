@@ -14,6 +14,7 @@
 ----------------------------------------------------------------------*/
 #include "MeshDB/kmbTriangleBucketArea.h"
 #include "MeshDB/kmbElementContainer.h"
+#include "MeshDB/kmbDataBindings.h"
 #include "Geometry/kmbGeometry4D.h"
 #include "Common/kmbCalculator.h"
 
@@ -22,6 +23,7 @@ kmb::TriangleBucketArea::TriangleBucketArea(void)
 , points(NULL)
 , elements(NULL)
 , coordMatrix(NULL)
+, elemArea(NULL)
 {
 }
 
@@ -35,6 +37,10 @@ kmb::TriangleBucketArea::TriangleBucketArea(const kmb::BoxRegion &box,int xnum,i
 
 kmb::TriangleBucketArea::~TriangleBucketArea(void)
 {
+	if( elemArea ){
+		delete elemArea;
+		elemArea = NULL;
+	}
 }
 
 void
@@ -43,6 +49,11 @@ kmb::TriangleBucketArea::setContainer(const kmb::Point3DContainer* points,const 
 	this->points = points;
 	this->elements = elements;
 	this->coordMatrix = coordMatrix;
+	if( elemArea ){
+		delete elemArea;
+		elemArea = NULL;
+	}
+	elemArea = kmb::DataBindings::createDataBindings(kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"");
 }
 
 int
@@ -52,6 +63,7 @@ kmb::TriangleBucketArea::append(kmb::elementIdType elementId)
 		return 0;
 	}
 	int count = 0;
+	double area = 0.0;
 	kmb::ElementContainer::const_iterator eIter = elements->find(elementId);
 	if( !eIter.isFinished() && eIter.getType() == kmb::TRIANGLE ){
 		kmb::BoundingBox box;
@@ -76,14 +88,16 @@ kmb::TriangleBucketArea::append(kmb::elementIdType elementId)
 				for(int j=j0;j<=j1;++j){
 					for(int k=k0;k<=k1;++k){
 						getSubRegion(i,j,k,box);
-						double area = box.intersectArea(a,b,c);
-						if( area != 0.0 ){
+						double local_area = box.intersectArea(a,b,c);
+						if( local_area != 0.0 ){
 							++count;
-							insert( i,j,k, std::pair<kmb::elementIdType,double>(elementId,area) );
+							insert( i,j,k, std::pair<kmb::elementIdType,double>(elementId,local_area) );
 						}
 					}
 				}
 			}
+			area = kmb::Point3D::area(a,b,c);
+			elemArea->setPhysicalValue(elementId,&area);
 		}
 	}
 	return count;
@@ -96,6 +110,7 @@ kmb::TriangleBucketArea::appendAll(void)
 		return 0;
 	}
 	int count = 0;
+	double area = 0.0;
 	kmb::BoundingBox bbox;
 	kmb::BoxRegion box;
 	kmb::Point3D a,b,c;
@@ -117,24 +132,34 @@ kmb::TriangleBucketArea::appendAll(void)
 			bbox.update(c);
 			bbox.expand(1.1);
 			int i0=0,j0=0,k0=0,i1=0,j1=0,k1=0;
-			getSubIndices( bbox.getMin().x(), bbox.getMin().y(), bbox.getMin().z(), i0, j0, k0 );
-			getSubIndices( bbox.getMax().x(), bbox.getMax().y(), bbox.getMax().z(), i1, j1, k1 );
+			getSubIndices( bbox.minX(), bbox.minY(), bbox.minZ(), i0, j0, k0 );
+			getSubIndices( bbox.maxX(), bbox.maxY(), bbox.maxZ(), i1, j1, k1 );
 			for(int i=i0;i<=i1;++i){
 				for(int j=j0;j<=j1;++j){
 					for(int k=k0;k<=k1;++k){
 						getSubRegion(i,j,k,box);
-						double area = box.intersectArea(a,b,c);
-						if( area != 0.0 ){
+						double local_area = box.intersectArea(a,b,c);
+						if( local_area != 0.0 ){
 							++count;
-							insert( i,j,k,std::pair<kmb::elementIdType,double>(eIter.getId(),area) );
+							insert( i,j,k,std::pair<kmb::elementIdType,double>(eIter.getId(),local_area) );
 						}
 					}
 				}
 			}
+			area = kmb::Point3D::area(a,b,c);
+			elemArea->setPhysicalValue(eIter.getId(),&area);
 		}
 		++eIter;
 	}
 	return count;
+}
+
+double kmb::TriangleBucketArea::getArea(kmb::elementIdType elemId) const
+{
+	double area=0.0;
+
+	elemArea->getPhysicalValue(elemId,&area);
+	return area;
 }
 
 bool
@@ -185,7 +210,7 @@ kmb::TriangleBucketArea::getNearest(double x,double y,double z,double &dist,kmb:
 		double span = sqrt( minimizer.getMin() );
 		getSubIndices( x-span, y-span, z-span, i1, j1, k1 );
 		getSubIndices( x+span, y+span, z+span, i2, j2, k2 );
-
+		// (i0,j0,k0) 以外を探す
 		for(int i=i1;i<=i2;++i){
 			for(int j=j1;j<=j2;++j){
 				for(int k=k1;k<=k2;++k){
@@ -198,8 +223,8 @@ kmb::TriangleBucketArea::getNearest(double x,double y,double z,double &dist,kmb:
 			}
 		}
 	}else{
-
-
+		// (i0,j0,k0) の Bucket にない
+		// 全部調べる
 		kmb::BoxRegion box;
 		kmb::Bucket< std::pair<kmb::elementIdType,double> >::const_iterator tIter = this->begin();
 		kmb::Bucket< std::pair<kmb::elementIdType,double> >::const_iterator endIter = this->end();

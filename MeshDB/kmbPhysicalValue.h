@@ -63,10 +63,10 @@ public:
 		Vector2withInt,
 		Vector3withInt,
 		Vector4withInt,
-		Array,
-		Hash,
-		String,
-		IntHash,
+		Array,			// 物理値の配列
+		Hash,			// 文字列をキーとして物理値を値とする連想配列
+		String,			// 文字列
+		IntHash,		// 整数値をキーとして物理値を値とする連想配列
 		Undefined,
 		Unknown
 	};
@@ -447,10 +447,10 @@ public:
 	int getDimension(void) const { return 4; };
 };
 
-
-
-
-
+//
+// 始点とベクトルの組
+// 遠心力などの回転量をあらわすためのクラス
+//
 
 class Point3Vector3Value : public PhysicalValue
 {
@@ -578,7 +578,7 @@ public:
 	int getDimension(void) const { return 6; };
 };
 
-
+// StringValue は ruby.h でつかっているので別の名前にする
 class TextValue : public PhysicalValue
 {
 private:
@@ -630,8 +630,8 @@ public:
 	virtual kmb::PhysicalValue* clone(void){
 		return new ArrayValue( this->values );
 	}
-
-
+	// i 番目の成分が vType かどうかの確認
+	// Array の時は、さらにサイズもチェックする
 	bool checkType(unsigned int i,valueType vType,size_t size=0) const {
 		kmb::PhysicalValue* val = this->getValue(i);
 		if( val && val->getType() == vType ){
@@ -683,7 +683,7 @@ public:
 	}
 	bool setValue(std::string k,kmb::PhysicalValue* v){
 		if( v != NULL ){
-
+			// 既にある時は消してから
 			std::map< std::string, kmb::PhysicalValue* >::iterator f = values.find(k);
 			if( f != values.end() ){
 				delete f->second;

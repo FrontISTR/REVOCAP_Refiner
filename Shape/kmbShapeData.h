@@ -45,12 +45,12 @@ public:
 	bool isValid(void) const;
 	kmb::BoundingBox getBoundingBox(void) const;
 
-
-
+	// topo_shape から CAD 面を取り出す
+	// surfaceId には元の CAD 面の HashCode を入れておく
 	int getSurfaces( std::vector<kmb::Surface3D*> &surfaces) const;
 	int saveToRNF(const char* filename, bool append=false ) const;
 private:
-
+	// OpenCASCADE から REVOCAP への変換
 	int getBSplineSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const;
 	int getBezierSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const;
 	int getCylindricalSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const;

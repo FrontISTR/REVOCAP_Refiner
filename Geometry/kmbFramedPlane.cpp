@@ -35,18 +35,18 @@ kmb::FramedPlane::FramedPlane(const double a0,const double b0,const double c0,co
 }
 
 kmb::FramedPlane::FramedPlane(const kmb::Point3D &o,const kmb::Vector3D &v0,const kmb::Vector3D &v1)
-: kmb::Plane(0.0, 0.0, 0.0, 0.0)
+: kmb::Plane(0.0, 0.0, 0.0, 0.0) // 仮
 {
 	this->origin.setCoordinate( o.x(), o.y(), o.z() );
-
-
+	// v0 と v1 のなす平面から n0 n1 を生成する
+	// 正規直交ならそのまま使う
 	this->n0.setCoordinate( v0.x(), v0.y(), v0.z() );
 	this->n1.setCoordinate( v1.x(), v1.y(), v1.z() );
 	this->n0.normalize();
 	this->n1 -= (n0*n1) * n0;
 	this->n1.normalize();
 	Vector3D n = n0 % n1;
-
+	// 法線ベクトル n は正規化されている
 	this->a = n.x();
 	this->b = n.y();
 	this->c = n.z();
@@ -61,13 +61,13 @@ void
 kmb::FramedPlane::initUVBase(void)
 {
 	if( fabs(a) > fabs(b) && fabs(a) > fabs(c) ){
-
+		// a
 		n0.setCoordinate( -a*b, 1-b*b, -c*b);
 	}else if( fabs(b) > fabs(a) && fabs(b) > fabs(c) ){
-
+		// b
 		n0.setCoordinate( -a*c, -b*c, 1-c*c);
 	}else{
-
+		// c
 		n0.setCoordinate( 1-a*a, -b*a, -c*a);
 	}
 	n0.normalize();
@@ -142,7 +142,7 @@ kmb::FramedPlane::setNormal(double a,double b,double c)
 		this->a = a/r;
 		this->b = b/r;
 		this->c = c/r;
-		this->d =
+		this->d = 
 			- this->a*origin.x()
 			- this->b*origin.y()
 			- this->c*origin.z();
@@ -159,7 +159,7 @@ kmb::FramedPlane::setNormalPolar(double phi,double theta)
 	b = sin(phi)*sin(theta);
 	c = cos(theta);
 	d = - a*origin.x() - b*origin.y() - c*origin.z();
-
+	// UVBase もそれらしく正規化
 	double r = a*a + b*b;
 	if( r == 0.0 ){
 		n0.setCoordinate( 1.0, 0.0, 0.0 );

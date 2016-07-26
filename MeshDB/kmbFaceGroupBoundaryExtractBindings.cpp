@@ -210,7 +210,7 @@ kmb::FaceGroupBoundaryExtractBindings::_iteratorFGBE::clone(void)
 	return _it;
 }
 
-
+// 独自メソッド
 
 void
 kmb::FaceGroupBoundaryExtractBindings::setMesh(kmb::MeshData* mesh)
@@ -264,7 +264,7 @@ kmb::FaceGroupBoundaryExtractBindings::getNeighbor(kmb::Face f,bool reverse) con
 	}
 	int index = -1;
 	int otherIndex = -1;
-
+	// 既に登録済みの Face と比較する
 	std::multimap< kmb::nodeIdType, kmb::Face >::const_iterator fIter = facemap.lower_bound(sum);
 	std::multimap< kmb::nodeIdType, kmb::Face >::const_iterator end = facemap.upper_bound(sum);
 	switch(vertexNum){

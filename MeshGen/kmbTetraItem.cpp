@@ -231,7 +231,7 @@ void kmb::TetraItem::generateNeighborRelations( kmb::TetraItem* tetra )
 		int b0 = fIter->second.second;
 		std::multimap< int, FaceItem >::iterator lIter = facemap.lower_bound(n0);
 		std::multimap< int, FaceItem >::iterator uIter = facemap.upper_bound(n0);
-
+		// fIter と接するものを探す
 		while( lIter != uIter ){
 			kmb::TetraItem* t1 = lIter->second.first;
 			int b1 = lIter->second.second;
@@ -250,7 +250,6 @@ void kmb::TetraItem::generateNeighborRelations( kmb::TetraItem* tetra )
 	bool flag = true;
 	std::cout << "kmb::TetraItem::generateNeighborRelations begin" << std::endl;
 	while( tIter ){
-
 		kmb::TetraItem* t0 = tIter->getNeighbor(0);
 		kmb::TetraItem* t1 = tIter->getNeighbor(1);
 		kmb::TetraItem* t2 = tIter->getNeighbor(2);
@@ -390,7 +389,7 @@ kmb::TetraItem::checkNeighbor( kmb::TetraItem* tetra )
 		<< tetra->getCellId(2) << " "
 		<< tetra->getCellId(3) << "] => ";
 	for(int i=0;i<4;++i){
-
+		// (tetra,i) vs (neighbor,nFace)
 		kmb::TetraItem* neighbor = tetra->getNeighbor(i);
 		int nFace = tetra->getNeighborFace(i);
 		if( neighbor ){

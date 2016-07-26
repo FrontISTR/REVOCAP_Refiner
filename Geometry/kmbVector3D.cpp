@@ -38,7 +38,7 @@ kmb::Vector3D::Vector3D(const Point3D& p,const Point3D& q)
 	}
 }
 
-
+/// スカラー積
 
 kmb::Vector3D
 kmb::Vector3D::scalar(const double s) const{
@@ -49,7 +49,7 @@ kmb::Vector3D::scalar(const double s) const{
 double
 kmb::Vector3D::lengthSq(void) const
 {
-	return
+	return 
 		this->v[0] * this->v[0] +
 		this->v[1] * this->v[1] +
 		this->v[2] * this->v[2];
@@ -98,7 +98,7 @@ kmb::Vector3D::cos(const Vector3D &v0,const Vector3D &v1)
 	return (v0 * v1) / (v0.length() * v1.length());
 }
 
-double
+double 
 kmb::Vector3D::sin(const Vector3D &v0,const Vector3D &v1)
 {
 	kmb::Vector3D outer = v0 % v1;

@@ -21,7 +21,7 @@ PROGRAM RefinerSample
   INCLUDE "rcapRefiner.inc"
   INTEGER*4 :: I,J,K
 
-! êﬂì_îzóÒ
+! ÁØÄÁÇπÈÖçÂàó
   DOUBLE PRECISION :: coords(3*5)
   DOUBLE PRECISION, DIMENSION(:), ALLOCATABLE :: resultCoords
   INTEGER*4 :: nodeCount

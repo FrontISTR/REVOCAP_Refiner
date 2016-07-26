@@ -33,8 +33,7 @@ kmb::RevocapNeutralIO::~RevocapNeutralIO(void)
 {
 }
 
-int
-kmb::RevocapNeutralIO::loadFromRNFFile(const char* filename,kmb::MeshData* mesh)
+int kmb::RevocapNeutralIO::loadFromRNFFile(const char* filename,kmb::MeshData* mesh)
 {
 	if( mesh == NULL ){
 		return -1;
@@ -67,6 +66,109 @@ kmb::RevocapNeutralIO::loadFromRNFFile(const char* filename,kmb::MeshData* mesh)
 }
 
 int
+kmb::RevocapNeutralIO::saveHeader(const char* filename)
+{
+	std::ofstream output( filename, std::ios_base::out );
+	if( output.fail() ){
+		return -1;
+	}
+	writeHeader(output);
+	output.close();
+	return 0;
+}
+
+int
+kmb::RevocapNeutralIO::appendHeader(const char* filename)
+{
+	std::ofstream output( filename, std::ios_base::app );
+	if( output.fail() ){
+		return -1;
+	}
+	writeHeader(output);
+	output.close();
+	return 0;
+}
+
+int
+kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* mesh,const char* name,const char* stype)
+{
+	kmb::DataBindings* data = NULL;
+	if( mesh == NULL || (data=mesh->getDataBindingsPtr(name,stype))==NULL ){
+		return -1;
+	}else{
+		std::ofstream output( filename, std::ios_base::app );
+		if( output.fail() ){
+			return -1;
+		}
+		output << "data:" << std::endl;
+		writeData(output,mesh,name,stype);
+		output.close();
+	}
+	return 0;
+}
+
+int
+kmb::RevocapNeutralIO::saveToRNFFile(const char* filename,kmb::MeshData* mesh)
+{
+	if( mesh == NULL || !mesh->getNodes() ){
+		return -1;
+	}else{
+		std::ofstream output( filename, std::ios_base::out );
+		if( output.fail() ){
+			return -1;
+		}
+		writeHeader(output);
+		output << "node:" << std::endl;
+		output << "  size: " << mesh->getNodeCount() << std::endl;
+		output << "  coordinate: " << std::endl;
+		double x,y,z;
+		kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
+		kmb::Point3DContainer::const_iterator nIterEnd = mesh->getNodes()->end();
+		while( nIter != nIterEnd ){
+			if( nIter.getXYZ(x,y,z) ){
+				output << "  - [" << nIter.getId() << ", " << std::showpoint << x << ", " << y << ", " << z <<  "]" << std::endl;
+			}			
+			++nIter;
+		}
+		int bodyCount = static_cast<int>(mesh->getBodyCount());
+		output << "bodyCount: " << bodyCount << std::endl;
+		output << "element:" << std::endl;
+		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
+			const kmb::ElementContainer* body = mesh->getBodyPtr(bodyId);
+			if( body )
+			{
+				output << "  - size: " << body->getCount() << std::endl;
+				const char* bodyName = body->getBodyName();
+				if( bodyName && strlen(bodyName) > 0 ){
+					output << "    name: \"" << body->getBodyName() << "\"" << std::endl;
+				}
+				output << "    connectivity:" << std::endl;
+				kmb::ElementContainer::const_iterator eIter = body->begin();
+				while( eIter != body->end() ){
+					output << "      - [" << eIter.getId() << ", ";
+					output << eIter.getTypeString();
+					int num = eIter.getNodeCount();
+					for(int i=0;i<num;++i){
+						output << ", " << eIter.getCellId(i);
+					}
+					output << "]" << std::endl;
+					++eIter;
+				}
+			}
+		}
+		output << "data:" << std::endl;
+		const std::multimap< std::string, kmb::DataBindings* > mapper = mesh->getDataBindingsMap();
+		std::multimap< std::string, kmb::DataBindings* >::const_iterator dIter = mapper.begin();
+		while( dIter != mapper.end() ){
+			writeData(output,mesh,dIter->first.c_str(),dIter->second->getSpecType().c_str());
+			++dIter;
+		}
+		output.close();
+	}
+	return 0;
+}
+
+int
 kmb::RevocapNeutralIO::readNode(std::ifstream &input,kmb::MeshData* mesh)
 {
 	std::string line;
@@ -92,7 +194,7 @@ kmb::RevocapNeutralIO::readNode(std::ifstream &input,kmb::MeshData* mesh)
 	mesh->beginNode( static_cast<size_t>(size) );
 	double x, y, z;
 	kmb::nodeIdType id;
-	char c;
+	char c; // [ や , を読み込むため
 	long nodeCounter=0;
 	while( !std::getline( input, line ).eof() ){
 		if( line.size() == 0 || line[0] == '#' ){
@@ -111,15 +213,15 @@ kmb::RevocapNeutralIO::readNode(std::ifstream &input,kmb::MeshData* mesh)
 	return 0;
 }
 
-
-
+// element は element: タグの下の配列要素
+// input.seekg( pos ); で読み込んだタグは戻しておく
 int
 kmb::RevocapNeutralIO::readElement(std::ifstream &input,kmb::MeshData* mesh)
 {
 	std::string line;
 	std::string tag;
 	std::string name;
-	char c;
+	char c; // [ や , を読み込むため
 	long size=0L;
 	kmb::elementIdType id;
 	kmb::nodeIdType nodes[20];
@@ -189,10 +291,10 @@ kmb::RevocapNeutralIO::readElement(std::ifstream &input,kmb::MeshData* mesh)
 	return 0;
 }
 
-
-
-
-
+// data: タグの下の配列要素
+// input.seekg( pos ); で読み込んだタグは戻しておく
+// Group 系のみ実装
+// Variable 系は Vector2Int のみ
 int
 kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 {
@@ -202,7 +304,7 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 	std::string mode;
 	std::string vtype;
 	std::string stype;
-	char c;
+	char c; // [ や , を読み込むため
 	long size=0L;
 	kmb::elementIdType elementId;
 	kmb::idType localId;
@@ -220,7 +322,7 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 			input.seekg( pos );
 			return 0;
 		}
-
+		// 配列要素が始まる
 		if( line[2] == '-' ){
 			name = "";
 			mode = "";
@@ -295,12 +397,12 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							tokenizer.str(line);
 							tokenizer.clear();
 							tokenizer >> c >> c >> nodeId >> c >> c >> u >> c >> v >> c >> s >> c >> c;
-
+							//           -    [    1         ,    [    u    ,    v    ,    s    ]    ]
 							reinterpret_cast< kmb::Vector2WithIntBindings<kmb::nodeIdType>* >(data)->setValue(nodeId,u,v,s);
 							++dataCounter;
 						}
 					}else{
-
+						// GROUP 系の値の取得
 						switch( kmb::PhysicalValue::string2valueType( vtype ) )
 						{
 						case kmb::PhysicalValue::Scalar:
@@ -335,9 +437,9 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							{
 								double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
 								tokenizer >> c >> c >> v[0] >> c >> v[1] >> c >> v[2] >> c >> c
-
+									//       [    [     0.0    ,    0.0     ,    0.0     ]    ,
 									>> c >> v[3] >> c >> v[4] >> c >> v[5] >> c >> c;
-
+									// [    1.0     ,    0.0     ,    0.0     ]    ]
 								value = new Point3Vector3Value( &v[0], &v[3] );
 								break;
 							}
@@ -378,7 +480,7 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							tokenizer.str(line);
 							tokenizer.clear();
 							tokenizer >> c >> c >> elementId >> c >> localId >> c;
-
+							//           -    [    1            ,    0          ]
 							data->addId( kmb::Face(elementId,localId) );
 							++dataCounter;
 						}
@@ -397,7 +499,7 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							tokenizer.str(line);
 							tokenizer.clear();
 							tokenizer >> c >> nodeId;;
-
+							//           -    1
 							data->addId( nodeId );
 							++dataCounter;
 						}
@@ -416,12 +518,12 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 							tokenizer.str(line);
 							tokenizer.clear();
 							tokenizer >> c >> elementId;;
-
+							//           -    1
 							data->addId( elementId );
 							++dataCounter;
 						}
 					}else{
-
+						// 空読み
 						while( !std::getline( input, line ).eof() ){
 							if( line.size() == 0 || line[0] == '#' ){
 								continue;
@@ -439,7 +541,7 @@ kmb::RevocapNeutralIO::readData(std::ifstream &input,kmb::MeshData* mesh)
 			}
 			if( data != NULL && value != NULL && value->getType() == data->getValueType() ){
 				data->setPhysicalValue( value );
-
+				// 以後 value のメモリは data が管理する
 				value = NULL;
 			}
 			input.seekg( pos );
@@ -481,719 +583,342 @@ kmb::RevocapNeutralIO::writeHeader(std::ofstream &output)
 	return 0;
 }
 
-int
-kmb::RevocapNeutralIO::saveToRNFFile(const char* filename,kmb::MeshData* mesh)
+int kmb::RevocapNeutralIO::writeData(std::ofstream &output,kmb::MeshData* mesh,const char* name,const char*stype)
 {
-	if( mesh == NULL || !mesh->getNodes() ){
+	kmb::DataBindings* data = mesh->getDataBindingsPtr(name,stype);
+	if( data == NULL ){
 		return -1;
-	}else{
-		std::ofstream output( filename, std::ios_base::out );
-		if( output.fail() ){
-			return -1;
-		}
-		writeHeader(output);
-		output << "node:" << std::endl;
-		output << "  size: " << mesh->getNodeCount() << std::endl;
-		output << "  coordinate: " << std::endl;
-		double x,y,z;
-		kmb::Point3DContainer::const_iterator nIter = mesh->getNodes()->begin();
-		kmb::Point3DContainer::const_iterator nIterEnd = mesh->getNodes()->end();
-		while( nIter != nIterEnd ){
-			if( nIter.getXYZ(x,y,z) ){
-				output << "  - [" << nIter.getId() << ", " << std::showpoint << x << ", " << y << ", " << z <<  "]" << std::endl;
-			}
-			++nIter;
-		}
-		int bodyCount = static_cast<int>(mesh->getBodyCount());
-		output << "bodyCount: " << bodyCount << std::endl;
-		output << "element:" << std::endl;
-		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
-			const kmb::ElementContainer* body = mesh->getBodyPtr(bodyId);
-			if( body )
+	}
+	output << "  - name: " << "\"" << name << "\"" << std::endl;
+	output << "    mode: " << kmb::DataBindings::bindingMode2string(data->getBindingMode()) << std::endl;
+	output << "    vtype: " << kmb::PhysicalValue::valueType2string(data->getValueType()) << std::endl;
+	if( strlen(stype) > 0 ){
+		output << "    stype: " << stype << std::endl;
+	}
+	kmb::bodyIdType bodyId = data->getTargetBodyId();
+	if( bodyId >= 0 ){
+		output << "    targetBodyId: " << bodyId << std::endl;
+	}
+	output << "    size: " << data->getIdCount() << std::endl;
+	switch( data->getBindingMode() )
+	{
+	case kmb::DataBindings::NodeGroup:
+	case kmb::DataBindings::ElementGroup:
+	case kmb::DataBindings::BodyGroup:
+	case kmb::DataBindings::FaceGroup:
+		{
+			switch( data->getValueType() )
 			{
-				output << "  - size: " << body->getCount() << std::endl;
-				const char* bodyName = body->getBodyName();
-				if( bodyName && strlen(bodyName) > 0 ){
-					output << "    name: \"" << body->getBodyName() << "\"" << std::endl;
-				}
-				output << "    connectivity:" << std::endl;
-				kmb::ElementContainer::const_iterator eIter = body->begin();
-				while( eIter != body->end() ){
-					output << "      - [" << eIter.getId() << ", ";
-					output << eIter.getTypeString();
-					int num = eIter.getNodeCount();
-					for(int i=0;i<num;++i){
-						output << ", " << eIter.getCellId(i);
-					}
-					output << "]" << std::endl;
-					++eIter;
-				}
-			}
-		}
-		output << "data:" << std::endl;
-		const std::multimap< std::string, kmb::DataBindings* > mapper = mesh->getDataBindingsMap();
-		std::multimap< std::string, kmb::DataBindings* >::const_iterator dIter = mapper.begin();
-		while( dIter != mapper.end() ){
-			output << "  - name: " << "\"" << dIter->first << "\"" << std::endl;
-			output << "    mode: " << kmb::DataBindings::bindingMode2string(dIter->second->getBindingMode()) << std::endl;
-			output << "    vtype: " << kmb::PhysicalValue::valueType2string(dIter->second->getValueType()) << std::endl;
-			std::string stype = dIter->second->getSpecType();
-			if( stype.size() > 0 ){
-				output << "    stype: " << stype << std::endl;
-			}
-			kmb::bodyIdType bodyId = dIter->second->getTargetBodyId();
-			if( bodyId >= 0 ){
-				output << "    targetBodyId: " << bodyId << std::endl;
-			}
-			output << "    size: " << dIter->second->getIdCount() << std::endl;
-			switch( dIter->second->getBindingMode() )
-			{
-			case kmb::DataBindings::NodeGroup:
-			case kmb::DataBindings::ElementGroup:
-			case kmb::DataBindings::BodyGroup:
-			case kmb::DataBindings::FaceGroup:
+			case kmb::PhysicalValue::Scalar:
 				{
-					switch( dIter->second->getValueType() )
-					{
-					case kmb::PhysicalValue::Scalar:
-						{
-							double v = 0.0;
-							dIter->second->getPhysicalValue()->getValue(&v);
-							output << "    value: " << std::showpoint << v << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Vector2:
-						{
-							double v[] = {0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << "]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Vector3:
-						{
-							double v[] = {0.0, 0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Tensor6:
-						{
-							double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Point3Vector3:
-						{
-							double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [[" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Vector2withInt:
-						{
-							double v[] = {0.0, 0.0};
-							long k = 0L;
-							dIter->second->getPhysicalValue()->getValue(v);
-							dIter->second->getPhysicalValue()->getValue(&k);
-							output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << k << "]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Integer:
-						{
-							output << "    value: " << reinterpret_cast<kmb::IntegerValue*>(dIter->second->getPhysicalValue())->getValue() << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Array:
-						{
-						}
-						break;
-					case kmb::PhysicalValue::Hash:
-						{
-						}
-						break;
-					case kmb::PhysicalValue::Boolean:
-						{
-						}
-						break;
-					default:
-						break;
-					}
-					if( dIter->second->getBindingMode() == kmb::DataBindings::FaceGroup ){
-						if( dIter->second->getIdCount() > 0 ){
-							output << "    id:" << std::endl;
-							kmb::DataBindings::iterator gIter = dIter->second->begin();
-							while( !gIter.isFinished() ){
-								kmb::Face f;
-								gIter.getFace(f);
-								output << "    - [" << f.getElementId() << ", " << f.getLocalFaceId() << "]" << std::endl;
-								++gIter;
-							}
-						}
-					}else{
-						if( dIter->second->getIdCount() > 0 ){
-							output << "    id:" << std::endl;
-							kmb::DataBindings::iterator gIter = dIter->second->begin();
-							while( !gIter.isFinished() ){
-								output << "    - " << gIter.getId() << std::endl;
-								++gIter;
-							}
-						}
-					}
+					double v = 0.0;
+					data->getPhysicalValue()->getValue(&v);
+					output << "    value: " << std::showpoint << v << std::endl;
 				}
 				break;
-			case kmb::DataBindings::NodeVariable:
-			case kmb::DataBindings::ElementVariable:
-			case kmb::DataBindings::BodyVariable:
+			case kmb::PhysicalValue::Vector2:
 				{
-					if( dIter->second->getIdCount() > 0 ){
-						output << "    value:" << std::endl;
-						switch( dIter->second->getValueType() )
-						{
-						case kmb::PhysicalValue::Scalar:
-							{
-								double v = 0.0;
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getValue(&v);
-									output << "    - [" << gIter.getId() << ", " << std::showpoint << v << "]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						case kmb::PhysicalValue::Vector2:
-							{
-								double v[] = {0.0, 0.0};
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getValue(v);
-									output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << "]]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						case kmb::PhysicalValue::Vector3:
-							{
-								double v[] = {0.0, 0.0, 0.0};
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getValue(v);
-									output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						case kmb::PhysicalValue::Tensor6:
-							{
-								double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getValue(v);
-									output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						case kmb::PhysicalValue::Vector2withInt:
-							{
-								double v[] = {0.0, 0.0};
-								long k = 0L;
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getValue(v);
-									gIter.getValue(&k);
-									output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << ", " << k << "]]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						default:
-							break;
-						}
-					}
+					double v[] = {0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << "]" << std::endl;
 				}
 				break;
-			case kmb::DataBindings::FaceVariable:
+			case kmb::PhysicalValue::Vector3:
 				{
-					if( dIter->second->getIdCount() > 0 ){
-						output << "    id:" << std::endl;
-						kmb::Face f;
-						switch( dIter->second->getValueType() )
-						{
-						case kmb::PhysicalValue::Scalar:
-							{
-								double v = 0.0;
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getFace(f);
-									gIter.getValue(&v);
-									output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
-									output << std::showpoint << v << "]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						case kmb::PhysicalValue::Vector2:
-							{
-								double v[] = {0.0, 0.0};
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getFace(f);
-									gIter.getValue(v);
-									output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
-									output << std::showpoint << v[0] << ", " << v[1] << "]]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						case kmb::PhysicalValue::Vector3:
-							{
-								double v[] = {0.0, 0.0, 0.0};
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getFace(f);
-									gIter.getValue(v);
-									output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
-									output << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						case kmb::PhysicalValue::Tensor6:
-							{
-								double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-								kmb::DataBindings::iterator gIter = dIter->second->begin();
-								while( !gIter.isFinished() ){
-									gIter.getFace(f);
-									gIter.getValue(v);
-									output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
-									output << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
-									++gIter;
-								}
-							}
-							break;
-						default:
-							break;
-						}
-					}
+					double v[] = {0.0, 0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
 				}
 				break;
-			case kmb::DataBindings::Global:
+			case kmb::PhysicalValue::Tensor6:
 				{
-					switch( dIter->second->getValueType() )
-					{
-					case kmb::PhysicalValue::Scalar:
-						{
-							double v = 0.0;
-							dIter->second->getPhysicalValue()->getValue(&v);
-							output << "    value: " << std::showpoint << v << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Vector2:
-						{
-							double v[] = {0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << "]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Vector3:
-						{
-							double v[] = {0.0, 0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Tensor6:
-						{
-							double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Point3Vector3:
-						{
-							double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-							dIter->second->getPhysicalValue()->getValue(v);
-							output << "    value: [[" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Integer:
-						{
-							output << "    value: " << reinterpret_cast<kmb::IntegerValue*>(dIter->second->getPhysicalValue())->getValue() << std::endl;
-						}
-						break;
-					case kmb::PhysicalValue::Array:
-						{
-						}
-						break;
-					case kmb::PhysicalValue::Hash:
-						{
-						}
-						break;
-					case kmb::PhysicalValue::Boolean:
-						{
-						}
-						break;
-					default:
-						break;
-					}
+					double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Point3Vector3:
+				{
+					double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [[" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Vector2withInt:
+				{
+					double v[] = {0.0, 0.0};
+					long k = 0L;
+					data->getPhysicalValue()->getValue(v);
+					data->getPhysicalValue()->getValue(&k);
+					output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << k << "]" << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Integer:
+				{
+					output << "    value: " << reinterpret_cast<kmb::IntegerValue*>(data->getPhysicalValue())->getValue() << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Array:
+				{
+				}
+				break;
+			case kmb::PhysicalValue::Hash:
+				{
+				}
+				break;
+			case kmb::PhysicalValue::Boolean:
+				{
 				}
 				break;
 			default:
 				break;
 			}
-			++dIter;
+			if( data->getBindingMode() == kmb::DataBindings::FaceGroup ){
+				if( data->getIdCount() > 0 ){
+					output << "    id:" << std::endl;
+					kmb::DataBindings::iterator gIter = data->begin();
+					while( !gIter.isFinished() ){
+						kmb::Face f;
+						gIter.getFace(f);
+						output << "    - [" << f.getElementId() << ", " << f.getLocalFaceId() << "]" << std::endl;
+						++gIter;
+					}
+				}
+			}else{
+				if( data->getIdCount() > 0 ){
+					output << "    id:" << std::endl;
+					kmb::DataBindings::iterator gIter = data->begin();
+					while( !gIter.isFinished() ){
+						output << "    - " << gIter.getId() << std::endl;
+						++gIter;
+					}
+				}
+			}
 		}
-		output.close();
-	}
-	return 0;
-}
-
-int
-kmb::RevocapNeutralIO::saveHeader(const char* filename)
-{
-	std::ofstream output( filename, std::ios_base::out );
-	if( output.fail() ){
-		return -1;
-	}
-	writeHeader(output);
-	output.close();
-	return 0;
-}
-
-int
-kmb::RevocapNeutralIO::appendHeader(const char* filename)
-{
-	std::ofstream output( filename, std::ios_base::app );
-	if( output.fail() ){
-		return -1;
-	}
-	writeHeader(output);
-	output.close();
-	return 0;
-}
-
-int
-kmb::RevocapNeutralIO::appendDataToRNFFile(const char* filename,kmb::MeshData* mesh,const char* name,const char* stype)
-{
-	kmb::DataBindings* data = NULL;
-	if( mesh == NULL || (data=mesh->getDataBindingsPtr(name,stype))==NULL ){
-		return -1;
-	}else{
-		std::ofstream output( filename, std::ios_base::app );
-		if( output.fail() ){
-			return -1;
-		}
-		output << "data:" << std::endl;
-		output << "  - name: " << "\"" << name << "\"" << std::endl;
-		output << "    mode: " << kmb::DataBindings::bindingMode2string(data->getBindingMode()) << std::endl;
-		output << "    vtype: " << kmb::PhysicalValue::valueType2string(data->getValueType()) << std::endl;
-		std::string spec = data->getSpecType();
-		if( spec.size() > 0 ){
-			output << "    stype: " << spec << std::endl;
-		}
-		kmb::bodyIdType bodyId = data->getTargetBodyId();
-		if( bodyId >= 0 ){
-			output << "    targetBodyId: " << bodyId << std::endl;
-		}
-		output << "    size: " << data->getIdCount() << std::endl;
-		switch( data->getBindingMode() )
+		break;
+	case kmb::DataBindings::NodeVariable:
+	case kmb::DataBindings::ElementVariable:
+	case kmb::DataBindings::BodyVariable:
 		{
-		case kmb::DataBindings::NodeGroup:
-		case kmb::DataBindings::ElementGroup:
-		case kmb::DataBindings::BodyGroup:
-		case kmb::DataBindings::FaceGroup:
-			{
+			if( data->getIdCount() > 0 ){
+				output << "    value:" << std::endl;
 				switch( data->getValueType() )
 				{
 				case kmb::PhysicalValue::Scalar:
 					{
 						double v = 0.0;
-						data->getPhysicalValue()->getValue(&v);
-						output << "    value: " << std::scientific << std::setprecision(8) << v << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getValue(&v);
+							output << "    - [" << gIter.getId() << ", " << std::showpoint << v << "]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Vector2:
 					{
 						double v[] = {0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]" << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getValue(v);
+							output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << "]]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Vector3:
 					{
 						double v[] = {0.0, 0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getValue(v);
+							output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Tensor6:
 					{
 						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
-					}
-					break;
-				case kmb::PhysicalValue::Point3Vector3:
-					{
-						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [[" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getValue(v);
+							output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Vector2withInt:
 					{
 						double v[] = {0.0, 0.0};
 						long k = 0L;
-						data->getPhysicalValue()->getValue(v);
-						data->getPhysicalValue()->getValue(&k);
-						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << k << "]" << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getValue(v);
+							gIter.getValue(&k);
+							output << "    - [" << gIter.getId() << ", [" << std::showpoint << v[0] << ", " << v[1] << ", " << k << "]]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Integer:
 					{
-						output << "    value: " << reinterpret_cast<kmb::IntegerValue*>(data->getPhysicalValue())->getValue() << std::endl;
-					}
-					break;
-				case kmb::PhysicalValue::Array:
-					{
-					}
-					break;
-				case kmb::PhysicalValue::Hash:
-					{
-					}
-					break;
-				case kmb::PhysicalValue::Boolean:
-					{
+						long l = 0L;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getValue(&l);
+							output << "    - [" << gIter.getId() << ", " << l << "]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				default:
 					break;
 				}
-				if( data->getBindingMode() == kmb::DataBindings::FaceGroup ){
-					if( data->getIdCount() > 0 ){
-						output << "    id:" << std::endl;
-						kmb::DataBindings::iterator gIter = data->begin();
-						while( !gIter.isFinished() ){
-							kmb::Face f;
-							gIter.getFace(f);
-							output << "    - [" << f.getElementId() << ", " << f.getLocalFaceId() << "]" << std::endl;
-							++gIter;
-						}
-					}
-				}else{
-					if( data->getIdCount() > 0 ){
-						output << "    id:" << std::endl;
-						kmb::DataBindings::iterator gIter = data->begin();
-						while( !gIter.isFinished() ){
-							output << "    - " << gIter.getId() << std::endl;
-							++gIter;
-						}
-					}
-				}
 			}
-			break;
-		case kmb::DataBindings::NodeVariable:
-		case kmb::DataBindings::ElementVariable:
-		case kmb::DataBindings::BodyVariable:
-			{
-				if( data->getIdCount() > 0 ){
-					output << "    value:" << std::endl;
-					switch( data->getValueType() )
-					{
-					case kmb::PhysicalValue::Scalar:
-						{
-							double v = 0.0;
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getValue(&v);
-								output << "    - [" << gIter.getId() << ", " << std::scientific << std::setprecision(8) << v << "]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					case kmb::PhysicalValue::Vector2:
-						{
-							double v[] = {0.0, 0.0};
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getValue(v);
-								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					case kmb::PhysicalValue::Vector3:
-						{
-							double v[] = {0.0, 0.0, 0.0};
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getValue(v);
-								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					case kmb::PhysicalValue::Tensor6:
-						{
-							double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getValue(v);
-								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					case kmb::PhysicalValue::Vector2withInt:
-						{
-							double v[] = {0.0, 0.0};
-							long k = 0L;
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getValue(v);
-								gIter.getValue(&k);
-								output << "    - [" << gIter.getId() << ", [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << k << "]]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					default:
-						break;
-					}
-				}
-			}
-			break;
-		case kmb::DataBindings::FaceVariable:
-			{
-				if( data->getIdCount() > 0 ){
-					output << "    id:" << std::endl;
-					kmb::Face f;
-					switch( data->getValueType() )
-					{
-					case kmb::PhysicalValue::Scalar:
-						{
-							double v = 0.0;
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getFace(f);
-								gIter.getValue(&v);
-								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << std::scientific << std::setprecision(8) << v << "]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					case kmb::PhysicalValue::Vector2:
-						{
-							double v[] = {0.0, 0.0};
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getFace(f);
-								gIter.getValue(v);
-								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					case kmb::PhysicalValue::Vector3:
-						{
-							double v[] = {0.0, 0.0, 0.0};
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getFace(f);
-								gIter.getValue(v);
-								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					case kmb::PhysicalValue::Tensor6:
-						{
-							double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-							kmb::DataBindings::iterator gIter = data->begin();
-							while( !gIter.isFinished() ){
-								gIter.getFace(f);
-								gIter.getValue(v);
-								output << "    - [[" << f.getElementId() << ", " << f.getElementId() << "], ";
-								output << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
-								++gIter;
-							}
-						}
-						break;
-					default:
-						break;
-					}
-				}
-			}
-			break;
-		case kmb::DataBindings::Global:
-			{
+		}
+		break;
+	case kmb::DataBindings::FaceVariable:
+		{
+			if( data->getIdCount() > 0 ){
+				output << "    id:" << std::endl;
+				kmb::Face f;
 				switch( data->getValueType() )
 				{
 				case kmb::PhysicalValue::Scalar:
 					{
 						double v = 0.0;
-						data->getPhysicalValue()->getValue(&v);
-						output << "    value: " << std::scientific << std::setprecision(8) << v << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getFace(f);
+							gIter.getValue(&v);
+							output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
+							output << std::showpoint << v << "]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Vector2:
 					{
 						double v[] = {0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << "]" << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getFace(f);
+							gIter.getValue(v);
+							output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
+							output << std::showpoint << v[0] << ", " << v[1] << "]]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Vector3:
 					{
 						double v[] = {0.0, 0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getFace(f);
+							gIter.getValue(v);
+							output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
+							output << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Tensor6:
 					{
 						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
-					}
-					break;
-				case kmb::PhysicalValue::Point3Vector3:
-					{
-						double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-						data->getPhysicalValue()->getValue(v);
-						output << "    value: [[" << std::scientific << std::setprecision(8) << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getFace(f);
+							gIter.getValue(v);
+							output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
+							output << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				case kmb::PhysicalValue::Integer:
 					{
-						output << "    value: " << reinterpret_cast<kmb::IntegerValue*>(data->getPhysicalValue())->getValue() << std::endl;
-					}
-					break;
-				case kmb::PhysicalValue::Array:
-					{
-					}
-					break;
-				case kmb::PhysicalValue::Hash:
-					{
-					}
-					break;
-				case kmb::PhysicalValue::Boolean:
-					{
+						long l = 0L;
+						kmb::DataBindings::iterator gIter = data->begin();
+						while( !gIter.isFinished() ){
+							gIter.getFace(f);
+							gIter.getValue(&l);
+							output << "    - [[" << f.getElementId() << ", " << f.getLocalFaceId() << "], ";
+							output << l << "]" << std::endl;
+							++gIter;
+						}
 					}
 					break;
 				default:
 					break;
 				}
 			}
-			break;
-		default:
-			break;
 		}
-		output.close();
+		break;
+	case kmb::DataBindings::Global:
+		{
+			switch( data->getValueType() )
+			{
+			case kmb::PhysicalValue::Scalar:
+				{
+					double v = 0.0;
+					data->getPhysicalValue()->getValue(&v);
+					output << "    value: " << std::showpoint << v << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Vector2:
+				{
+					double v[] = {0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << "]" << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Vector3:
+				{
+					double v[] = {0.0, 0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "]" << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Tensor6:
+				{
+					double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << ", " << v[3] << ", " << v[4] << ", " << v[5] << "]" << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Point3Vector3:
+				{
+					double v[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+					data->getPhysicalValue()->getValue(v);
+					output << "    value: [[" << std::showpoint << v[0] << ", " << v[1] << ", " << v[2] << "], [" << v[3] << ", " << v[4] << ", " << v[5] << "]]" << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Integer:
+				{
+					output << "    value: " << reinterpret_cast<kmb::IntegerValue*>(data->getPhysicalValue())->getValue() << std::endl;
+				}
+				break;
+			case kmb::PhysicalValue::Array:
+				{
+				}
+				break;
+			case kmb::PhysicalValue::Hash:
+				{
+				}
+				break;
+			case kmb::PhysicalValue::Boolean:
+				{
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		break;
+	default:
+		break;
 	}
 	return 0;
 }

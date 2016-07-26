@@ -42,12 +42,12 @@ public:
 		return CONTAINER_TYPE;
 	};
 
-
+	// container
 	bool deleteItem(TriangleItem* tri);
 	bool appendItem(TriangleItem* tri);
 	size_t appendChain(TriangleItem* head);
-
-
+	// remove from container but not delete
+	// do not change neighbor
 	TriangleItem* eraseItem(TriangleItem* tri);
 
 	class _iterator : public ElementContainer::_iterator

@@ -259,7 +259,7 @@ kmb::MeshDB::shapeFunction( kmb::elementType etype, double* naturalCoords, doubl
 	}
 }
 
-bool
+double
 kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 {
 	if( strcmp(name,"NormalVectorOnNode")==0 ){
@@ -289,7 +289,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				}
 				++nIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"AspectRatio")==0 ){
@@ -305,7 +305,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double ratio = 0.0;
@@ -314,7 +314,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->setPhysicalValue( eIter.getId(), &ratio );
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"ElementVolume")==0 ){
@@ -322,6 +322,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		kmb::Point3DContainer* nodes = this->getNodes();
 		kmb::ElementEvaluator evaluator(nodes);
 		if( body && body->isUniqueDim(3) ){
+			double totalVolume = 0.0;
 			kmb::DataBindings* data = this->getDataBindingsPtr("ElementVolume","MeshProperty");
 			if( data == NULL ){
 				data = this->createDataBindings("ElementVolume",kmb::DataBindings::ElementVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
@@ -330,16 +331,17 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double vol = 0.0;
 			while( !eIter.isFinished() ){
 				vol = evaluator.getVolume( eIter );
 				data->setPhysicalValue( eIter.getId(), &vol );
+				totalVolume += vol;
 				++eIter;
 			}
-			return true;
+			return totalVolume;
 		}
 	}
 	else if( strcmp(name,"MaxEdgeLength")==0 ){
@@ -355,7 +357,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double vol = 0.0;
@@ -364,7 +366,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->setPhysicalValue( eIter.getId(), &vol );
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"AverageEdgeLength")==0 ){
@@ -380,7 +382,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double vol = 0.0;
@@ -389,7 +391,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->setPhysicalValue( eIter.getId(), &vol );
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"EdgeLengthRatio")==0 ){
@@ -405,7 +407,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double vol = 0.0;
@@ -414,7 +416,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->setPhysicalValue( eIter.getId(), &vol );
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"MinAngle")==0 ){
@@ -430,7 +432,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double ang = 0.0;
@@ -439,7 +441,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->setPhysicalValue( eIter.getId(), &ang );
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"MaxAngle")==0 ){
@@ -455,7 +457,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double ang = 0.0;
@@ -464,7 +466,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->setPhysicalValue( eIter.getId(), &ang );
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"ConcaveElement")==0 ){
@@ -480,7 +482,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementGroup ||
 				data->getValueType() != kmb::PhysicalValue::None )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			while( !eIter.isFinished() ){
@@ -489,7 +491,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				}
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"MinJacobian")==0 ){
@@ -505,7 +507,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				data->getBindingMode() != kmb::DataBindings::ElementVariable ||
 				data->getValueType() != kmb::PhysicalValue::Scalar )
 			{
-				return false;
+				return -1.0;
 			}
 			kmb::ElementContainer::iterator eIter = body->begin();
 			double min=0.0, max=0.0;
@@ -515,7 +517,7 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 				}
 				++eIter;
 			}
-			return true;
+			return 0.0;
 		}
 	}
 	else if( strcmp(name,"Curvature")==0 ){
@@ -523,11 +525,12 @@ kmb::MeshDB::calcMeshProperty(const char* name,kmb::bodyIdType bodyId)
 		nevaluator.setMesh(this);
 		this->createDataBindings("Curvature",kmb::DataBindings::NodeVariable,kmb::PhysicalValue::Scalar,"MeshProperty");
 		nevaluator.calcCurvature("Curvature","MeshProperty");
+		return 0.0;
 	}
-	return false;
+	return -1.0;
 }
 
-
+//------------------- 面積・体積 --------------------------
 
 double
 kmb::MeshDB::getElementArea(kmb::elementIdType triId,kmb::bodyIdType bodyId) const
@@ -556,7 +559,7 @@ double
 kmb::MeshDB::getArea(kmb::bodyIdType bodyId) const
 {
 	double area = 0.0;
-
+	// すでに MeshProperty があればそれを使う
 	const kmb::ElementContainer* body = this->getBodyPtr(bodyId);
 	if( body && body->isUniqueDim(2) ){
 		const kmb::DataBindings* data = this->getDataBindingsPtr("ElementArea","MeshProperty");
@@ -590,7 +593,7 @@ double
 kmb::MeshDB::getVolume(kmb::bodyIdType bodyId) const
 {
 	double vol = 0.0;
-
+	// すでに MeshProperty があればそれを使う
 	const kmb::ElementContainer* body = this->getBodyPtr(bodyId);
 	if( body && body->isUniqueDim(3) ){
 		const kmb::DataBindings* data = this->getDataBindingsPtr("ElementVolume","MeshProperty");
@@ -620,7 +623,7 @@ kmb::MeshDB::getVolume(kmb::bodyIdType bodyId) const
 	return vol;
 }
 
-
+//------------------- 端点 --------------------------
 
 kmb::nodeIdType
 kmb::MeshDB::getCornerNodeIdOfSurface(kmb::bodyIdType bodyId,kmb::Vector3D dir) const

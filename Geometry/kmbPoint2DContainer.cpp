@@ -29,12 +29,12 @@
 #include "Common/kmbCalculator.h"
 
 #ifdef _MSC_VER
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 bool
@@ -208,7 +208,7 @@ kmb::Point2DContainer::updateCoordinate( kmb::nodeIdType nodeId, double x, doubl
 	return false;
 }
 
-
+//-------- iterator ----------//
 
 kmb::Point2DContainer::iterator::iterator(const iterator &other)
 : _it(NULL)
@@ -245,7 +245,7 @@ kmb::Point2DContainer::iterator::getPoint(kmb::Point2D &point) const
 		return false;
 }
 
-
+// warning! no check
 double
 kmb::Point2DContainer::iterator::x(void) const
 {
@@ -284,15 +284,15 @@ kmb::Point2DContainer::iterator::operator=(const kmb::Point2DContainer::iterator
 		delete _it;
 		_it = NULL;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._it ){
 		_it = other._it->clone();
 	}
 	return *this;
 }
 
-
+// 前置
 kmb::Point2DContainer::iterator&
 kmb::Point2DContainer::iterator::operator++(void)
 {
@@ -306,7 +306,7 @@ kmb::Point2DContainer::iterator::operator++(void)
 	return *this;
 }
 
-
+// 後置
 kmb::Point2DContainer::iterator
 kmb::Point2DContainer::iterator::operator++(int n)
 {
@@ -335,7 +335,7 @@ kmb::Point2DContainer::iterator::operator!=(const iterator &other) const
 	return ( _it != other._it );
 }
 
-
+//-------- const iterator ----------//
 
 kmb::Point2DContainer::const_iterator::const_iterator(const kmb::Point2DContainer::const_iterator &other)
 : _it(NULL)
@@ -380,7 +380,7 @@ kmb::Point2DContainer::const_iterator::getPoint(kmb::Point2D &point) const
 		return false;
 }
 
-
+// warning! no check
 double
 kmb::Point2DContainer::const_iterator::x(void) const
 {
@@ -401,15 +401,15 @@ kmb::Point2DContainer::const_iterator::operator=(const kmb::Point2DContainer::co
 		delete _it;
 		_it = NULL;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._it ){
 		_it = other._it->clone();
 	}
 	return *this;
 }
 
-kmb::Point2DContainer::const_iterator&
+kmb::Point2DContainer::const_iterator& 
 kmb::Point2DContainer::const_iterator::operator=(const kmb::Point2DContainer::iterator& other)
 {
 	if( _it != NULL && _it != other._it )
@@ -417,15 +417,15 @@ kmb::Point2DContainer::const_iterator::operator=(const kmb::Point2DContainer::it
 		delete _it;
 		_it = NULL;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._it ){
 		_it = other._it->clone();
 	}
 	return *this;
 }
 
-
+// 前置
 kmb::Point2DContainer::const_iterator&
 kmb::Point2DContainer::const_iterator::operator++(void)
 {
@@ -439,7 +439,7 @@ kmb::Point2DContainer::const_iterator::operator++(void)
 	return *this;
 }
 
-
+// 後置
 kmb::Point2DContainer::const_iterator
 kmb::Point2DContainer::const_iterator::operator++(int n)
 {
@@ -468,7 +468,7 @@ kmb::Point2DContainer::const_iterator::operator!=(const const_iterator &other) c
 	return ( _it != other._it );
 }
 
-
+///////////// vect ///////////////
 
 const char* kmb::Point2DContainerVect::CONTAINER_TYPE = "stl::vector<Point2D*>";
 
@@ -481,7 +481,7 @@ kmb::Point2DContainerVect::~Point2DContainerVect(void)
 	clear();
 }
 
-bool
+bool 
 kmb::Point2DContainerVect::initialize(size_t size)
 {
 	this->clear();
@@ -523,7 +523,7 @@ kmb::Point2DContainerVect::addPoint(const double x,const double y,const nodeIdTy
 	if( id < 0 ){
 		return -1;
 	}else if( 0 <= id && id < static_cast<int>(this->points.size()) ){
-
+		// 既に登録済みなら -1 を返す
 		kmb::Point2D* pt = this->points[id];
 		if( pt != NULL )
 		{
@@ -552,7 +552,7 @@ kmb::Point2DContainerVect::addPoint(const kmb::Point2D& point,const nodeIdType i
 	if( id < 0 ){
 		return -1;
 	}else if( 0 <= id && id < static_cast<int>(this->points.size()) ){
-
+		// 既に登録済みなら -1 を返す
 		kmb::Point2D* pt = this->points[id];
 		if( pt != NULL )
 		{
@@ -616,7 +616,7 @@ kmb::Point2DContainerVect::getCount(void) const
 	return this->points.size();
 }
 
-void
+void 
 kmb::Point2DContainerVect::clear(void)
 {
 	std::vector< kmb::Point2D* >::iterator pIter = this->points.begin();
@@ -648,14 +648,14 @@ kmb::Point2DContainerVect::deletePoint(nodeIdType id)
 	return false;
 }
 
-void
+void 
 kmb::Point2DContainerVect::getBoundingBox(kmb::BoundingBox2D& bound) const
 {
 	bound.update( boundBox.getMax() );
 	bound.update( boundBox.getMin() );
 }
 
-double
+double 
 kmb::Point2DContainerVect::getNearest
 (const kmb::Point2D* target,kmb::Point2D*& result,nodeIdType &nearestId) const
 {
@@ -675,7 +675,7 @@ kmb::Point2DContainerVect::getNearest
 	return sqrt( min.getMin() );
 }
 
-double
+double 
 kmb::Point2DContainerVect::getNearest
 (const double x,const double y,kmb::Point2D*& result,nodeIdType &nearestId) const
 {
@@ -695,7 +695,7 @@ kmb::Point2DContainerVect::getNearest
 	return sqrt( min.getMin() );
 }
 
-double
+double 
 kmb::Point2DContainerVect::getNearestToSegment
 (const kmb::Point2D& t0,const kmb::Point2D& t1,kmb::Point2D*& result,nodeIdType &nearestId,double &param,double d) const
 {
@@ -779,7 +779,7 @@ kmb::Point2DContainerVect::find(kmb::nodeIdType nodeId) const
 	return kmb::Point2DContainer::const_iterator(_it);
 }
 
-
+//*---------------- _iterator -----------------*/
 
 kmb::nodeIdType
 kmb::Point2DContainerVect::_iteratorVect::getId
@@ -843,15 +843,15 @@ kmb::Point2DContainerVect::_iteratorVect::setXY(double x,double y) const
 	}
 }
 
-kmb::Point2DContainerVect::_iterator*
+kmb::Point2DContainerVect::_iterator* 
 kmb::Point2DContainerVect::_iteratorVect::operator++(void)
 {
 	++(this->index);
 	if( this->index < static_cast<int>( this->vect->points.size() ) ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }
@@ -863,8 +863,8 @@ kmb::Point2DContainerVect::_iteratorVect::operator++(int n)
 	if( this->index < static_cast<int>( this->vect->points.size() ) ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }

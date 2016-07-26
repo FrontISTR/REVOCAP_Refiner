@@ -30,15 +30,15 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
-
+////////////////// Map //////////////////////
 
 const char* kmb::Point3DContainerMap::CONTAINER_TYPE = "stl::map<id,Point3D*>";
 
@@ -96,18 +96,18 @@ kmb::nodeIdType kmb::Point3DContainerMap::addPoint
 			boundBox.update( *point );
 			if( maxId == -1 )
 			{
-
+				// 最初に追加するとき
 				if( id == 1 ){
 					this->idContinuity = kmb::Point3DContainerMap::ONE_LEADING;
 				}else if( id > 1 ){
 					this->idContinuity = kmb::Point3DContainerMap::OTHER_LEADING;
 				}
 			}else if( id != this->maxId + 1 ){
-
+				// 連続している状態が終わる場合
 				this->idContinuity = kmb::Point3DContainerMap::NOT_CONTINUOUS;
 			}
 
-
+			// maxId
 			if( maxId < id ){
 				maxId = id;
 			}
@@ -268,13 +268,13 @@ kmb::Point3DContainerMap::find(kmb::nodeIdType nodeId) const
 	}
 }
 
-
-
+//////////////////////////////////////////////////////////
+// 毎回 Max と Min を再計算しているので、何度も呼ぶと遅いよ。
 bool
 kmb::Point3DContainerMap::replaceId(nodeIdType oldid,nodeIdType newid)
 {
 	if( oldid >= 0 && newid >= 0 &&
-		points.find(oldid) != points.end() &&
+		points.find(oldid) != points.end() && 
 		points.find(newid) == points.end() )
 	{
 		kmb::Point3D* point = points[ oldid ];
@@ -333,8 +333,8 @@ kmb::Point3DContainerMap::updateMinMaxId(void)
 void
 kmb::Point3DContainerMap::idDefragment(nodeIdType initId, std::map<kmb::nodeIdType,kmb::nodeIdType>& idmap)
 {
-
-
+	// 既に MinMax が正しく計算されているとする。
+	// 既に整列されている時には何もしない
 	if( initId == 0 && this->idContinuity == kmb::Point3DContainerMap::ZERO_LEADING){
 		return;
 	}
@@ -342,23 +342,23 @@ kmb::Point3DContainerMap::idDefragment(nodeIdType initId, std::map<kmb::nodeIdTy
 		return;
 	}
 
-
+	// 入れるべき nodeId
 	nodeIdType newId = initId;
 
-
-
+	// 現在の nodeId と挿入すべき nodeId の２つの iterator を同時に進める
+	// 入っている可能性のあるところは 0 から maxNodeID まで
 	for(nodeIdType i = 0;i <= this->maxId ;++i){
 		if( points.find(i) == points.end() ){
 			continue;
 		}
-
+		// 空き番号を探す
 		while( points.find(newId) != points.end() ){
 			++newId;
 		}
 		if( initId <= i && i < newId ){
-
-
-
+			// そのままにしておくノード
+			// key に newId が入る可能性もあるが、無害なのでほっておく
+			// idmap[i] = i;
 		}else{
 			idmap[i] = newId;
 			if( i != newId ){
@@ -381,7 +381,7 @@ kmb::Point3DContainerMap::idDefragment(nodeIdType initId, std::map<kmb::nodeIdTy
 	}
 }
 
-
+// delete しない
 kmb::Point3D*
 kmb::Point3DContainerMap::erasePoint(kmb::nodeIdType id)
 {
@@ -396,7 +396,7 @@ kmb::Point3DContainerMap::erasePoint(kmb::nodeIdType id)
 	}
 }
 
-
+//////////////////////////////////////////////////////////
 kmb::nodeIdType
 kmb::Point3DContainerMap::_iteratorMap::getId(void) const
 {

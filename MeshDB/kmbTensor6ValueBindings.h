@@ -14,7 +14,7 @@
 ----------------------------------------------------------------------*/
 /**
  * Tensor6ValueBindings
- * �f�[�^�̏��Ԃ� xx yy zz xy yz zx
+ * データの順番は xx yy zz xy yz zx
  */
 #pragma once
 #include "MeshDB/kmbDataBindings.h"
@@ -25,7 +25,7 @@ class Tensor6ValueBindings : public kmb::DataBindings
 {
 public:
 	Tensor6ValueBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
-
+	// 他で確保済みの配列を Data として使う
 	Tensor6ValueBindings(size_t count,double* values,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
 	virtual ~Tensor6ValueBindings(void);
 	virtual const char* getContainerType(void) const{

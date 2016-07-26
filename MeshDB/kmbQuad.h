@@ -39,12 +39,12 @@ public:
 	Quad(kmb::nodeIdType *ary);
 	virtual ~Quad(void);
 
-
-
-
+	// 辺の交換
+	// orientation=true  abcd と befc から abed と efcd に変換する（共通辺を順方向にずらす）
+	// orientation=false abcd と befc から abef と afcd に変換する（共通辺を逆方向にずらす）
 	static bool edgeSwap(kmb::ElementBase &quad0,kmb::ElementBase &quad1,bool orientation=true);
-
-
+	// 四角形に特化した一致判定
+	// 1 : 一致 -1 : 逆向き 0 : その他
 	static int isCoincident(kmb::nodeIdType t00,kmb::nodeIdType t01,kmb::nodeIdType t02,kmb::nodeIdType t03,
 							kmb::nodeIdType t10,kmb::nodeIdType t11,kmb::nodeIdType t12,kmb::nodeIdType t13);
 public:

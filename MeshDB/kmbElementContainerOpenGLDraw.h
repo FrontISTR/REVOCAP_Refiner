@@ -13,17 +13,17 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /**
- * OpenGL �� drawElement �̈����Ƃ��ēn�����Ƃ��ł���悤��
- * �O�p�`�܂��͎l�p�`�̔z��
+ * OpenGL の drawElement の引数として渡すことができるような
+ * 三角形または四角形の配列
  *
- * �O�p�`�z��
- * �l�p�`�z��
- * �O�p�`�� elementId �̔z��
- * �l�p�`�� elementId �̔z��
- * �O�p�`�̌�
- * �l�p�`�̌�
+ * 三角形配列
+ * 四角形配列
+ * 三角形の elementId の配列
+ * 四角形の elementId の配列
+ * 三角形の個数
+ * 四角形の個数
  *
- * elementId �͏��Ԃ��΂�΂�ł��悢
+ * elementId は順番がばらばらでもよい
  *
  */
 
@@ -39,22 +39,22 @@ protected:
 	size_t triIndex;
 	size_t triSize;
 	unsigned int* triNodes;
-
+	// 2次要素の中間節点保存用（描画には使わない）
 	unsigned int* tri2Nodes;
 	size_t quadIndex;
 	size_t quadSize;
 	unsigned int* quadNodes;
-
+	// 2次要素の中間節点保存用（描画には使わない）
 	unsigned int* quad2Nodes;
-
+	// 法線ベクトル用
 	float* triNormals;
 	float* quadNormals;
 
-
-
+	// element id => triIndex (tri)
+	//            => triSize + quadIndex (quad)
 	std::map< kmb::elementIdType, size_t > elementIdMap;
 
-
+	// substitute for kmb::nullNodeId
 	static unsigned int unsignedNullNodeId;
 public:
 	static const char* CONTAINER_TYPE;
@@ -100,9 +100,9 @@ public:
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
 
-
-
-
+	// 既に生成済み 0
+	// この呼び出し時に生成 1
+	// 生成に失敗 -1
 	int calcNormals(kmb::Point3DContainer* points);
 
 	const unsigned int* getTriNodeTable(void) const { return triNodes; }

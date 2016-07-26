@@ -14,9 +14,9 @@
 ----------------------------------------------------------------------*/
 #pragma once
 
-/* ’è”‚Ì’è‹` */
-/* swig ‚É‹³‚¦‚éê‡‚Í REVOCAP_SUPPORT_RUBY ‚ğ’è‹`‚·‚é */
-/* PI NULL => swig ‚É‹³‚¦‚È‚¢ */
+/* å®šæ•°ã®å®šç¾© */
+/* swig ã«æ•™ãˆã‚‹å ´åˆã¯ REVOCAP_SUPPORT_RUBY ã‚’å®šç¾©ã™ã‚‹ */
+/* PI NULL => swig ã«æ•™ãˆãªã„ */
 #ifndef REVOCAP_SUPPORT_RUBY
 
 #ifndef PI
@@ -29,22 +29,23 @@
 
 #endif
 
-/* double ’l‚Ì”­Uƒ`ƒFƒbƒN */
-/* #include <cmath> ‚ª•K—v */
+/* double å€¤ã®ç™ºæ•£ãƒã‚§ãƒƒã‚¯ */
 
+#include <cmath>
 #if defined _MSC_VER
 #define isfinite(x) _finite(x)
+#elif defined isfinite
+/* æ—¢ã«å®šç¾©ã•ã‚Œã¦ã„ã‚‹ */
 #else
-#include <cmath>
-#define isfinite(x) !std::isnan(x)
+#define isfinite(x) ((fabs(x) <= DBL_MAX))
 #endif
 
-/* ƒTƒCƒY‚Ì’è‹` */
+/* ã‚µã‚¤ã‚ºã®å®šç¾© */
 
 #ifndef REVOCAP_SIZE_DEF
 #define REVOCAP_SIZE_DEF
 
-/* int ‚ÌŒ^ => swig ‚É‹³‚¦‚é */
+/* int ã®å‹ => swig ã«æ•™ãˆã‚‹ */
 #if defined _MSC_VER || defined REVOCAP_SUPPORT_RUBY || defined REVOCAP_SUPPORT_JAVA
  #if (_MSC_VER >= 1300 )
   #ifndef HAVE_INT8_T
@@ -98,7 +99,7 @@
   #endif
  #endif
 #else
-/* C99 ‚©‚ç“±“ü‚³‚ê‚Ä‚¢‚é */
+/* C99 ã‹ã‚‰å°å…¥ã•ã‚Œã¦ã„ã‚‹ */
 #include <stdint.h>
 #endif
 
@@ -107,3 +108,4 @@ typedef double float64_t; /* REAL*8 */
 
 #endif /* REVOCAP_SIZE_DEF */
 
+#include "Common/kmbDebug.h"

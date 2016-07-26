@@ -13,14 +13,14 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /**
- * 3*size ŒÂ‚Ì”z—ñ‚ğŠm•Û‚µ‚ÄA‡‚É“ü‚ê‚Ä‚¢‚­
+ * 3*size å€‹ã®é…åˆ—ã‚’ç¢ºä¿ã—ã¦ã€é †ã«å…¥ã‚Œã¦ã„ã
  *
- * ElementContainerNArray ‚Æ‚Ìˆá‚¢‚ÍAOpenGL ‚Ì DrawElements ‚Å
- * g‚¤‚½‚ß‚Éß“_‚ÌŒ^‚ğ unsigned int ‚É‚µ‚Ä‚¢‚é‚Æ‚±‚ë
+ * ElementContainerNArray ã¨ã®é•ã„ã¯ã€OpenGL ã® DrawElements ã§
+ * ä½¿ã†ãŸã‚ã«ç¯€ç‚¹ã®å‹ã‚’ unsigned int ã«ã—ã¦ã„ã‚‹ã¨ã“ã‚
  *
- * ‚Ü‚½AElementContainerNArray ‚ÍƒNƒ‰ƒX‚ÌŠO‚ÅŠm•Û‚³‚ê‚½
- * ß“_”z—ñ‚ğƒ‰ƒbƒv‚µ‚Äg‚¤‚±‚Æ‚à‚Å‚«‚é‚ª
- * TriangleArray ‚Í‚±‚ÌƒNƒ‰ƒX‚Åƒƒ‚ƒŠ‚ÌŠm•Û‚Æ‰ğ•ú‚ğs‚¤
+ * ã¾ãŸã€ElementContainerNArray ã¯ã‚¯ãƒ©ã‚¹ã®å¤–ã§ç¢ºä¿ã•ã‚ŒãŸ
+ * ç¯€ç‚¹é…åˆ—ã‚’ãƒ©ãƒƒãƒ—ã—ã¦ä½¿ã†ã“ã¨ã‚‚ã§ãã‚‹ãŒ
+ * TriangleArray ã¯ã“ã®ã‚¯ãƒ©ã‚¹ã§ãƒ¡ãƒ¢ãƒªã®ç¢ºä¿ã¨è§£æ”¾ã‚’è¡Œã†
  */
 
 #pragma once
@@ -76,9 +76,9 @@ public:
 protected:
 	size_t index;
 	size_t size;
-
+	// use unsigned int for glDrawElements
 	unsigned int* nodeTable;
-
+	// substitute for kmb::nullNodeId
 	static unsigned int unsignedNullNodeId;
 };
 

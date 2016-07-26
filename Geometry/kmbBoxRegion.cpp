@@ -35,13 +35,13 @@
 double kmb::BoxRegion::thres = 1.0e-20;
 
 kmb::BoxRegion::BoxRegion(void)
+: maxPoint(0.0,0.0,0.0), minPoint(0.0,0.0,0.0)
 {
-	kmb::BoxRegion( 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 );
 }
 
 kmb::BoxRegion::BoxRegion(const kmb::Point3D &l,const kmb::Point3D &u)
 {
-	kmb::BoxRegion(l.x(), l.y(), l.z(), u.x(), u.y(), u.z());
+	setMinMax(l.x(), l.y(), l.z(), u.x(), u.y(), u.z());
 }
 
 kmb::BoxRegion::BoxRegion(double x0,double y0,double z0,double x1,double y1,double z1)
@@ -95,6 +95,11 @@ kmb::BoxRegion::setMinMax(double x0,double y0,double z0,double x1,double y1,doub
 	}
 }
 
+void kmb::BoxRegion::setMinMax(kmb::Point3D& minPoint,kmb::Point3D& maxPoint)
+{
+	setMinMax(minPoint.x(),minPoint.y(),minPoint.z(),maxPoint.x(),maxPoint.y(),maxPoint.z());
+}
+
 void
 kmb::BoxRegion::getCenter(kmb::Point3D& center) const
 {
@@ -140,6 +145,36 @@ kmb::BoxRegion::maxZ(void) const
 	return this->maxPoint.z();
 }
 
+void kmb::BoxRegion::minX(double x)
+{
+	minPoint.x(x);
+}
+
+void kmb::BoxRegion::minY(double y)
+{
+	minPoint.y(y);
+}
+
+void kmb::BoxRegion::minZ(double z)
+{
+	minPoint.z(z);
+}
+
+void kmb::BoxRegion::maxX(double x)
+{
+	maxPoint.x(x);
+}
+
+void kmb::BoxRegion::maxY(double y)
+{
+	maxPoint.y(y);
+}
+
+void kmb::BoxRegion::maxZ(double z)
+{
+	maxPoint.z(z);
+}
+
 double
 kmb::BoxRegion::centerX(void) const
 {
@@ -179,27 +214,6 @@ kmb::BoxRegion::rangeZ(void) const
 double
 kmb::BoxRegion::range(void) const
 {
-	double rx = rangeX();
-	double ry = rangeY();
-	double rz = rangeZ();
-	if( rx >= ry ){
-		if( rx >= rz ){
-			return rx;
-		}else{
-			return rz;
-		}
-	}else{
-		if( ry >= rz ){
-			return ry;
-		}else{
-			return rz;
-		}
-	}
-}
-
-double
-kmb::BoxRegion::maxRange(void) const
-{
 	return kmb::Maximizer::getMax( rangeX(), rangeY(), rangeZ() );
 }
 
@@ -215,14 +229,12 @@ kmb::BoxRegion::diameterSq(void) const
 	return maxPoint.distanceSq( minPoint );
 }
 
-const kmb::Point3D&
-kmb::BoxRegion::getMin(void) const
+const kmb::Point3D& kmb::BoxRegion::getMin(void) const
 {
 	return this->minPoint;
 }
 
-const kmb::Point3D&
-kmb::BoxRegion::getMax(void) const
+const kmb::Point3D& kmb::BoxRegion::getMax(void) const
 {
 	return this->maxPoint;
 }
@@ -382,7 +394,7 @@ kmb::BoxRegion::crossOnLine(const kmb::Point3D& origin, const kmb::Vector3D& dir
 		bbox_z.update( DBL_MAX );
 		bbox_z.update( -DBL_MAX );
 	}
-
+	// [t_minx,t_maxx] と [t_miny,t_maxy] の積を min_t max_t にする
 	if( bbox_x.valid() ){
 		if( bbox_y.valid() ){
 			if( bbox_z.valid() ){
@@ -399,7 +411,7 @@ kmb::BoxRegion::crossOnLine(const kmb::Point3D& origin, const kmb::Vector3D& dir
 bool
 kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c) const
 {
-
+	// 点が含まれているときは無条件で true
 	if( intersect( a ) == kmb::Region::INSIDE ||
 		intersect( b ) == kmb::Region::INSIDE ||
 		intersect( c ) == kmb::Region::INSIDE )
@@ -408,19 +420,19 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 	}
 	int countX(0), countY(0), countZ(0);
 	double d = 0.0;
-	double localThres = thres * this->maxRange();
+	double localThres = thres * this->range();
 	kmb::Matrix3x3 mat;
 	kmb::Vector3D v;
 	kmb::Vector3D t;
-
-
+	// ab,bc,ca と6面の判定
+	// yz
 	d = a.x() - b.x();
 	if( fabs(d) > localThres ){
 		mat.zero();
 		mat.set(1,1,rangeY());
 		mat.set(2,2,rangeZ());
-
-
+		// ab vs (x0,y0,z0)-yz
+		// a + tx(b-a) = (x0,y0,z0) + ty(0,y1-y0,0) + tz(0,0,z1-z0)
 		mat.set(0,0,a.x()-b.x());
 		mat.set(1,0,a.y()-b.y());
 		mat.set(2,0,a.z()-b.z());
@@ -434,8 +446,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// ab vs (x1,y0,z0)-yz
+		// a + tx(b-a) = (x1,y0,z0) + ty(0,y1-y0,0) + tz(0,0,z1-z0)
 		v.x( a.x()-maxPoint.x() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -445,7 +457,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// ab が yz に平行な場合
 		++countX;
 	}
 	d = b.x() - c.x();
@@ -453,8 +465,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		mat.zero();
 		mat.set(1,1,rangeY());
 		mat.set(2,2,rangeZ());
-
-
+		// bc vs (x0,y0,z0)-yz
+		// b + tx(c-b) = (x0,y0,z0) + ty(0,y1-y0,0) + tz(0,0,z1-z0)
 		mat.set(0,0,b.x()-c.x());
 		mat.set(1,0,b.y()-c.y());
 		mat.set(2,0,b.z()-c.z());
@@ -468,8 +480,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// bc vs (x1,y0,z0)-yz
+		// b + tx(c-b) = (x1,y0,z0) + ty(0,y1-y0,0) + tz(0,0,z1-z0)
 		v.x( b.x()-maxPoint.x() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -479,7 +491,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// bc が yz に平行な場合
 		++countX;
 	}
 	d = c.x() - a.x();
@@ -487,8 +499,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		mat.zero();
 		mat.set(1,1,rangeY());
 		mat.set(2,2,rangeZ());
-
-
+		// ca vs (x0,y0,z0)-yz
+		// c + tx(a-c) = (x0,y0,z0) + ty(0,y1-y0,0) + tz(0,0,z1-z0)
 		mat.set(0,0,c.x()-a.x());
 		mat.set(1,0,c.y()-a.y());
 		mat.set(2,0,c.z()-a.z());
@@ -502,8 +514,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// ca vs (x1,y0,z0)-yz
+		// c + tx(a-c) = (x1,y0,z0) + ty(0,y1-y0,0) + tz(0,0,z1-z0)
 		v.x( c.x()-maxPoint.x() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -513,7 +525,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// ca が yz に平行な場合
 		++countX;
 	}
 	if( countX == 3 ){
@@ -521,7 +533,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			-localThres + minX() < b.x() && b.x() < maxX() + localThres &&
 			-localThres + minX() < c.x() && c.x() < maxX() + localThres )
 		{
-
+			// yz 平面
 			kmb::BoundingBox2D bbox2;
 			bbox2.update( a.y(), a.z() );
 			bbox2.update( b.y(), b.z() );
@@ -532,14 +544,14 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			}
 		}
 	}
-
+	// zx
 	d = a.y() - b.y();
 	if( fabs(d) > localThres ){
 		mat.zero();
 		mat.set(2,2,rangeZ());
 		mat.set(0,0,rangeX());
-
-
+		// ab vs (x0,y0,z0)-zx
+		// a + ty(b-a) = (x0,y0,z0) + tx(x1-x0,0,0) + tz(0,0,z1-z0)
 		mat.set(0,1,a.x()-b.x());
 		mat.set(1,1,a.y()-b.y());
 		mat.set(2,1,a.z()-b.z());
@@ -553,8 +565,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// ab vs (x0,y1,z0)-zx
+		// a + ty(b-a) = (x0,y1,z0) + tx(x1-x0,0,0) + tz(0,0,z1-z0)
 		v.y( a.y()-maxPoint.y() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -564,7 +576,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// ab が zx に平行な場合
 		++countY;
 	}
 	d = b.y() - c.y();
@@ -572,8 +584,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		mat.zero();
 		mat.set(2,2,rangeZ());
 		mat.set(0,0,rangeX());
-
-
+		// bc vs (x0,y0,z0)-zx
+		// b + ty(c-b) = (x0,y0,z0) + tx(x1-x0,0,0) + tz(0,0,z1-z0)
 		mat.set(0,1,b.x()-c.x());
 		mat.set(1,1,b.y()-c.y());
 		mat.set(2,1,b.z()-c.z());
@@ -587,8 +599,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// bc vs (x0,y1,z0)-zx
+		// b + ty(c-b) = (x0,y1,z0) + tx(x1-x0,0,0) + tz(0,0,z1-z0)
 		v.y( b.y()-maxPoint.y() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -598,7 +610,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// bc が zx に平行な場合
 		++countY;
 	}
 	d = c.y() - a.y();
@@ -606,8 +618,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		mat.zero();
 		mat.set(2,2,rangeZ());
 		mat.set(0,0,rangeX());
-
-
+		// ca vs (x0,y0,z0)-zx
+		// c + ty(a-c) = (x0,y0,z0) + tx(x1-x0,0,0) + tz(0,0,z1-z0)
 		mat.set(0,1,c.x()-a.x());
 		mat.set(1,1,c.y()-a.y());
 		mat.set(2,1,c.z()-a.z());
@@ -621,8 +633,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// ca vs (x0,y1,z0)-zx
+		// c + ty(a-c) = (x0,y1,z0) + tx(x1-x0,0,0) + tz(0,0,z1-z0)
 		v.y( c.y()-maxPoint.y() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -632,7 +644,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// ca が zx に平行な場合
 		++countY;
 	}
 	if( countY == 3 ){
@@ -640,7 +652,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			-localThres + minY() < b.y() && b.y() < maxY() + localThres &&
 			-localThres + minY() < c.y() && c.y() < maxY() + localThres )
 		{
-
+			// zx 平面
 			kmb::BoundingBox2D bbox2;
 			bbox2.update( a.z(), a.x() );
 			bbox2.update( b.z(), b.x() );
@@ -651,14 +663,14 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			}
 		}
 	}
-
+	// xy
 	d = a.z() - b.z();
 	if( fabs(d) > localThres ){
 		mat.zero();
 		mat.set(0,0,rangeX());
 		mat.set(1,1,rangeY());
-
-
+		// ab vs (x0,y0,z0)-xy
+		// a + tz(b-a) = (x0,y0,z0) + tx(x1-x0,0,0) + ty(0,y1-y0,0)
 		mat.set(0,2,a.x()-b.x());
 		mat.set(1,2,a.y()-b.y());
 		mat.set(2,2,a.z()-b.z());
@@ -672,8 +684,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// ab vs (x0,y0,z1)-xy
+		// a + tz(b-a) = (x0,y0,z1) + tx(x1-x0,0,0) + ty(0,y1-y0,0)
 		v.z( a.z()-maxPoint.z() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -683,7 +695,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// ab が xy に平行な場合
 		++countZ;
 	}
 	d = b.z() - c.z();
@@ -691,8 +703,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		mat.zero();
 		mat.set(0,0,rangeX());
 		mat.set(1,1,rangeY());
-
-
+		// bc vs (x0,y0,z0)-xy
+		// b + tz(c-b) = (x0,y0,z0) + tx(x1-x0,0,0) + ty(0,y1-y0,0)
 		mat.set(0,2,b.x()-c.x());
 		mat.set(1,2,b.y()-c.y());
 		mat.set(2,2,b.z()-c.z());
@@ -706,8 +718,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// bc vs (x0,y0,z1)-xy
+		// b + tz(c-b) = (x0,y0,z1) + tx(x1-x0,0,0) + ty(0,y1-y0,0)
 		v.z( b.z()-maxPoint.z() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -717,7 +729,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// bc が xy に平行な場合
 		++countZ;
 	}
 	d = c.z() - a.z();
@@ -725,8 +737,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		mat.zero();
 		mat.set(0,0,rangeX());
 		mat.set(1,1,rangeY());
-
-
+		// ca vs (x0,y0,z0)-xy
+		// c + tz(a-c) = (x0,y0,z0) + tx(x1-x0,0,0) + ty(0,y1-y0,0)
 		mat.set(0,2,c.x()-a.x());
 		mat.set(1,2,c.y()-a.y());
 		mat.set(2,2,c.z()-a.z());
@@ -740,8 +752,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		{
 			return true;
 		}
-
-
+		// ca vs (x0,y0,z1)-xy
+		// c + tz(a-c) = (x0,y0,z1) + tx(x1-x0,0,0) + ty(0,y1-y0,0)
 		v.z( c.z()-maxPoint.z() );
 		if( mat.solveSafely( v, t ) &&
 			-localThres <= t.x() && t.x() <= 1.0 + localThres &&
@@ -751,7 +763,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			return true;
 		}
 	}else{
-
+		// ca が xy に平行な場合
 		++countZ;
 	}
 	if( countZ == 3 ){
@@ -759,7 +771,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			-localThres + minZ() < b.z() && b.z() < maxZ() + localThres &&
 			-localThres + minZ() < c.z() && c.z() < maxZ() + localThres )
 		{
-
+			// xy 平面
 			kmb::BoundingBox2D bbox2;
 			bbox2.update( a.x(), a.y() );
 			bbox2.update( b.x(), b.y() );
@@ -770,8 +782,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 			}
 		}
 	}
-
-
+	// abc と辺の判定
+	// PA = t0 BA + t1 CA + t2 PQ
 	mat.zero();
 	mat.set(0,0,a.x()-b.x());
 	mat.set(1,0,a.y()-b.y());
@@ -779,10 +791,10 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 	mat.set(0,1,a.x()-c.x());
 	mat.set(1,1,a.y()-c.y());
 	mat.set(2,1,a.z()-c.z());
-
+	// x 軸方向
 	mat.set(0,2,rangeX());
-
-
+//	mat.set(1,2,0.0);
+//	mat.set(2,2,0.0);
 	v.x( a.x()-minPoint.x() );
 	v.y( a.y()-minPoint.y() );
 	v.z( a.z()-minPoint.z() );
@@ -792,17 +804,17 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 	{
 		return true;
 	}
-
+//	v.x( a.x()-minPoint.x() );
 	v.y( a.y()-maxPoint.y() );
-
+//	v.z( a.z()-minPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
 		-localThres <= t.z() && t.z() <= 1.0 + localThres )
 	{
 		return true;
 	}
-
-
+//	v.x( a.x()-minPoint.x() );
+//	v.y( a.y()-maxPoint.y() );
 	v.z( a.z()-maxPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
@@ -810,19 +822,19 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 	{
 		return true;
 	}
-
+//	v.x( a.x()-minPoint.x() );
 	v.y( a.y()-minPoint.y() );
-
+//	v.z( a.z()-maxPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
 		-localThres <= t.z() && t.z() <= 1.0 + localThres )
 	{
 		return true;
 	}
-
+	// y 軸方向
 	mat.set(0,2,0.0);
 	mat.set(1,2,rangeY());
-
+//	mat.set(2,2,0.0);
 	v.zero();
 	v.x( a.x()-minPoint.x() );
 	v.y( a.y()-minPoint.y() );
@@ -834,16 +846,16 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		return true;
 	}
 	v.x( a.x()-maxPoint.x() );
-
-
+//	v.y( a.y()-minPoint.y() );
+//	v.z( a.z()-minPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
 		-localThres <= t.z() && t.z() <= 1.0 + localThres )
 	{
 		return true;
 	}
-
-
+//	v.x( a.x()-maxPoint.x() );
+//	v.y( a.y()-minPoint.y() );
 	v.z( a.z()-maxPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
@@ -852,16 +864,16 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		return true;
 	}
 	v.x( a.x()-minPoint.x() );
-
-
+//	v.y( a.y()-minPoint.y() );
+//	v.z( a.z()-maxPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
 		-localThres <= t.z() && t.z() <= 1.0 + localThres )
 	{
 		return true;
 	}
-
-
+	// z 軸方向
+//	mat.set(0,2,0.0);
 	mat.set(1,2,0.0);
 	mat.set(2,2,rangeZ());
 	v.zero();
@@ -875,17 +887,17 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		return true;
 	}
 	v.x( a.x()-maxPoint.x() );
-
-
+//	v.y( a.y()-minPoint.y() );
+//	v.z( a.z()-minPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
 		-localThres <= t.z() && t.z() <= 1.0 + localThres )
 	{
 		return true;
 	}
-
+//	v.x( a.x()-maxPoint.x() );
 	v.y( a.y()-maxPoint.y() );
-
+//	v.z( a.z()-minPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
 		-localThres <= t.z() && t.z() <= 1.0 + localThres )
@@ -893,8 +905,8 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		return true;
 	}
 	v.x( a.x()-minPoint.x() );
-
-
+//	v.y( a.y()-maxPoint.y() );
+//	v.z( a.z()-minPoint.z() );
 	if( mat.solveSafely( v, t ) &&
 		-localThres <= t.x() && -localThres <= t.y() && t.x() + t.y() <= 1.0 + localThres &&
 		-localThres <= t.z() && t.z() <= 1.0 + localThres )
@@ -902,7 +914,7 @@ kmb::BoxRegion::intersect(const kmb::Point3D &a,const kmb::Point3D &b,const kmb:
 		return true;
 	}
 	if( countX == 3 || countY == 3 || countZ == 3){
-
+//		REVOCAP_Debug_X("%d %d %d\n", countX, countY, countZ);
 	}
 	return false;
 }
@@ -913,11 +925,11 @@ kmb::BoxRegion::intersect3(const kmb::Point3D &a,const kmb::Point3D &b,const kmb
 	return intersect_minx(a,b,c);
 }
 
-
-
-
-
-
+// 三角形が六面体に含まれる部分の面積を求める
+//
+// 三角形を平面で分割して、正の領域と負の領域に分ける
+// x, y, z それぞれの軸に垂直な平面で min max で合計6回呼び出す
+// 分けたものが四角形だったら、三角形に分けて呼び出す
 double
 kmb::BoxRegion::intersectArea(const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c) const
 {
@@ -927,6 +939,7 @@ kmb::BoxRegion::intersectArea(const kmb::Point3D &a,const kmb::Point3D &b,const 
 double
 kmb::BoxRegion::intersectArea_minx(const kmb::Point3D &p0,const kmb::Point3D &p1,const kmb::Point3D &p2) const
 {
+	// p3 p4 は切り口の座標
 	kmb::Point3D p3, p4;
 	switch( kmb::PlaneYZ::getIntersectionTriangle( minX(), p0, p1, p2, p3, p4 ) )
 	{
@@ -1242,8 +1255,8 @@ kmb::BoxRegion::setRange(double rangeX,double rangeY,double rangeZ)
 	this->minPoint.setCoordinate( cx - 0.5*rangeX, cy - 0.5*rangeY, cz - 0.5*rangeZ );
 }
 
-
-
+// 縦横の長さを ratio 倍する
+// ただし ratio > 0
 void
 kmb::BoxRegion::expand(double ratio)
 {
@@ -1262,6 +1275,13 @@ kmb::BoxRegion::expand(double ratio)
 		maxPoint.z( 0.5*(1+ratio)*maxz + 0.5*(1-ratio)*minz );
 		minPoint.z( 0.5*(1-ratio)*maxz + 0.5*(1+ratio)*minz );
 	}
+}
+
+void
+kmb::BoxRegion::translate(double x,double y,double z)
+{
+	minPoint.addCoordinate(x,y,z);
+	maxPoint.addCoordinate(x,y,z);
 }
 
 void

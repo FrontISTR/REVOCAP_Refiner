@@ -18,48 +18,48 @@
 #include "rcapRefiner.h"
 
 /**
- * @brief ƒfƒoƒbƒO—pƒtƒ@ƒCƒ‹“üo—Íƒ‹[ƒ`ƒ“
- * @return “Ç‚İ‚ñ‚¾A‚Ü‚½‚Í‘‚«‚ñ‚¾—v‘f‚ÌŒÂ”
+ * @brief ãƒ‡ãƒãƒƒã‚°ç”¨ãƒ•ã‚¡ã‚¤ãƒ«å…¥å‡ºåŠ›ãƒ«ãƒ¼ãƒãƒ³
+ * @return èª­ã¿è¾¼ã‚“ã ã€ã¾ãŸã¯æ›¸ãè¾¼ã‚“ã è¦ç´ ã®å€‹æ•°
  *
- * File ‚©‚ç File ‚Ö‚Ì×•ª—á
+ * File ã‹ã‚‰ File ã¸ã®ç´°åˆ†ä¾‹
  * rcapInitRefiner(0,0);
  * rcapLoadGFFile( "MESH", "BOUN" );
  * rcapRefineFFbModel();
  * rcapSaveGFFile( "REFINEMESH", "REFINEBOUN" );
  * rcapTermRefiner();
  *
- * @remark ‚±‚±‚Åo—Í‚·‚éƒf[ƒ^‚Í rcapRefinerDoc.mesh ‚ÉŠi”[‚³‚ê‚½‚à‚Ì
- * ‚È‚Ì‚ÅA×•ªŒã‚ÌƒƒbƒVƒ…‚ğo—Í‚Å‚«‚é‚í‚¯‚Å‚Í‚È‚¢B
+ * @remark ã“ã“ã§å‡ºåŠ›ã™ã‚‹ãƒ‡ãƒ¼ã‚¿ã¯ rcapRefinerDoc.mesh ã«æ ¼ç´ã•ã‚ŒãŸã‚‚ã®
+ * ãªã®ã§ã€ç´°åˆ†å¾Œã®ãƒ¡ãƒƒã‚·ãƒ¥ã‚’å‡ºåŠ›ã§ãã‚‹ã‚ã‘ã§ã¯ãªã„ã€‚
  */
 int32_t rcapLoadGFFile( const char* gffile, const char* bounfile );
 
 /**
- * @brief FFbModel×•ªiƒfƒoƒbƒO—pj
+ * @brief FFbModelç´°åˆ†ï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
  */
 void rcapRefineFFbModel();
 
 /**
- * @brief GFƒtƒ@ƒCƒ‹‚Ö‘‚«‚İiƒfƒoƒbƒO—pj
+ * @brief GFãƒ•ã‚¡ã‚¤ãƒ«ã¸æ›¸ãè¾¼ã¿ï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
  */
 int32_t rcapSaveGFFile( const char* gffile, const char* bounfile );
 
 /**
- * @brief HECƒtƒ@ƒCƒ‹‚Ì“Ç‚İ‚İiƒfƒoƒbƒO—pj
+ * @brief HECãƒ•ã‚¡ã‚¤ãƒ«ã®èª­ã¿è¾¼ã¿ï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
  */
 int32_t rcapLoadHECFile( const char* hecfile );
 
 /**
- * @brief HECƒtƒ@ƒCƒ‹‚Ö‘‚«‚İiƒfƒoƒbƒO—pj
+ * @brief HECãƒ•ã‚¡ã‚¤ãƒ«ã¸æ›¸ãè¾¼ã¿ï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
  */
 int32_t rcapSaveHECFile( const char* hecfile );
 
 /**
- * @brief RNFƒtƒ@ƒCƒ‹‚Ö‘‚«‚İiƒfƒoƒbƒO—pj
+ * @brief RNFãƒ•ã‚¡ã‚¤ãƒ«ã¸æ›¸ãè¾¼ã¿ï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
  */
 int32_t rcapSaveRNFFile( const char* rnffile );
 
-/* rcapxxx_  ‚·‚×‚Ä¬•¶š */
-/* gfortran, intel fortran, pgi fortran ‚Í‚±‚ê‚Å‚æ‚¢ */
+/* rcapxxx_  ã™ã¹ã¦å°æ–‡å­— */
+/* gfortran, intel fortran, pgi fortran ã¯ã“ã‚Œã§ã‚ˆã„ */
 #ifdef FORTRAN90
 int32_t rcaploadgffile_( const char* gffile, const char* bounfile );
 int32_t rcaploadhecfile_( const char* hecfile );

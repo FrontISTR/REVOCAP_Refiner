@@ -230,7 +230,7 @@ kmb::ElementContainerTriangleArray::find(kmb::elementIdType id) const
 	}
 }
 
-
+//-------------- iterator -----------------
 
 kmb::ElementContainerTriangleArray::_iteratorTA::_iteratorTA(void)
 : index(0)

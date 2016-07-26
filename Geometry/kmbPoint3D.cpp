@@ -34,9 +34,9 @@
 
 kmb::Point3D kmb::Point3D::infinity(DBL_MAX,DBL_MAX,DBL_MAX);
 
-
-
-
+// copy constructor
+// kmb::Point3D p = other;
+// の時にも呼ばれる
 kmb::Point3D::Point3D(const Tuple3D &other) : Tuple3D(other){}
 
 kmb::Point3D::~Point3D(void){}
@@ -107,10 +107,10 @@ kmb::Point3D::distance(double x,double y,double z) const
 double
 kmb::Point3D::distanceSq(double x,double y,double z) const
 {
-	return
-		(this->x()-x)*(this->x()-x) +
+	return 
+		(this->x()-x)*(this->x()-x) + 
 		(this->y()-y)*(this->y()-y) +
-		(this->z()-z)*(this->z()-z);
+		(this->z()-z)*(this->z()-z); 
 }
 
 double
@@ -124,12 +124,12 @@ double
 kmb::Point3D::distanceSqToSegment(const Point3D& a,const Point3D& b,double& t) const
 {
 	kmb::Vector3D ab(b,a);
-	kmb::Vector3D xa(a,*this);
+	kmb::Vector3D xa(a,*this);   // x = this
 	double len = ab.lengthSq();
 	if( len != 0.0 ){
 		t = - (ab * xa) / len;
 	}else{
-
+		// a と b が一致している
 		t = 0.0;
 	}
 	if( t < 0 ){
@@ -149,7 +149,7 @@ kmb::Point3D::distanceToSegment(const Point3D& a,const Point3D& b) const
 	return sqrt( distanceSqToSegment(a,b) );
 }
 
-
+// u と v が平行の時は決まらないので false
 bool
 kmb::Point3D::getFootOfPerpendicular( const Point3D &origin, const Vector3D &u, const Vector3D &v, double &a, double &b) const
 {
@@ -169,8 +169,8 @@ kmb::Point3D::getFootOfPerpendicular( const Point3D &origin, const Vector3D &u, 
 double
 kmb::Point3D::distanceSqToTriangle(const Point3D& a,const Point3D& b,const Point3D& c,double *t) const
 {
-
-
+	// this と a + t1(b-a) + t2(c-a) との距離の最小化
+	// u0 + t1*u1 + t2*u2 の長さの最小化
 	kmb::Vector3D u0(a,*this);
 	kmb::Vector3D u1(b,a);
 	kmb::Vector3D u2(c,a);
@@ -179,7 +179,7 @@ kmb::Point3D::distanceSqToTriangle(const Point3D& a,const Point3D& b,const Point
 		u2*u1, u2*u2);
 	kmb::Vector2D v(-(u1*u0),-(u2*u0));
 	kmb::Vector2D* tmp = mat.solve(v);
-	if( tmp &&
+	if( tmp && 
 		0.0 < tmp->x() && 0.0 < tmp->y() &&
 		tmp->x() + tmp->y() < 1.0 )
 	{
@@ -191,8 +191,8 @@ kmb::Point3D::distanceSqToTriangle(const Point3D& a,const Point3D& b,const Point
 		delete tmp;
 		return distSq;
 	}else{
-
-
+		// 境界で最小を取る
+		// 辺と点
 		kmb::Minimizer min;
 		double s=0.0;
 		if( min.update( this->distanceSqToSegment( a, b, s ) ) ){
@@ -226,23 +226,34 @@ kmb::Point3D::distanceToTriangle(const Point3D& a,const Point3D& b,const Point3D
 	return sqrt( distanceSqToTriangle(a,b,c) );
 }
 
-
+// 内分点
 kmb::Point3D
 kmb::Point3D::dividingPoint(const Point3D& other,double m,double n) const
 {
 	return Point3D(
-		(n*this->x() + m*other.x()) / (m+n),
-		(n*this->y() + m*other.y()) / (m+n),
-		(n*this->z() + m*other.z()) / (m+n));
+		(n*this->x() + m*other.x()) / (m+n), 
+		(n*this->y() + m*other.y()) / (m+n), 
+		(n*this->z() + m*other.z()) / (m+n)); 
 }
 
 kmb::Point3D
 kmb::Point3D::proportionalPoint(const Point3D& other,double t) const
 {
 	return Point3D(
-		(1.0-t)*this->x() + t*other.x(),
-		(1.0-t)*this->y() + t*other.y(),
-		(1.0-t)*this->z() + t*other.z());
+		(1.0-t)*this->x() + t*other.x(), 
+		(1.0-t)*this->y() + t*other.y(), 
+		(1.0-t)*this->z() + t*other.z()); 
+}
+
+#ifndef REVOCAP_SUPPORT_RUBY
+kmb::Point3D kmb::Point3D::dividingPoint(const Point3D& a,const Point3D& b,double m,double n)
+{
+	return a.dividingPoint(b,m,n);
+}
+
+kmb::Point3D kmb::Point3D::proportionalPoint(const Point3D& a,const Point3D& b,double t)
+{
+	return a.proportionalPoint(b,t);
 }
 
 double
@@ -256,8 +267,9 @@ kmb::Point3D::distanceSq(const Point3D& a,const Point3D& b)
 {
 	return a.distanceSq(b);
 }
+#endif
 
-
+// 体積計算
 double
 kmb::Point3D::volume(const kmb::Point3D& a,const kmb::Point3D& b,const kmb::Point3D &c,const kmb::Point3D &d)
 {
@@ -268,9 +280,9 @@ kmb::Point3D::volume(const kmb::Point3D& a,const kmb::Point3D& b,const kmb::Poin
 	return kmb::Vector3D::triple(ad,bd,cd) / 6.0;
 }
 
-
-
-bool
+// 表裏判定（遅いかも）
+// abcx の四面体の体積が正になる方向がプラス
+bool 
 kmb::Point3D::positive(const Point3D& a,const Point3D& b,const Point3D &c,const Point3D &x)
 {
 	kmb::Vector3D ax(x,a);
@@ -280,7 +292,7 @@ kmb::Point3D::positive(const Point3D& a,const Point3D& b,const Point3D &c,const 
 	return (kmb::Vector3D::triple(ax,bx,cx) > 0);
 }
 
-
+// 面積
 double
 kmb::Point3D::area(const kmb::Point3D& a,const kmb::Point3D& b,const kmb::Point3D &c)
 {
@@ -293,8 +305,8 @@ kmb::Point3D::area(const kmb::Point3D& a,const kmb::Point3D& b,const kmb::Point3
 kmb::Vector3D
 kmb::Point3D::areaVector(const kmb::Point3D& a,const kmb::Point3D& b,const kmb::Point3D &c)
 {
-	kmb::Vector3D ab(b,a);
-	kmb::Vector3D ac(c,a);
+	kmb::Vector3D ab(b,a); // b-a
+	kmb::Vector3D ac(c,a); // c-a
 	return 0.5*ab%ac;
 }
 
@@ -335,7 +347,7 @@ kmb::Point3D::sin(const Point3D &a,const Point3D &b,const Point3D &c)
 	return kmb::Vector3D::sin(v1,v2);
 }
 
-void
+void 
 kmb::Point3D::calcMinorCoordinate
 ( const kmb::Point3D& a, const kmb::Point3D& b, const kmb::Point3D& c, const kmb::Point3D& d, const kmb::Point3D& x, double coordinate[4])
 {
@@ -343,22 +355,35 @@ kmb::Point3D::calcMinorCoordinate
 	kmb::Vector3D xb(b,x);
 	kmb::Vector3D xc(c,x);
 	kmb::Vector3D xd(d,x);
-
+	// xbcd
 	coordinate[0] = kmb::Vector3D::triple(xb,xc,xd) / 6.0;
-
+	// -axcd
 	coordinate[1] = -kmb::Vector3D::triple(xa,xc,xd) / 6.0;
-
+	// abxd
 	coordinate[2] = kmb::Vector3D::triple(xa,xb,xd) / 6.0;
-
+	// -abcx
 	coordinate[3] = -kmb::Vector3D::triple(xa,xb,xc) / 6.0;
 }
-
 
 kmb::Vector3D
 kmb::Point3D::calcNormalVector( const kmb::Point3D& a, const kmb::Point3D& b, const kmb::Point3D& c )
 {
 	kmb::Vector3D v1(a,b);
 	kmb::Vector3D v2(a,c);
+	kmb::Vector3D v = v1 % v2;
+	v.normalize();
+	return v;
+}
+
+//
+// 4角形の法線ベクトルは、対角線で三角形2個に分割した場合の面積の重み付きの法線ベクトルの和
+// これは対角線の外積と一致する
+//
+kmb::Vector3D
+kmb::Point3D::calcNormalVector( const kmb::Point3D& a, const kmb::Point3D& b, const kmb::Point3D& c, const kmb::Point3D& d )
+{
+	kmb::Vector3D v1(a,c);
+	kmb::Vector3D v2(b,d);
 	kmb::Vector3D v = v1 % v2;
 	v.normalize();
 	return v;

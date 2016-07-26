@@ -236,7 +236,7 @@ kmb::SquareMatrix_DoubleArray::add(int i,int j,double val)
 	return true;
 }
 
-
+/// Column Vector
 
 kmb::ColumnVector_DoubleArray::ColumnVector_DoubleArray(int size)
 : ColumnVector(size)
@@ -352,6 +352,16 @@ kmb::ColumnVector_DoubleArray::operator=(const ColumnVector_DoubleArray& other)
 	return *this;
 }
 
+double* kmb::ColumnVector_DoubleArray::getPtr(void)
+{
+	return m;
+}
+
+const double* kmb::ColumnVector_DoubleArray::getPtr(void) const
+{
+	return m;
+}
+
 kmb::RowVector_DoubleArray::RowVector_DoubleArray(int size)
 : RowVector(size)
 , m(NULL)
@@ -460,3 +470,14 @@ kmb::RowVector_DoubleArray::operator=(const RowVector_DoubleArray& other)
 	}
 	return *this;
 }
+
+double* kmb::RowVector_DoubleArray::getPtr(void)
+{
+	return m;
+}
+
+const double* kmb::RowVector_DoubleArray::getPtr(void) const
+{
+	return m;
+}
+

@@ -112,7 +112,7 @@ kmb::BezierSurface3D::getPoint( double u, double v, kmb::Point3D& point ) const
 	if( uOrder*vOrder != ctrlPts.size() ){
 		return false;
 	}
-
+	// i (u方向) が内側になるように回す
 	for(unsigned int j=0;j<vOrder;++j){
 		double v0 = kmb::Bernstein::getValue(vOrder-1,j,v);
 		for(unsigned int i=0;i<uOrder;++i){

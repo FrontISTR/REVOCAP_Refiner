@@ -130,7 +130,7 @@ kmb::NodeEvaluator::calcCurvature(const char* name,const char* stype)
 			++eIter;
 		}
 	}
-
+	// DataBinding の iterator では set 出来ないことに注意
 	kmb::Point3DContainer::iterator pIter = points->begin();
 	while( !pIter.isFinished() ){
 		if( data->getPhysicalValue( pIter.getId(), &angle ) ){

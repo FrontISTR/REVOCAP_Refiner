@@ -41,8 +41,8 @@ public:
 
 	static int divideIntoTetrahedrons(const kmb::ElementBase* element,kmb::nodeIdType tetrahedrons[][4]);
 
-
-
+	// 向きを無視して節点番号順が同じ図形をあらわすか
+	// index は 0 から 5 までの整数の置換
 	static bool isEquivalent(int index[6]);
 public:
 	static const int connectionTable[6][6];

@@ -231,7 +231,7 @@ int32_t rcapSaveRNFFile( const char* rnffile )
 	return static_cast<int32_t>(rcapRefinerDoc.mesh->getElementCount());
 }
 
-/* rcapxxx_  ‚·‚×‚Ä¬•¶š */
+/* rcapxxx_  ã™ã¹ã¦å°æ–‡å­— */
 #ifdef FORTRAN90
 int32_t rcaploadgffile_( const char* gffile, const char* bounfile ){
 	return rcapLoadGFFile( gffile, bounfile );

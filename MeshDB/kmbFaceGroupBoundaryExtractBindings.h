@@ -12,9 +12,9 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
+// 表面抽出のための面データを管理するためのデータ構造
+// 結果だけが欲しいときは BoundaryExtractor でよい
+// 内部の面のペアとなっている面の情報が欲しい時に使う
 #pragma once
 
 #include "MeshDB/kmbDataBindings.h"
@@ -57,13 +57,13 @@ public:
 	virtual DataBindings::iterator begin(void);
 	virtual DataBindings::const_iterator begin(void) const;
 
-
+	// 独自メソッド
 	void setMesh(kmb::MeshData* mesh);
 	size_t appendBody(kmb::bodyIdType bodyId);
-
-
-
-
+	// f と重なっているもう一方の Face を返す
+	// 裏返っていてもよい場合は reverse = true
+	// 注：向きが同じ要素が登録されている場合は、通常面は向きが逆になる
+	// reverse=true の時は親の要素の向きが異なる場合、面は同じ向きになる
 	kmb::Face getNeighbor(kmb::Face f,bool reverse=false) const;
 };
 

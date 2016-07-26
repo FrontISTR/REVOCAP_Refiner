@@ -23,16 +23,27 @@
 #      "Innovative General-Purpose Coupled Analysis System"            #
 #                                                                      #
 ----------------------------------------------------------------------*/
-#include <cmath>
 #include "Geometry/kmbPlane.h"
+#include "Common/kmbTolerance.h"
+#include <cmath>
 
-double kmb::Plane::thres = 1.0e-6;
+kmb::Plane::Plane(const double _a,const double _b,const double _c,const double _d)
+: a(_a)
+, b(_b)
+, c(_c)
+, d(_d)
+{
+	double r = sqrt(a*a+b*b+c*c);
+	if( r != 0.0 ){
+		this->a = a/r;
+		this->b = b/r;
+		this->c = c/r;
+		this->d = d/r;
+	}
+}
 
-kmb::Plane::Plane(const double a,const double b,const double c,const double d)
-: a(1.0)
-, b(0.0)
-, c(0.0)
-, d(0.0)
+kmb::Plane::Plane(const kmb::Point3D &base,const kmb::Vector3D &normal)
+	: a(normal.x()), b(normal.y()), c(normal.z()), d(-base.x()*normal.x()-base.y()*normal.y()-base.z()*normal.z())
 {
 	double r = sqrt(a*a+b*b+c*c);
 	if( r != 0.0 ){
@@ -52,7 +63,7 @@ createFromPoints(const kmb::Point3D &p,const kmb::Point3D &q,const kmb::Point3D 
 {
 	kmb::Vector3D pq(q,p);
 	kmb::Vector3D pr(r,p);
-	kmb::Vector3D normal = pq%pr;
+	kmb::Vector3D normal = pq%pr;  // 外積
 	return kmb::Plane::createFromBaseNormal(p,normal);
 }
 
@@ -73,7 +84,7 @@ kmb::Plane::calcNormal(const Point3D &a,const Point3D &b,const Point3D &c)
 {
 	kmb::Vector3D ab(b,a);
 	kmb::Vector3D ac(c,a);
-	kmb::Vector3D normal = ab%ac;
+	kmb::Vector3D normal = ab%ac; // 外積
 	normal.normalize();
 	return normal;
 }
@@ -112,6 +123,23 @@ double
 kmb::Plane::getConstant(void) const
 {
 	return d;
+}
+
+bool kmb::Plane::setNormal(double a,double b,double c)
+{
+	double r = sqrt(a*a+b*b+c*c);
+	if( r != 0.0 ){
+		this->a = a/r;
+		this->b = b/r;
+		this->c = c/r;
+		return true;
+	}
+	return false;
+}
+
+void kmb::Plane::setOrigin(double x,double y,double z)
+{
+	d = -a*x-b*y-c*z;
 }
 
 kmb::Point3D*
@@ -183,24 +211,24 @@ kmb::Plane::getIntersectionTriangle
 		( t1*p2.z() - t2*p1.z() ) / ( t1-t2 ) );
 		return (t2 > 0.0) ? 2 : 5;
 	}else if( t1 * t2 < 0.0 ){
-
-
+		// t0 * t1 >= 0.0 かつ t0 * t2 >= 0.0
+		// p0 を通るとみなす
 		p3.setCoordinate(
 		( t1*p2.x() - t2*p1.x() ) / ( t1-t2 ),
 		( t1*p2.y() - t2*p1.y() ) / ( t1-t2 ),
 		( t1*p2.z() - t2*p1.z() ) / ( t1-t2 ) );
 		return (t1 > 0.0) ? 6 : 9;
 	}else if( t2 * t0 < 0.0 ){
-
-
+		// t1 * t2 >= 0.0 かつ t1 * t0 >= 0.0
+		// p1 を通るとみなす
 		p3.setCoordinate(
 		( t2*p0.x() - t0*p2.x() ) / ( t2-t0 ),
 		( t2*p0.y() - t0*p2.y() ) / ( t2-t0 ),
 		( t2*p0.z() - t0*p2.z() ) / ( t2-t0 ) );
 		return (t2 > 0.0) ? 7 : 10;
 	}else if( t0 * t1 < 0.0 ){
-
-
+		// t2 * t0 >= 0.0 かつ t2 * t1 >= 0.0
+		// p2 を通るとみなす
 		p3.setCoordinate(
 		( t0*p1.x() - t1*p0.x() ) / ( t0-t1 ),
 		( t0*p1.y() - t1*p0.y() ) / ( t0-t1 ),
@@ -308,22 +336,22 @@ kmb::PlaneXY::getIntersectionTriangle(
 			( z1*p2.y() - z2*p1.y() ) / ( z1-z2 ),
 			zz );
 		return (z2 > 0.0) ? 2 : 5;
-	}else if( z1 * z2 < 0.0 && fabs(z0) < thres ){
-
+	}else if( z1 * z2 < 0.0 && fabs(z0) < kmb::Tolerance::geometric ){
+		// p0 を通るとみなす
 		p3.setCoordinate(
 			( z1*p2.x() - z2*p1.x() ) / ( z1-z2 ),
 			( z1*p2.y() - z2*p1.y() ) / ( z1-z2 ),
 			zz );
 		return (z1 > 0.0) ? 6 : 9;
-	}else if( z2 * z0 < 0.0 && fabs(z1) < thres ){
-
+	}else if( z2 * z0 < 0.0 && fabs(z1) < kmb::Tolerance::geometric ){
+		// p1 を通るとみなす
 		p3.setCoordinate(
 			( z2*p0.x() - z0*p2.x() ) / ( z2-z0 ),
 			( z2*p0.y() - z0*p2.y() ) / ( z2-z0 ),
 			zz );
 		return (z2 > 0.0) ? 7 : 10;
-	}else if( z0 * z1 < 0.0 && fabs(z2) < thres ){
-
+	}else if( z0 * z1 < 0.0 && fabs(z2) < kmb::Tolerance::geometric ){
+		// p2 を通るとみなす
 		p3.setCoordinate(
 			( z0*p1.x() - z1*p0.x() ) / ( z0-z1 ),
 			( z0*p1.y() - z1*p0.y() ) / ( z0-z1 ),
@@ -370,22 +398,22 @@ kmb::PlaneYZ::getIntersectionTriangle(
 			( x1*p2.y() - x2*p1.y() ) / ( x1-x2 ),
 			( x1*p2.z() - x2*p1.z() ) / ( x1-x2 ) );
 		return (x2 > 0.0) ? 2 : 5;
-	}else if( x1 * x2 < 0.0 && fabs(x0) < thres ){
-
+	}else if( x1 * x2 < 0.0 && fabs(x0) < kmb::Tolerance::geometric ){
+		// p0 を通るとみなす
 		p3.setCoordinate(
 			xx,
 			( x1*p2.y() - x2*p1.y() ) / ( x1-x2 ),
 			( x1*p2.z() - x2*p1.z() ) / ( x1-x2 ) );
 		return (x1 > 0.0) ? 6 : 9;
-	}else if( x2 * x0 < 0.0 && fabs(x1) < thres ){
-
+	}else if( x2 * x0 < 0.0 && fabs(x1) < kmb::Tolerance::geometric ){
+		// p1 を通るとみなす
 		p3.setCoordinate(
 			xx,
 			( x2*p0.y() - x0*p2.y() ) / ( x2-x0 ),
 			( x2*p0.z() - x0*p2.z() ) / ( x2-x0 ) );
 		return (x2 > 0.0) ? 7 : 10;
-	}else if( x0 * x1 < 0.0 && fabs(x2) < thres ){
-
+	}else if( x0 * x1 < 0.0 && fabs(x2) < kmb::Tolerance::geometric ){
+		// p2 を通るとみなす
 		p3.setCoordinate(
 			xx,
 			( x0*p1.y() - x1*p0.y() ) / ( x0-x1 ),
@@ -432,22 +460,22 @@ kmb::PlaneZX::getIntersectionTriangle(
 		yy,
 		( y1*p2.z() - y2*p1.z() ) / ( y1-y2 ) );
 		return (y2 > 0.0) ? 2 : 5;
-	}else if( y1 * y2 < 0.0 && fabs(y0) < thres ){
-
+	}else if( y1 * y2 < 0.0 && fabs(y0) < kmb::Tolerance::geometric ){
+		// p0 を通るとみなす
 		p3.setCoordinate(
 			( y1*p2.x() - y2*p1.x() ) / ( y1-y2 ),
 			yy,
 			( y1*p2.z() - y2*p1.z() ) / ( y1-y2 ) );
 		return (y1 > 0.0) ? 6 : 9;
-	}else if( y2 * y0 < 0.0 && fabs(y1) < thres ){
-
+	}else if( y2 * y0 < 0.0 && fabs(y1) < kmb::Tolerance::geometric ){
+		// p1 を通るとみなす
 		p3.setCoordinate(
 			( y2*p0.x() - y0*p2.x() ) / ( y2-y0 ),
 			yy,
 			( y2*p0.z() - y0*p2.z() ) / ( y2-y0 ) );
 		return (y2 > 0.0) ? 7 : 10;
-	}else if( y0 * y1 < 0.0 && fabs(y2) < thres ){
-
+	}else if( y0 * y1 < 0.0 && fabs(y2) < kmb::Tolerance::geometric ){
+		// p2 を通るとみなす
 		p3.setCoordinate(
 			( y0*p1.x() - y1*p0.x() ) / ( y0-y1 ),
 			yy,

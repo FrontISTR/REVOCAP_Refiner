@@ -107,8 +107,8 @@ kmb::Point2D::distance(double x,double y) const
 double
 kmb::Point2D::distanceSq(double x,double y) const
 {
-	return
-		(this->x()-x)*(this->x()-x) +
+	return 
+		(this->x()-x)*(this->x()-x) + 
 		(this->y()-y)*(this->y()-y);
 }
 
@@ -157,7 +157,7 @@ double
 kmb::Point2D::distanceSqToSegment(const Point2D& a,const Point2D& b,double& t) const
 {
 	kmb::Vector2D ab(b,a);
-	kmb::Vector2D xa(a,*this);
+	kmb::Vector2D xa(a,*this);   // x = this
 	t = - (ab * xa) / ab.lengthSq();
 	if( t < 0 ){
 		return this->distanceSq(a);
@@ -174,7 +174,7 @@ kmb::Point2D::distanceToSegment(const Point2D& a,const Point2D& b) const
 	return sqrt( distanceSqToSegment(a,b) );
 }
 
-
+// 内分点
 kmb::Point2D
 kmb::Point2D::dividingPoint(const Point2D& other,double m,double n) const
 {
@@ -195,29 +195,29 @@ kmb::Point2D::distanceSq(const kmb::Point2D& a,const kmb::Point2D& b)
 	return a.distanceSq(b);
 }
 
-
-
-double
+// 三角形の面積
+// a b c を入れ替えても等しくなるように
+double 
 kmb::Point2D::area(const kmb::Point2D& a,const kmb::Point2D& b,const kmb::Point2D &c)
 {
 	if( LARGER_Y(a,b) ){
-
+		// a > b
 		if( LARGER_Y(c,a) ){
-
+			// c > a > b
 			return
 				0.5 * (
 				+ c.x()*a.y() - c.y()*a.x()
 				+ a.x()*b.y() - a.y()*b.x()
 				+ b.x()*c.y() - b.y()*c.x() );
 		}else if( LARGER_Y(c,b) ){
-
+			// a > c > b
 			return
 				0.5 * (
 				- a.x()*c.y() + a.y()*c.x()
 				- c.x()*b.y() + c.y()*b.x()
 				- b.x()*a.y() + b.y()*a.x() );
 		}else{
-
+			// a > b > c
 			return
 				0.5 * (
 				+ a.x()*b.y() - a.y()*b.x()
@@ -225,23 +225,23 @@ kmb::Point2D::area(const kmb::Point2D& a,const kmb::Point2D& b,const kmb::Point2
 				+ c.x()*a.y() - c.y()*a.x() );
 		}
 	}else{
-
+		// b > a
 		if( LARGER_Y(c,b) ){
-
+			// c > b > a
 			return
 				0.5 * (
 				- c.x()*b.y() + c.y()*b.x()
 				- b.x()*a.y() + b.y()*a.x()
 				- a.x()*c.y() + a.y()*c.x() );
 		}else if( LARGER_Y(c,a) ){
-
+			// b > c > a
 			return
 				0.5 * (
 				+ b.x()*c.y() - b.y()*c.x()
 				+ c.x()*a.y() - c.y()*a.x()
 				+ a.x()*b.y() - a.y()*b.x() );
 		}else{
-
+			// b > a > c
 			return
 				0.5 * (
 				- b.x()*a.y() + b.y()*a.x()
@@ -249,11 +249,11 @@ kmb::Point2D::area(const kmb::Point2D& a,const kmb::Point2D& b,const kmb::Point2
 				- c.x()*b.y() + c.y()*b.x() );
 		}
 	}
-
-
-
-
-
+	//return 
+	//	0.5 * ( 
+	//		  a.x()*b.y() - a.y()*b.x() 
+	//		+ b.x()*c.y() - b.y()*c.x()
+	//		+ c.x()*a.y() - c.y()*a.x() );
 }
 
 kmb::Point2D
@@ -307,14 +307,14 @@ kmb::Point2D::calcMinorCoordinate
 	kmb::Vector2D xa(a,x);
 	kmb::Vector2D xb(b,x);
 	kmb::Vector2D xc(c,x);
-
-
+	// xbc
+//	coordinate[0] = kmb::Point2D::area(x,b,c);
 	coordinate[0] = 0.5 * (xb % xc);
-
-
+	// -axc
+//	coordinate[1] = -kmb::Point2D::area(a,x,c);
 	coordinate[1] = 0.5 * (xc % xa);
-
-
+	// abx
+//	coordinate[2] = kmb::Point2D::area(a,b,x);
 	coordinate[2] = 0.5 * (xa % xb);
 }
 
@@ -330,7 +330,7 @@ kmb::Point2D::intesectSegments(const kmb::Point2D& a0, const kmb::Point2D& a1, c
 	}
 }
 
-
+/////////////// Vector2D /////////////////////////////
 kmb::Vector2D::Vector2D(const Point2D& p,const Point2D& q)
 {
 	for(int i=0;i<2;++i){
@@ -416,8 +416,7 @@ kmb::Vector2D::angle2(const Vector2D &v0,const Vector2D &v1)
 	return ANGLE2(c,s);
 }
 
-double
-kmb::Vector2D::abs(const double v[2])
+double kmb::Vector2D::abs(const double v[2])
 {
 	return sqrt( v[0]*v[0] + v[1]*v[1] );
 }

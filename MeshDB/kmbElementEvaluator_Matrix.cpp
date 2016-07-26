@@ -32,7 +32,7 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 		switch( element.getType() ){
 			case kmb::TETRAHEDRON:
 			{
-
+				// ヤコビアン
 				kmb::Point3D q[4];
 				for(int i=0;i<4;++i){
 					points->getPoint( element[i],q[i]);
@@ -47,7 +47,7 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 				jacobi.set(2,1,q[3].y()-q[0].y());
 				jacobi.set(2,2,q[3].z()-q[0].z());
 				double jac = jacobi.determinant();
-
+				// 形状関数の微分
 				kmb::Vector3D v[4], u[4];
 				v[0].setCoordinate(-1.0,-1.0,-1.0);
 				v[1].setCoordinate( 1.0, 0.0, 0.0);
@@ -57,7 +57,7 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 				jacobi.solve(v[1],u[1]);
 				jacobi.solve(v[2],u[2]);
 				jacobi.solve(v[3],u[3]);
-
+				// １次なので積分は定数掛ける体積
 				stiff.zero();
 				for(int i=0;i<4;++i){
 					double v = (u[i]*u[i]) * jac / 6.0;
@@ -80,7 +80,7 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 		switch( element.getType() ){
 			case kmb::TRIANGLE:
 			{
-
+				// ヤコビアン
 				kmb::Point2D q[3];
 				for(int i=0;i<3;++i){
 					point2Ds->getPoint( element[i],q[i]);
@@ -90,7 +90,7 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 				jacobi.set(1,0,q[2].x()-q[0].x());
 				jacobi.set(1,1,q[2].y()-q[0].y());
 				double jac = jacobi.determinant();
-
+				// 形状関数の微分
 				kmb::Vector2D v[3], u[3];
 				v[0].setCoordinate(-1.0,-1.0);
 				v[1].setCoordinate( 1.0, 0.0);
@@ -98,7 +98,7 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 				jacobi.solve(v[0],u[0]);
 				jacobi.solve(v[1],u[1]);
 				jacobi.solve(v[2],u[2]);
-
+				// １次なので積分は定数掛ける体積
 				stiff.zero();
 				for(int i=0;i<3;++i){
 					double v = (u[i]*u[i]) * jac / 2.0;
@@ -117,14 +117,14 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 				for(int i=0;i<4;++i){
 					point2Ds->getPoint( element[i],q[i]);
 				}
-
+				// ガウス積分
 				stiff.zero();
 				for(int si=0;si<2;++si){
 					double s = kmb::Integration::Gauss_Point2[si];
 					for(int ti=0;ti<2;++ti){
 						double t = kmb::Integration::Gauss_Point2[ti];
 						double w = kmb::Integration::Gauss_Weight2[si] * kmb::Integration::Gauss_Weight2[ti];
-
+						// ヤコビアン
 						jacobi.zero();
 						jacobi.set(0,0,
 							0.25 * (-q[0].x()+q[1].x()+q[2].x()-q[3].x()) +
@@ -139,7 +139,7 @@ kmb::ElementEvaluator::getStiffMatrix(const kmb::ElementBase &element,kmb::Squar
 							0.25 * (-q[0].y()-q[1].y()+q[2].y()+q[3].y()) +
 							0.25 * ( q[0].y()-q[1].y()+q[2].y()-q[3].y()) * s );
 						double jac = jacobi.determinant();
-
+						// 形状関数の微分
 						kmb::Vector2D v[4], u[4];
 						v[0].setCoordinate(0.25*(-1.0+t),0.25*(-1.0+s));
 						v[1].setCoordinate(0.25*( 1.0-t),0.25*(-1.0-s));

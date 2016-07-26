@@ -13,18 +13,18 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * �����ɂ����钍�ӓ_�F
- *  �ו������v�f�� refineElement �̒��ł͋L�����Ă����K�v�͂Ȃ����A
- *  getOriginal �Őe�𒲂ׂ�Ƃ��ɂǂ̗v�f���g���čו������̂��𒲂ׂ邽�߂�
- *  appendBody �� rcapRefinerDoc.mesh �ɋL�^���Ă����BclearRefiner �Ń��b�p�R���e�i���폜���Ă���B
- *  �ו���̗v�f�͌Ăяo�����ɕԂ��āA���̃��C�u�����̒��ł͋L�����Ȃ��B
+ * 実装における注意点：
+ *  細分される要素は refineElement の中では記憶しておく必要はないが、
+ *  getOriginal で親を調べるときにどの要素を使って細分したのかを調べるために
+ *  appendBody で rcapRefinerDoc.mesh に記録しておく。clearRefiner でラッパコンテナを削除している。
+ *  細分後の要素は呼び出し側に返して、このライブラリの中では記憶しない。
  *
- *  nodeOffset ������ꍇ�AnodeContainer �ɂ� nodeOffset �ł��炵�ēo�^����
+ *  nodeOffset がある場合、nodeContainer には nodeOffset でずらして登録する
  *
- *  ���E�����͍ו��O�ƍו���̃f�[�^�̗����� rcapRefinerDoc.refiner �܂��� rcapRefinerDoc.boundaryRefiner
- *  ���ێ����Ă���B�ǂ��炪�ێ����邩�ǂ����͋��E�����̎�ނɈˑ�����B
- *  Commit �����Ƃ��� rcapRefinerDoc.mesh �ɓo�^����Ă��鋫�E�������ו��O�̃f�[�^����
- *  �ו���̃f�[�^�ɓ���ւ��Ă���B
+ *  境界条件は細分前と細分後のデータの両方を rcapRefinerDoc.refiner または rcapRefinerDoc.boundaryRefiner
+ *  が保持している。どちらが保持するかどうかは境界条件の種類に依存する。
+ *  Commit したときに rcapRefinerDoc.mesh に登録されている境界条件を細分前のデータから
+ *  細分後のデータに入れ替えている。
  */
 
 #include "rcapRefiner.h"
@@ -940,7 +940,7 @@ void rcapQualityReport( const char mode[80], const char* filename )
 	return;
 }
 
-/* rcapxxx_  ���ׂď����� */
+/* rcapxxx_  すべて小文字 */
 #if defined FORTRAN90 || defined FORTRAN_CALL_C_DOWNCASE_
 void rcapgetversion_( void ){ rcapGetVersion(); }
 void rcapinitrefiner_( int32_t* nodeOffset, int32_t* elementOffset ){ rcapInitRefiner(*nodeOffset,*elementOffset); }

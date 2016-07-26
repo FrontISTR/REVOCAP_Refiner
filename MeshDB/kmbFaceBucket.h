@@ -12,9 +12,9 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
+//
+// MPC 情報生成のための事前処理クラス
+//
 
 #pragma once
 
@@ -41,11 +41,10 @@ public:
 	void setAutoBucketSize(void);
 	int appendAll(void);
 
-
 	bool getNearest(double x,double y,double z,double &dist,kmb::Face &f) const;
 protected:
-
-
+	// 距離は２乗で返す
+	// (i,j,k) の bucket の中での最小値
 	bool getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,double &dist,kmb::Face &f) const;
 };
 

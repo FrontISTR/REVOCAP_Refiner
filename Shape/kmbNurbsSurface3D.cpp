@@ -170,7 +170,7 @@ kmb::NurbsSurface3D::getDerivative( derivativeType d, double u, double v, kmb::V
 	return false;
 }
 
-
+// knot の個数に応じて計算コストがかかる
 bool
 kmb::NurbsSurface3D::getPoint( double u, double v, kmb::Point3D& point ) const
 {
@@ -182,7 +182,7 @@ kmb::NurbsSurface3D::getPoint( double u, double v, kmb::Point3D& point ) const
 	int vNum = vBspline.getKnotCount()-vOrder;
 	double weight = 0.0;
 
-
+	// 2重ループで2重に計算するのを防ぐため
 	double* u0 = new double[uNum];
 	double* v0 = new double[vNum];
 	for(int i=0;i<uNum;++i){
@@ -212,7 +212,7 @@ kmb::NurbsSurface3D::getPoint( double u, double v, kmb::Point3D& point ) const
 bool
 kmb::NurbsSurface3D::getMiddlePoint( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const
 {
-
+	// 縮退している点があるかもしれないので、５点で調べる
 	kmb::Point3D p0,p1,pm,pt;
 	if( !getPoint(u0,v0,p0) ){
 		return false;
@@ -265,7 +265,7 @@ kmb::NurbsSurface3D::getMiddlePoint( double u0, double v0, double u1, double v1,
 bool
 kmb::NurbsSurface3D::getMiddlePointByNearest( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const
 {
-
+	// 縮退している点があるかもしれないので、５点で調べる
 	kmb::Point3D p0,p1,pm,pt;
 	if( !getPoint(u0,v0,p0) ){
 		return false;
@@ -316,8 +316,8 @@ kmb::NurbsSurface3D::getMiddlePointByNearest( double u0, double v0, double u1, d
 		res = true;
 	}
 
-
-
+	// 最近点でも調べる
+	
 	if( getNearest(pm,um,vm) && getPoint(um,vm,pt) && minimizer.update( pm.distanceSq(pt) ) ){
 		u = um;
 		v = vm;
@@ -330,7 +330,7 @@ kmb::NurbsSurface3D::getMiddlePointByNearest( double u0, double v0, double u1, d
 bool
 kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v ) const
 {
-
+	// Nurbs (u,v) の点と point の距離の最小化
 	class dist_local : public kmb::OptTargetSV {
 	private:
 		const kmb::NurbsSurface3D* surface;
@@ -367,7 +367,7 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 	};
 	dist_local dist_obj(this,point);
 
-
+	// Nurbs (u,v) の点と point の距離の微分 * weight のゼロ点
 	class opt_local : public kmb::OptTargetVV {
 	private:
 		const kmb::NurbsSurface3D* surface;
@@ -377,7 +377,7 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 		double weight;
 		kmb::Point3D pt;
 		kmb::Vector3D uVec, vVec, uuVec, uvVec, vvVec;
-
+		// pt uVec vVec uuVec uvVec vvVec に (u,v) での値が入っていたら true
 		bool calc(double u,double v){
 			if( u == t0 && v == t1 && calculated ){
 				return true;
@@ -440,7 +440,7 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 	opt.setEpsilon(epsilon);
 	opt.setIterMax(iterMax);
 
-
+	// (1) 黄金比法
 	if( opt.calcMin_GS( dist_obj, opt_t, min_t, max_t ) ){
 		double d = dist_obj.f( opt_t );
 		if( d < epsilon ){
@@ -450,7 +450,7 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 		}
 	}
 
-
+	// (2) Newton 法系で初期値を選ぶ
 	opt.calcMinOnGrid( dist_obj, init_t, min_t, max_t, div );
 	double d = dist_obj.f( init_t );
 	if( d < epsilon ){
@@ -459,8 +459,8 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 		return true;
 	}
 
-
-	if( opt.calcMin_BFGS( dist_obj, opt_t, init_t ) &&
+	// (3) BFGS 法
+	if( opt.calcMin_BFGS( dist_obj, opt_t, init_t ) && 
 		min_t[0] <= opt_t[0] && opt_t[0] <= max_t[0] &&
 		min_t[1] <= opt_t[1] && opt_t[1] <= max_t[1] )
 	{
@@ -469,8 +469,8 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 		return true;
 	}
 
-
-	if( opt.calcZero_DN( opt_obj, opt_t, init_t ) &&
+	// (4) 減速 Newton 法
+	if( opt.calcZero_DN( opt_obj, opt_t, init_t ) && 
 		min_t[0] <= opt_t[0] && opt_t[0] <= max_t[0] &&
 		min_t[1] <= opt_t[1] && opt_t[1] <= max_t[1] )
 	{
@@ -478,8 +478,8 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 		v = opt_t[1];
 		return true;
 	}
-
-
+	
+	// (5) CG 法
 	if( opt.calcMin_CG( dist_obj, opt_t, min_t, max_t ) ){
 		u = opt_t[0];
 		v = opt_t[1];
@@ -489,8 +489,8 @@ kmb::NurbsSurface3D::getNearest( const kmb::Point3D& point, double &u, double &v
 	return false;
 }
 
-
-
+// S(u,v) = Q(u,v)/w(u,v) の微分の分子
+// S'w = Q' - Sw'
 bool
 kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double u, double v, kmb::Vector3D& tangent ) const
 {
@@ -498,7 +498,7 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 	if( !valid() ){
 		return false;
 	}
-
+	// pt は weight ですでに割ってあることに注意
 	kmb::Point3D pt;
 	double weight = 0.0;
 	if( !getPoint(u,v,pt) || !getWeight(u,v,weight) ){
@@ -506,7 +506,7 @@ kmb::NurbsSurface3D::getSubDerivative( kmb::Surface3D::derivativeType d, double 
 	}
 	int uNum = uBspline.getKnotCount()-uOrder;
 	int vNum = vBspline.getKnotCount()-vOrder;
-
+	// 2重ループで2重に計算するのを防ぐため
 	double* u0 = NULL;
 	double* v0 = NULL;
 	double* u1 = NULL;
@@ -727,7 +727,7 @@ kmb::NurbsSurface3D::getWeightDerivative( derivativeType d, double u, double v, 
 	}
 	int uNum = uBspline.getKnotCount()-uOrder;
 	int vNum = vBspline.getKnotCount()-vOrder;
-
+	// 2重ループで2重に計算するのを防ぐため
 	double* u0 = NULL;
 	double* v0 = NULL;
 	double* u1 = NULL;

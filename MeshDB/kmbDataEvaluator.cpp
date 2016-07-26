@@ -304,7 +304,7 @@ kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::E
 			data->getValueType() == kmb::PhysicalValue::Scalar &&
 			elements->isUniqueDim(2) )
 		{
-
+			// ２次元の要素上のスカラー値
 			kmb::ElementEvaluator evaluator( points );
 			double value = 0.0;
 			double area = 0.0;
@@ -332,7 +332,7 @@ kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::E
 			data->getValueType() == kmb::PhysicalValue::Vector3 &&
 			elements->isUniqueDim(2) )
 		{
-
+			// ２次元の要素上のベクトル値
 			kmb::ElementEvaluator evaluator( points );
 			double value[3] = {0.0, 0.0, 0.0};
 			double area = 0.0;
@@ -371,7 +371,7 @@ kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::E
 			data->getValueType() == kmb::PhysicalValue::Scalar &&
 			elements->isUniqueDim(3) )
 		{
-
+			// ３次元の要素上のスカラー値
 			kmb::ElementEvaluator evaluator( points );
 			double value = 0.0;
 			double volume = 0.0;
@@ -399,7 +399,7 @@ kmb::DataEvaluator::getAverageOnBody(const kmb::DataBindings* data, const kmb::E
 			data->getValueType() == kmb::PhysicalValue::Vector3 &&
 			elements->isUniqueDim(3) )
 		{
-
+			// ３次元の要素上のベクトル値
 			kmb::ElementEvaluator evaluator( points );
 			double value[3] = {0.0, 0.0, 0.0};
 			double volume = 0.0;

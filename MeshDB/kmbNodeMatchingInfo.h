@@ -34,7 +34,7 @@ class NodeMatchingInfo
 public:
 	NodeMatchingInfo(kmb::elementIdType elementId,kmb::nodeIdType nodeId,double t);
 	~NodeMatchingInfo(void);
-
+	// define inequality sign, iterator of std::set is sorted
 	bool operator<(const NodeMatchingInfo &other)const{
 		return (elementId < other.elementId) ||
 			(elementId == other.elementId && t < other.t);
@@ -45,11 +45,11 @@ public:
 	bool operator!=(const NodeMatchingInfo &other)const{
 		return (elementId != other.elementId || nodeId != other.nodeId);
 	}
-
-
+	// node vs segment matching
+	// elementid of segment
 	kmb::elementIdType elementId;
 	kmb::nodeIdType nodeId;
-
+	// t is a parameter in [0,1] of nearest point on the segment from the node 
 	double t;
 };
 

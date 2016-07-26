@@ -24,106 +24,16 @@
 #include <cassert>
 
 kmb::Collision::collisionType
-kmb::Collision::detectTriTri(
-	kmb::Point3D& p0,kmb::Point3D& p1,kmb::Point3D& p2,
-	kmb::Point3D& q0,kmb::Point3D& q1,kmb::Point3D& q2) const
-{
-	kmb::Collision::collisionType colType = kmb::Collision::NOT_COLLIDE;
-
-	switch( detectSegTri( p0, p1, q0, q1, q2 ) ){
-		case kmb::Collision::DETECT:
-			return kmb::Collision::DETECT;
-		case kmb::Collision::GEOMETRICAL_CONTACT:
-			colType = kmb::Collision::GEOMETRICAL_CONTACT;
-			break;
-		default:
-			break;
-	}
-
-	switch( detectSegTri( p1, p2, q0, q1, q2 ) ){
-		case kmb::Collision::DETECT:
-			return kmb::Collision::DETECT;
-		case kmb::Collision::GEOMETRICAL_CONTACT:
-			colType = kmb::Collision::GEOMETRICAL_CONTACT;
-			break;
-		default:
-			break;
-	}
-
-	switch( detectSegTri( p2, p0, q0, q1, q2 ) ){
-		case kmb::Collision::DETECT:
-			return kmb::Collision::DETECT;
-		case kmb::Collision::GEOMETRICAL_CONTACT:
-			colType = kmb::Collision::GEOMETRICAL_CONTACT;
-			break;
-		default:
-			break;
-	}
-
-	switch( detectSegTri( q0, q1, p0, p1, p2 ) ){
-		case kmb::Collision::DETECT:
-			return kmb::Collision::DETECT;
-		case kmb::Collision::GEOMETRICAL_CONTACT:
-			colType = kmb::Collision::GEOMETRICAL_CONTACT;
-			break;
-		default:
-			break;
-	}
-
-	switch( detectSegTri( q1, q2, p0, p1, p2 ) ){
-		case kmb::Collision::DETECT:
-			return kmb::Collision::DETECT;
-		case kmb::Collision::GEOMETRICAL_CONTACT:
-			colType = kmb::Collision::GEOMETRICAL_CONTACT;
-			break;
-		default:
-			break;
-	}
-
-	switch( detectSegTri( q2, q0, p0, p1, p2 ) ){
-		case kmb::Collision::DETECT:
-			return kmb::Collision::DETECT;
-		case kmb::Collision::GEOMETRICAL_CONTACT:
-			colType = kmb::Collision::GEOMETRICAL_CONTACT;
-			break;
-		default:
-			break;
-	}
-
-	return colType;
-}
-
-kmb::Collision::collisionType
-kmb::Collision::detectSegTri(
-	kmb::Point3D& p0,kmb::Point3D& p1,
-	kmb::Point3D& q0,kmb::Point3D& q1,kmb::Point3D& q2) const
-{
-	double ss = 0.0;
-	double tt[2] = {0.0, 0.0};
-	double dist = distanceSqSegTri( p0, p1, q0, q1, q2, ss, tt );
-	if( dist < this->accuracy*this->accuracy ){
-		if( 0.0 < tt[0] && 0.0 < tt[1] && tt[0] + tt[1] < 1.0 && 0.0 < ss && ss < 1.0 ){
-			return kmb::Collision::DETECT;
-		}
-		return kmb::Collision::GEOMETRICAL_CONTACT;
-	}
-	return kmb::Collision::NOT_COLLIDE;
-}
-
-
-
-
-kmb::Collision::collisionType
 kmb::Collision::detectTriTri(kmb::ElementBase& tri0,kmb::ElementBase& tri1) const
 {
-
+	// 位相チェック
 	int i0=0,i1=0;
 	kmb::ElementRelation::relationType rel = kmb::ElementRelation::getRelation( tri0, i0, tri1, i1 );
-
+	// 2点共有している場合
 	if( rel == kmb::ElementRelation::ADJACENT || rel == kmb::ElementRelation::ANTIADJACENT ){
 		return kmb::Collision::TOPOLOGICAL_CONTACT;
 	}
-
+	// 1点共有している場合 => 三角形の残りの辺がもう一方の面と干渉するかどうか
 	else if( rel == kmb::ElementRelation::COMMONNODE ){
 		kmb::Collision::collisionType colType = kmb::Collision::TOPOLOGICAL_CONTACT;
 		kmb::Point3D t0[3];
@@ -187,16 +97,16 @@ kmb::Collision::detectTriTri(kmb::ElementBase& tri0,kmb::ElementBase& tri1) cons
 kmb::Collision::collisionType
 kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) const
 {
-
+	// 位相チェック
 	int i0=0,i1=0;
 	kmb::ElementRelation::relationType rel = kmb::ElementRelation::getRelation( tri, i0, tetra, i1 );
-
+	// 3点共有している場合
 	if( rel == kmb::ElementRelation::BOUNDARY || rel == kmb::ElementRelation::ANTIBOUNDARY ){
-		return kmb::Collision::TOPOLOGICAL_CONTACT;
+		return kmb::Collision::TOPOLOGICAL_CONTACT; // 位相的に接している
 	}
-
-
-
+	// 2点共有している場合 => 
+	//  三角形の残り1点が四面体の中にあるかどうか
+	//  四面体の二点共有していない面と三角形が干渉
 	else if( rel == kmb::ElementRelation::COMMONEDGE ){
 		kmb::Point3D n[3];
 		kmb::Point3D t[4];
@@ -212,17 +122,17 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 			this->points->getPoint( tetra[3], t[3] ) )
 		{
 			kmb::Collision::collisionType colType = kmb::Collision::TOPOLOGICAL_CONTACT;
-
+			// 内部チェックは残りの一点だけ
 			double minor[4] = {0.0, 0.0, 0.0, 0.0};
 			kmb::Point3D::calcMinorCoordinate( t[0], t[1], t[2], t[3], n[i0], minor );
 			if( 0.0 < minor[0] && 0.0 < minor[1] && 0.0 < minor[2] && 0.0 < minor[3] ){
 				return kmb::Collision::DETECT;
 			}
-
-
+			// ここで三角形と辺のチェック
+			// tetra の共有している頂点の番号
 			int f0 = kmb::Tetrahedron::edgeTable[i1][0];
 			int f1 = kmb::Tetrahedron::edgeTable[i1][1];
-
+			// tri の共有している頂点の番号
 			int e0 = -1, e1 = -1;
 			if( tetra.indexOf( tri[ (i0+1)%3 ] ) == f0 ){
 				e0 = (i0+1)%3;
@@ -262,7 +172,7 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 			return kmb::Collision::COLLISION_ERROR;
 		}
 	}
-
+	// 1点共有している場合
 	else if( rel == kmb::ElementRelation::COMMONNODE ){
 		kmb::Point3D n[3];
 		kmb::Point3D t[4];
@@ -278,7 +188,7 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 			this->points->getPoint( tetra[3], t[3] ) )
 		{
 			kmb::Collision::collisionType colType = kmb::Collision::TOPOLOGICAL_CONTACT;
-
+			// 頂点が内部にあるとき
 			double minor[4] = {0.0, 0.0, 0.0, 0.0};
 			for(int i=0;i<3;++i){
 				if( i != i0 ){
@@ -288,7 +198,7 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 					}
 				}
 			}
-
+			// 三角形の対辺と四面体の面
 			for(int i=0;i<4;++i){
 				switch( detectSegTri( n[ (i0+1)%3 ], n[ (i0+2)%3 ],
 					t[ kmb::Tetrahedron::faceTable[i][0] ],
@@ -303,7 +213,7 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 					break;
 				}
 			}
-
+			// 三角形の共辺と四面体の対面
 			switch( detectSegTri( n[i0], n[ (i0+1)%3 ],
 				t[ kmb::Tetrahedron::faceTable[i1][0] ],
 				t[ kmb::Tetrahedron::faceTable[i1][1] ],
@@ -348,7 +258,7 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 		this->points->getPoint( tetra[3], t[3] ) )
 	{
 		kmb::Collision::collisionType colType = kmb::Collision::NOT_COLLIDE;
-
+		// 頂点が内部にあるとき
 		double minor[4] = {0.0, 0.0, 0.0, 0.0};
 		for(int i=0;i<3;++i){
 			kmb::Point3D::calcMinorCoordinate( t[0], t[1], t[2], t[3], n[i], minor );
@@ -372,6 +282,6 @@ kmb::Collision::detectTriTetra(kmb::ElementBase& tri,kmb::ElementBase& tetra) co
 		}
 		return colType;
 	}else{
-		return kmb::Collision::COLLISION_ERROR;
+		return kmb::Collision::COLLISION_ERROR; // エラー
 	}
 }

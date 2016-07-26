@@ -30,7 +30,7 @@
 
 namespace kmb{
 
-/* Map ‚É‚æ‚éƒŠƒtƒ@ƒŒƒ“ƒXÀ‘• offsetId ‚æ‚è‚à¬‚³‚¢ elementId ‚Å‚à“o˜^‰Â”\ */
+/* Map ã«ã‚ˆã‚‹ãƒªãƒ•ã‚¡ãƒ¬ãƒ³ã‚¹å®Ÿè£… offsetId ã‚ˆã‚Šã‚‚å°ã•ã„ elementId ã§ã‚‚ç™»éŒ²å¯èƒ½ */
 
 class ElementContainerMap : public ElementContainer
 {

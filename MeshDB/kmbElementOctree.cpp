@@ -20,7 +20,7 @@
 #include "Common/kmbCalculator.h"
 #include "Geometry/kmbGeometry3D.h"
 
-
+// 2次元3次元混合は仮
 
 double
 kmb::Element3DOctree::getDistanceSq(const double x,const double y,const double z,const kmb::elementIdType elementId) const

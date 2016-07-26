@@ -89,7 +89,7 @@ kmb::MeshSmoother::appendBody(const kmb::ElementContainer* body)
 	if( body == NULL ){
 		return 0;
 	}
-
+	// 境界面は動かす対象にしない
 	kmb::DataBindings* nodeGroup =
 		kmb::DataBindings::createDataBindings(
 			kmb::DataBindings::NodeGroup,

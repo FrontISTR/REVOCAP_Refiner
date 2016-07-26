@@ -97,6 +97,26 @@ kmb::BoxRegion2D::maxY(void) const
 	return this->maxPoint.y();
 }
 
+void kmb::BoxRegion2D::minX(double x)
+{
+	minPoint.x(x);
+}
+
+void kmb::BoxRegion2D::minY(double y)
+{
+	minPoint.y(y);
+}
+
+void kmb::BoxRegion2D::maxX(double x)
+{
+	maxPoint.x(x);
+}
+
+void kmb::BoxRegion2D::maxY(double y)
+{
+	maxPoint.y(y);
+}
+
 double
 kmb::BoxRegion2D::centerX(void) const
 {
@@ -203,7 +223,7 @@ kmb::BoxRegion2D::distanceSq(const kmb::Point2D& point) const
 {
 	double xdiff=0;
 	double ydiff=0;
-
+	// x
 	if( point.x() < minPoint.x() ){
 		xdiff = point.x() - minPoint.x();
 	}
@@ -212,7 +232,7 @@ kmb::BoxRegion2D::distanceSq(const kmb::Point2D& point) const
 	}else{
 		xdiff = point.x() - maxPoint.x();
 	}
-
+	// y
 	if( point.y() < minPoint.y() ){
 		ydiff = point.y() - minPoint.y();
 	}
@@ -253,7 +273,7 @@ kmb::BoxRegion2D::distanceSq(const kmb::BoxRegion2D& box) const
 double
 kmb::BoxRegion2D::intersectArea(const BoxRegion2D& box) const
 {
-
+	// maxmin and minmax
 	double lowX = kmb::Maximizer::getMax( minX(), box.minX() );
 	double lowY = kmb::Maximizer::getMax( minY(), box.minY() );
 	double highX = kmb::Minimizer::getMin( maxX(), box.maxX() );
@@ -290,6 +310,13 @@ kmb::BoxRegion2D::expand(double ratio)
 }
 
 void
+kmb::BoxRegion2D::translate(double x,double y)
+{
+	this->maxPoint.addCoordinate(x,y);
+	this->minPoint.addCoordinate(x,y);
+}
+
+void
 kmb::BoxRegion2D::crossOnLine(const kmb::Point2D& origin, const kmb::Vector2D& dir, double &min_t, double &max_t) const
 {
 	kmb::BoundingBox1D bbox_x, bbox_y;
@@ -307,7 +334,7 @@ kmb::BoxRegion2D::crossOnLine(const kmb::Point2D& origin, const kmb::Vector2D& d
 		bbox_y.update( DBL_MAX );
 		bbox_y.update( -DBL_MAX );
 	}
-
+	// [t_minx,t_maxx] と [t_miny,t_maxy] の積を min_t max_t にする
 	if( bbox_x.intersect( bbox_y ) ){
 		min_t = kmb::Maximizer::getMax( bbox_x.getMin(), bbox_y.getMin() );
 		max_t = kmb::Minimizer::getMin( bbox_x.getMax(), bbox_y.getMax() );

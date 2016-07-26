@@ -17,7 +17,7 @@
 
 namespace kmb{
 
-class Point3DContainerArray : public Point3DContainer
+class Point3DContainerArray : public Point3DContainerDirectAccessable
 {
 private:
 	double* pointArray;
@@ -50,6 +50,13 @@ public:
 
 	const double* getDoubleArray(void) const { return pointArray; }
 
+	virtual double operator()(kmb::nodeIdType nodeId,int i) const{
+		return pointArray[3*nodeId+i];
+	}
+	virtual double& operator()(kmb::nodeIdType nodeId,int i){
+		return pointArray[3*nodeId+i];
+	}
+	virtual void commit(kmb::nodeIdType nodeId);
 protected:
 	class _iteratorArray : public Point3DContainer::_iterator
 	{

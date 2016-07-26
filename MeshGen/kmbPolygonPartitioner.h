@@ -25,7 +25,6 @@
 ----------------------------------------------------------------------*/
 #pragma once
 
-
 #include "Geometry/kmbPoint2DContainer.h"
 #include "Geometry/kmbGeometry2D.h"
 #include "Geometry/kmbGeometry3D.h"
@@ -43,14 +42,14 @@ class MeshDB;
 class PolygonPartitioner
 {
 public:
-
+	// y 座標 monotonisity を考えた時のタイプ
 	enum vertexType{
-		UNKNOWN,
-		START,
-		SPLIT,
-		END,
-		MERGE,
-		REGULAR
+		kUNKNOWN,
+		kSTART,
+		kSPLIT,
+		kEND,
+		kMERGE,
+		kREGULAR
 	};
 
 	PolygonPartitioner(void);
@@ -60,26 +59,27 @@ public:
 	void setInitialPolygon(kmb::ElementContainer* edges);
 	size_t getCount(void) const;
 
-
+	// 三角形化して body に登録する
 	bool partition( kmb::ElementContainer &body );
 
-
+	// 2D 実行ルーチン
 	kmb::bodyIdType partitionToTriangles(kmb::MeshDB* mesh,kmb::bodyIdType edgeId);
-
+	// 3D 実行ルーチン
+	kmb::bodyIdType partitionToTriangles(kmb::MeshDB* mesh,kmb::bodyIdType edgeId,const kmb::FramedPlane &plane);
 private:
-
-
-
+	// 点と y 座標が同じ点を含む要素のうち、x 座標が最も近いもの
+	// left = true 左側（x座標が小さいほう）false 右側を探す
+	// 戻り値は辺 [n,n+1] が最も近い辺の時の n 
 	kmb::elementIdType getNearestSegmentWithSameLevel(kmb::nodeIdType nodeId, bool left=true) const;
 
-
-
+	// helper node を求める
+	// vType nodeID の vertex type
 	kmb::nodeIdType getHelperNode( kmb::nodeIdType nodeID, kmb::elementIdType leftID, kmb::elementIdType rightID, vertexType vType) const;
 
-
+	// Monotone 多角形を三角形化
 	bool triangulateMonotonePolygon(kmb::Polygon* polygon, kmb::ElementContainer &body );
 
-	const kmb::Point2DContainer* points;
+	const kmb::Point2DContainer* points;	// ポインタのコピーだけで、生成と破棄は別のクラスで行う
 	kmb::Polygon* initialPolygon;
 
 	vertexType	getVertexType(kmb::Polygon* polygon,kmb::nodeIdType nodeId) const;

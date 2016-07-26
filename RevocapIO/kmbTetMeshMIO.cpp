@@ -77,12 +77,12 @@ kmb::TetMeshMIO::loadFromFile(const char* filename,MeshData* mesh)
 				ary[1] = tmp[1];
 				ary[2] = tmp[2];
 				ary[3] = tmp[3];
-				ary[6] = tmp[4];
-				ary[5] = tmp[5];
-				ary[7] = tmp[6];
-				ary[4] = tmp[7];
-				ary[9] = tmp[8];
-				ary[8] = tmp[9];
+				ary[6] = tmp[4]; // 01
+				ary[5] = tmp[5]; // 02
+				ary[7] = tmp[6]; // 03
+				ary[4] = tmp[7]; // 12
+				ary[9] = tmp[8]; // 23
+				ary[8] = tmp[9]; // 13
 				mesh->addElement( kmb::TETRAHEDRON2, ary );
 				break;
 			case 6:
@@ -136,9 +136,9 @@ kmb::TetMeshMIO::loadFromFile(const char* filename,MeshData* mesh)
 			if(i>0){
 				kmb::bodyIdType bodyId = mesh->beginElement(elementCount);
 				mesh->endElement();
-
-
-
+				// move するので offset しない
+				// offset してから元からある要素を move しようとすると
+				// 負の添え字に代入することになる
 				mesh->getBodyPtr(bodyId)->setOffsetId( 0 );
 			}
 			for(unsigned int j=0;j<elementCount;++j){
@@ -175,7 +175,9 @@ kmb::TetMeshMIO::saveToFile(const char* filename, const kmb::MeshData* mesh)
 				elementCountEach[bodyId] += body->getCountByType( kmb::HEXAHEDRON2 );
 				elementCountEach[bodyId] += body->getCountByType( kmb::WEDGE );
 				elementCount += elementCountEach[bodyId];
-				++volumeCount;
+				if( elementCountEach[bodyId] > 0 ){
+					++volumeCount;
+				}
 			}
 		}
 		output << elementCount << std::endl;
@@ -266,11 +268,11 @@ kmb::TetMeshMIO::saveToFile(const char* filename, const kmb::MeshData* mesh)
 			++nIter;
 		}
 		output << volumeCount << std::endl;
-
+		// メッシュが保持する id ではなく、ファイルに出力した順番を出力する
 		kmb::elementIdType elementId = 0;
 		for(kmb::bodyIdType bodyId = 0;bodyId<bodyCount;++bodyId){
 			const kmb::Body* body = mesh->getBodyPtr(bodyId);
-			if( body && body->getCount() > 0 ){
+			if( body && elementCountEach[bodyId] > 0 ){
 				output << elementCountEach[bodyId] << std::endl;
 				kmb::ElementContainer::const_iterator eIter = body->begin();
 				while( eIter != body->end() ){
@@ -290,6 +292,7 @@ kmb::TetMeshMIO::saveToFile(const char* filename, const kmb::MeshData* mesh)
 				}
 			}
 		}
+		delete[] elementCountEach;
 		output.close();
 	}
 	return 0;

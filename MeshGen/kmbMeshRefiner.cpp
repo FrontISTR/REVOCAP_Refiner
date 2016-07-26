@@ -175,8 +175,8 @@ kmb::MeshRefiner::setSecondNodesByBody(kmb::bodyIdType bodyId)
 	}
 }
 
-
-
+// 要素の個数は同じなので、ElementContainer は変えないことに注意
+// Data で更新すべきなのは NodeGroup のみ
 kmb::bodyIdType
 kmb::MeshRefiner::convertToSecondBody(kmb::bodyIdType bodyId)
 {
@@ -184,14 +184,14 @@ kmb::MeshRefiner::convertToSecondBody(kmb::bodyIdType bodyId)
 	if( mesh == NULL || middleMan == NULL || (body = mesh->getBodyPtr( bodyId )) == NULL ){
 		return kmb::Body::nullBodyId;
 	}
-
+	// data pair に refined data のコンテナの登録
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		const kmb::DataBindings* data = dIter->originalData;
 		if( data == NULL ){
 			return kmb::Body::nullBodyId;
 		}
-
+		// 未登録の時にデータベースを作る
 		if( data != NULL && dIter->refinedData == NULL ){
 			if( data->getBindingMode() == kmb::DataBindings::NodeGroup || data->getBindingMode() == kmb::DataBindings::NodeVariable ){
 				dIter->refinedData = kmb::DataBindings::createDataBindings(
@@ -219,8 +219,8 @@ kmb::MeshRefiner::convertToSecondBody(kmb::bodyIdType bodyId)
 			const int ecount = eIter.getEdgeCount();
 			const int vcount = eIter.getVertexCount();
 			for(int i=0;i<ecount;++i){
-
-
+				// 1 次要素の getEdgeCellId で与えられる順番と
+				// 2 次要素の nodes で与える順番は等しいことが保証されている
 				kmb::nodeIdType n0 = eIter.getEdgeCellId(i,0);
 				kmb::nodeIdType n1 = eIter.getEdgeCellId(i,1);
 				kmb::nodeIdType n01 = nodes[vcount+i] = middleMan->getDividedNode( n0, n1 );
@@ -241,7 +241,7 @@ kmb::MeshRefiner::convertToSecondBody(kmb::bodyIdType bodyId)
 			}
 			++eIter;
 			if( !body->deleteElement(id) || body->addElement( secondType, nodes, id ) == kmb::Element::nullElementId ){
-
+				// failure!
 				delete[] nodes;
 				return kmb::Body::nullBodyId;
 			}
@@ -310,15 +310,15 @@ kmb::MeshRefiner::clearData(void)
 void
 kmb::MeshRefiner::commitData(void)
 {
-
+	// dataPairs について original data を refined data に置き換え
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		if( dIter->refinedData ){
 			if( dIter->originalData ){
 				bool res = mesh->replaceData( dIter->originalData, dIter->refinedData, dIter->name.c_str(), dIter->stype.c_str() );
 				if( !res ){
-
-
+					// replaceData できなかった
+					// このとき mesh で getDataBindingPtr で参照されるのは originalData のまま
 					delete dIter->refinedData;
 					dIter->refinedData = NULL;
 				}else{
@@ -326,8 +326,8 @@ kmb::MeshRefiner::commitData(void)
 					dIter->originalData = NULL;
 				}
 			}else{
-
-
+				// original = NULL, refined != NULL の場合（あり得ないけど）
+				// refinedData を name に割り当てておく
 				mesh->setDataBindingsPtr( dIter->name.c_str(), dIter->refinedData, dIter->stype.c_str() );
 			}
 			if( dIter->originalData == NULL ){
@@ -357,8 +357,8 @@ kmb::MeshRefiner::refineBody(kmb::bodyIdType orgBodyId)
 		}
 		mesh->updateBody( bodyId );
 		mesh->setBodyName( bodyId, mesh->getBodyName(orgBodyId) );
-
-
+		// face group の target body id を更新
+		// body group or body variable は書き換え
 		std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 		while( dIter != dataPairs.end() ){
 			if( dIter->refinedData && dIter->refinedData->getBindingMode() == kmb::DataBindings::FaceGroup ){
@@ -379,14 +379,14 @@ kmb::MeshRefiner::refineBody(const kmb::ElementContainer* orgBody, kmb::ElementC
 	if( mesh == NULL || middleMan == NULL || orgBody == NULL ){
 		return 0;
 	}
-
+	// data pair に refined data のコンテナの登録
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		const kmb::DataBindings* data = dIter->originalData;
 		if( data == NULL ){
 			return 0;
 		}
-
+		// 未登録の時にデータベースを作る
 		if( data != NULL && dIter->refinedData == NULL ){
 			dIter->refinedData = kmb::DataBindings::createDataBindings(
 				data->getBindingMode(),
@@ -430,13 +430,13 @@ kmb::MeshRefiner::refineBody(const kmb::ElementContainer* orgBody, kmb::ElementC
 	}
 }
 
-
-
-
-
-
+//
+// [n0,n1]
+// => [n0,n01]
+//    [n01,n1]
+//
 void
-kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, kmb::ElementBase &segment, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, const kmb::ElementBase &segment, kmb::ElementContainer* refinedBody )
 {
 	kmb::nodeIdType nodeTable[2];
 	kmb::elementIdType e[2] = {
@@ -465,8 +465,8 @@ kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, kmb::ElementBase 
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
-
+					// faceGroup の更新
+					// 細分しても SEGMENT の FaceGroup は増えない
 					dIter->refinedData->addId( kmb::Face(e[i],i) );
 				}
 			}
@@ -482,13 +482,13 @@ kmb::MeshRefiner::refineSegment( kmb::elementIdType elementId, kmb::ElementBase 
 	}
 }
 
-
-
-
-
-
+//
+// [n0,n1,n2]
+// => [n0,n2,n02]
+//    [n2,n1,n12]
+//
 void
-kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, kmb::ElementBase &segment2, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, const kmb::ElementBase &segment2, kmb::ElementContainer* refinedBody )
 {
 	kmb::nodeIdType nodeTable[3];
 	kmb::elementIdType e[2] = {
@@ -531,8 +531,8 @@ kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, kmb::ElementBase
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
-
+					// faceGroup の更新
+					// 細分しても SEGMENT の FaceGroup は増えない
 					dIter->refinedData->addId( kmb::Face(e[i],i) );
 				}
 			}
@@ -548,14 +548,14 @@ kmb::MeshRefiner::refineSegment2( kmb::elementIdType elementId, kmb::ElementBase
 	}
 }
 
-
-
-
-
-
-
+// face の順番は親を引き継ぐ
+// [n0,n1,n2]
+// => [n0,n01,n02]
+//    [n01,n1,n12]
+//    [n02,n12,n2]
+//    [n12,n02,n01]
 void
-kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase &triangle, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, const kmb::ElementBase &triangle, kmb::ElementContainer* refinedBody )
 {
 	kmb::nodeIdType nodeTable[3];
 	kmb::elementIdType e[4] = {
@@ -564,9 +564,6 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 		kmb::Element::nullElementId,
 		kmb::Element::nullElementId
 	};
-
-
-
 	kmb::nodeIdType n12 = middleMan->getCenterNode( triangle, 0, elementId );
 	kmb::nodeIdType n02 = middleMan->getCenterNode( triangle, 1, elementId );
 	kmb::nodeIdType n01 = middleMan->getCenterNode( triangle, 2, elementId );
@@ -597,7 +594,7 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
-
+			// Node Group の更新
 			nodeGroupUpdate( triangle.getCellId(0), triangle.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle.getCellId(0), triangle.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle.getCellId(1), triangle.getCellId(2), n12, dIter->originalData, dIter->refinedData );
@@ -605,29 +602,29 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
 			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
-
+			// Node Variable の更新
 			nodeVariableUpdate( triangle.getCellId(0), triangle.getCellId(1), n01, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle.getCellId(0), triangle.getCellId(2), n02, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle.getCellId(1), triangle.getCellId(2), n12, dIter->originalData, dIter->refinedData );
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
-
+			// Face Group の更新
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 					switch(i)
 					{
 					case 0:
-						dIter->refinedData->addId( kmb::Face(e[1],0) );
-						dIter->refinedData->addId( kmb::Face(e[2],0) );
+						dIter->refinedData->addId( kmb::Face(e[1],0) ); // [1,12]
+						dIter->refinedData->addId( kmb::Face(e[2],0) ); // [12,2]
 						break;
 					case 1:
-						dIter->refinedData->addId( kmb::Face(e[2],1) );
-						dIter->refinedData->addId( kmb::Face(e[0],1) );
+						dIter->refinedData->addId( kmb::Face(e[2],1) ); // [2,02]
+						dIter->refinedData->addId( kmb::Face(e[0],1) ); // [02,0]
 						break;
 					case 2:
-						dIter->refinedData->addId( kmb::Face(e[0],2) );
-						dIter->refinedData->addId( kmb::Face(e[1],2) );
+						dIter->refinedData->addId( kmb::Face(e[0],2) ); // [0,01]
+						dIter->refinedData->addId( kmb::Face(e[1],2) ); // [01,1]
 						break;
 					default:
 						break;
@@ -636,7 +633,7 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 			}
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
-
+			// Element Group の更新
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
 					dIter->refinedData->addId( e[i] );
@@ -647,14 +644,14 @@ kmb::MeshRefiner::refineTriangle( kmb::elementIdType elementId, kmb::ElementBase
 	}
 }
 
-
-
-
-
-
-
+// face の順番は親を引き継ぐ
+// [n0,n1,n2,n3,n4,n5]
+// => [n0,n5,n4,n45,n04,n05]
+//    [n5,n1,n3,n13,n35,n15]
+//    [n4,n3,n2,n23,n24,n34]
+//    [n3,n4,n5,n45,n35,n34]
 void
-kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBase &triangle2, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, const kmb::ElementBase &triangle2, kmb::ElementContainer* refinedBody )
 {
 	kmb::nodeIdType nodeTable[6];
 	kmb::elementIdType e[4] = {
@@ -732,7 +729,7 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
-
+			// Node Group の更新
 			nodeGroupUpdate( triangle2.getCellId(0), triangle2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle2.getCellId(0), triangle2.getCellId(5), n05, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( triangle2.getCellId(1), triangle2.getCellId(3), n13, dIter->originalData, dIter->refinedData );
@@ -746,7 +743,7 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
 			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
-
+			// Node Variable の更新
 			nodeVariableUpdate( triangle2.getCellId(0), triangle2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle2.getCellId(0), triangle2.getCellId(5), n05, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( triangle2.getCellId(1), triangle2.getCellId(3), n13, dIter->originalData, dIter->refinedData );
@@ -758,23 +755,23 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 			nodeVariableUpdate( triangle2.getCellId(4), triangle2.getCellId(5), n45, dIter->originalData, dIter->refinedData );
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
-
+			// Face Group の更新
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 					switch(i)
 					{
 					case 0:
-						dIter->refinedData->addId( kmb::Face(e[1],0) );
-						dIter->refinedData->addId( kmb::Face(e[2],0) );
+						dIter->refinedData->addId( kmb::Face(e[1],0) ); // [1,3]
+						dIter->refinedData->addId( kmb::Face(e[2],0) ); // [3,2]
 						break;
 					case 1:
-						dIter->refinedData->addId( kmb::Face(e[2],1) );
-						dIter->refinedData->addId( kmb::Face(e[0],1) );
+						dIter->refinedData->addId( kmb::Face(e[2],1) ); // [2,4]
+						dIter->refinedData->addId( kmb::Face(e[0],1) ); // [4,0]
 						break;
 					case 2:
-						dIter->refinedData->addId( kmb::Face(e[0],2) );
-						dIter->refinedData->addId( kmb::Face(e[1],2) );
+						dIter->refinedData->addId( kmb::Face(e[0],2) ); // [0,5]
+						dIter->refinedData->addId( kmb::Face(e[1],2) ); // [5,1]
 						break;
 					default:
 						break;
@@ -783,7 +780,7 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 			}
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
-
+			// Element Group の更新
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
 					dIter->refinedData->addId( e[i] );
@@ -794,13 +791,13 @@ kmb::MeshRefiner::refineTriangle2( kmb::elementIdType elementId, kmb::ElementBas
 	}
 }
 
-
-
-
-
-
+// [ n0, n1, n2, n3 ]
+// => [n0, n01, c, n30]
+// => [n01, n1, n12, c]
+// => [c, n12, n2, n23]
+// => [n30, c, n23, n3]
 void
-kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &quad, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, const kmb::ElementBase &quad, kmb::ElementContainer* refinedBody )
 {
 	kmb::nodeIdType nodeTable[4];
 	kmb::elementIdType e[4] = {
@@ -844,7 +841,7 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
-
+			// Node Group の更新
 			nodeGroupUpdate( quad, 0, n01, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad, 1, n12, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad, 2, n23, dIter->originalData, dIter->refinedData );
@@ -854,7 +851,7 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
 			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
-
+			// Node Variable の更新
 			nodeVariableUpdate( quad, 0, n01, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad, 1, n12, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad, 2, n23, dIter->originalData, dIter->refinedData );
@@ -862,27 +859,27 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 			nodeVariableUpdate( quad, c, dIter->originalData, dIter->refinedData );
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
-
+			// Face Group の更新
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 					switch(i)
 					{
 					case 0:
-						dIter->refinedData->addId( kmb::Face(e[0],0) );
-						dIter->refinedData->addId( kmb::Face(e[1],0) );
+						dIter->refinedData->addId( kmb::Face(e[0],0) ); // [n0,n01]
+						dIter->refinedData->addId( kmb::Face(e[1],0) ); // [n01,n1]
 						break;
 					case 1:
-						dIter->refinedData->addId( kmb::Face(e[1],1) );
-						dIter->refinedData->addId( kmb::Face(e[2],1) );
+						dIter->refinedData->addId( kmb::Face(e[1],1) ); // [n1,n12]
+						dIter->refinedData->addId( kmb::Face(e[2],1) ); // [n12,n2]
 						break;
 					case 2:
-						dIter->refinedData->addId( kmb::Face(e[2],2) );
-						dIter->refinedData->addId( kmb::Face(e[3],2) );
+						dIter->refinedData->addId( kmb::Face(e[2],2) ); // [n2,n23]
+						dIter->refinedData->addId( kmb::Face(e[3],2) ); // [n23,n3]
 						break;
 					case 3:
-						dIter->refinedData->addId( kmb::Face(e[3],3) );
-						dIter->refinedData->addId( kmb::Face(e[0],3) );
+						dIter->refinedData->addId( kmb::Face(e[3],3) ); // [n3,n30]
+						dIter->refinedData->addId( kmb::Face(e[0],3) ); // [n30,n0]
 						break;
 					default:
 						break;
@@ -891,7 +888,7 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 			}
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
-
+			// Element Group の更新
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
 					dIter->refinedData->addId( e[i] );
@@ -902,13 +899,13 @@ kmb::MeshRefiner::refineQuad( kmb::elementIdType elementId, kmb::ElementBase &qu
 	}
 }
 
-
-
-
-
-
+// [ n0, n1, n2, n3, n4, n5, n6, n7 ]
+// => [n0, n4, c,  n7, n04, n4c, n7c, n07]
+// => [n4, n1, n5, c,  n14, n15, n5c, n4c]
+// => [c,  n5, n2, n6, n5c, n25, n26, n6c]
+// => [n7, c,  n6, n3, n7c, n6c, n36, n37]
 void
-kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &quad2, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, const kmb::ElementBase &quad2, kmb::ElementContainer* refinedBody )
 {
 	kmb::nodeIdType nodeTable[8];
 	kmb::elementIdType e[4] = {
@@ -1006,7 +1003,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 	std::vector< kmb::MeshRefiner::DataPair >::iterator dIter = dataPairs.begin();
 	while( dIter != dataPairs.end() ){
 		if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeGroup ){
-
+			// Node Group の更新
 			nodeGroupUpdate( quad2, c, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad2.getCellId(0), quad2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( quad2.getCellId(1), quad2.getCellId(4), n14, dIter->originalData, dIter->refinedData );
@@ -1024,7 +1021,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 		else if( dIter->originalData->getBindingMode() == kmb::DataBindings::NodeVariable &&
 			dIter->originalData->getValueType() == kmb::PhysicalValue::Integer )
 		{
-
+			// Node Variable の更新
 			nodeVariableUpdate( quad2, c, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad2.getCellId(0), quad2.getCellId(4), n04, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( quad2.getCellId(1), quad2.getCellId(4), n14, dIter->originalData, dIter->refinedData );
@@ -1040,28 +1037,28 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 			nodeVariableUpdate( quad2.getCellId(7), c, n7c, dIter->refinedData, dIter->refinedData );
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
-
+			// Face Group の更新
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
 					switch(i)
 					{
 					case 0:
-						dIter->refinedData->addId( kmb::Face(e[0],0) );
-						dIter->refinedData->addId( kmb::Face(e[1],0) );
+						dIter->refinedData->addId( kmb::Face(e[0],0) ); // [n0,n4,n04]
+						dIter->refinedData->addId( kmb::Face(e[1],0) ); // [n4,n1,n14]
 						break;
 					case 1:
-						dIter->refinedData->addId( kmb::Face(e[1],1) );
-						dIter->refinedData->addId( kmb::Face(e[2],1) );
+						dIter->refinedData->addId( kmb::Face(e[1],1) ); // [n1,n5,n15]
+						dIter->refinedData->addId( kmb::Face(e[2],1) ); // [n5,n2,n25]
 						break;
 					case 2:
-						dIter->refinedData->addId( kmb::Face(e[2],2) );
-						dIter->refinedData->addId( kmb::Face(e[3],2) );
+						dIter->refinedData->addId( kmb::Face(e[2],2) ); // [n2,n6,n26]
+						dIter->refinedData->addId( kmb::Face(e[3],2) ); // [n6,n3,n36]
 
 						break;
 					case 3:
-						dIter->refinedData->addId( kmb::Face(e[3],3) );
-						dIter->refinedData->addId( kmb::Face(e[0],3) );
+						dIter->refinedData->addId( kmb::Face(e[3],3) ); // [n3,n7,n37]
+						dIter->refinedData->addId( kmb::Face(e[0],3) ); // [n7,n0,n07]
 						break;
 					default:
 						break;
@@ -1070,7 +1067,7 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 			}
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::ElementGroup ){
-
+			// Element Group の更新
 			if( dIter->originalData->hasId(elementId) ){
 				for(int i=0;i<4;++i){
 					dIter->refinedData->addId( e[i] );
@@ -1081,22 +1078,22 @@ kmb::MeshRefiner::refineQuad2( kmb::elementIdType elementId, kmb::ElementBase &q
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3 ]
+// => [n0,  n01, n02, n03]
+// => [n01, n1,  n12, n13]
+// => [n02, n12, n2 , n23]
+// => [n03, n13, n23, n3]
+// 残り４つは座標に依存
+// elementId e[0] => n0 についている要素 faceの順番は親を引き継ぐ
+//           e[1] => n1
+//           e[2] => n2
+//           e[3] => n3
+//           ef[0] => face0 についている要素 0番目の面が外側
+//           ef[1] => face1 についている要素 0番目の面が外側
+//           ef[2] => face2 についている要素 0番目の面が外側
+//           ef[3] => face3 についている要素 0番目の面が外側
 void
-kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementBase &tetra, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, const kmb::ElementBase &tetra, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
@@ -1141,15 +1138,15 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 		nodeTable[3] = tetra.getCellId(3);
 		e[3] = refinedBody->addElement( kmb::TETRAHEDRON, nodeTable );
 
-
-
-
-
-		double d01_23 = distanceSqBetweenNodes( n01, n23 );
-		double d02_13 = distanceSqBetweenNodes( n02, n13 );
-		double d03_12 = distanceSqBetweenNodes( n03, n12 );
+		// 内部の４要素の判定
+		// 対角線の一番短いところを辺にする
+		// 対角線を最初の２点にする
+		// 外に面している面を０番目の面にする
+		double d01_23 = mesh->getNodes()->distanceSq( n01, n23 );
+		double d02_13 = mesh->getNodes()->distanceSq( n02, n13 );
+		double d03_12 = mesh->getNodes()->distanceSq( n03, n12 );
 		if( d03_12 <= d01_23 && d03_12 <= d02_13 ){
-
+			// 03 -- 12
 
 			nodeTable[0] = n03;
 			nodeTable[1] = n12;
@@ -1176,7 +1173,7 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 			ef[3] = refinedBody->addElement( kmb::TETRAHEDRON, nodeTable );
 
 		}else if( d02_13 <= d01_23 && d02_13 <= d03_12 ){
-
+			// 02 -- 13
 
 			nodeTable[0] = n02;
 			nodeTable[1] = n13;
@@ -1203,7 +1200,7 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 			ef[3] = refinedBody->addElement( kmb::TETRAHEDRON, nodeTable );
 
 		}else{
-
+			// 01 -- 23
 
 			nodeTable[0] = n01;
 			nodeTable[1] = n23;
@@ -1257,7 +1254,7 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
+					// faceGroup の更新
 					for(int j=0;j<4;++j){
 						if( i == j ){
 							dIter->refinedData->addId( kmb::Face(ef[i],0) );
@@ -1280,23 +1277,23 @@ kmb::MeshRefiner::refineTetrahedron( kmb::elementIdType elementId, kmb::ElementB
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3, n4, n5, n6, n7, n8, n9 ]
+// => [n0, n6, n5, n7, n56, n05, n06, n07, n67, n57]
+// => [n6, n1, n4, n8, n14, n46, n16, n68, n18, n48]
+// => [n5, n4, n2, n9, n24, n25, n45, n59, n49, n29]
+// => [n7, n8, n9, n3, n89, n79, n78, n37, n38, n39]
+// 残り４つは座標に依存
+// 8面体の対角線の中点を c とする
+// elementId e[0] => n0 についている要素 faceの順番は親を引き継ぐ
+//           e[1] => n1
+//           e[2] => n2
+//           e[3] => n3
+//           ef[0] => face0 についている要素 0番目の面が外側
+//           ef[1] => face1 についている要素 0番目の面が外側
+//           ef[2] => face2 についている要素 0番目の面が外側
+//           ef[3] => face3 についている要素 0番目の面が外側
 void
-kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::ElementBase &tetra2, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, const kmb::ElementBase &tetra2, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[4] = {
 		kmb::Element::nullElementId,
@@ -1443,24 +1440,24 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 		nodeTable[9] = n39;
 		e[3] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-
-
-
-
-
-
-
-		double d4_7 = distanceSqBetweenNodes( tetra2.getCellId(4), tetra2.getCellId(7) );
-		double d5_8 = distanceSqBetweenNodes( tetra2.getCellId(5), tetra2.getCellId(8) );
-		double d6_9 = distanceSqBetweenNodes( tetra2.getCellId(6), tetra2.getCellId(9) );
+		// 内部の４要素の判定
+		// 対角線の一番短いところを辺にする
+		// 対角線を最初の２点にする
+		// 外に面している面を０番目の面にする
+		// 4 = [12] 7 = [03]
+		// 5 = [02] 8 = [13]
+		// 6 = [01] 9 = [23]
+		double d4_7 = mesh->getNodes()->distanceSq( tetra2[4], tetra2[7] );
+		double d5_8 = mesh->getNodes()->distanceSq( tetra2[5], tetra2[8] );
+		double d6_9 = mesh->getNodes()->distanceSq( tetra2[6], tetra2[9] );
 		if( d4_7 <= d5_8 && d4_7 <= d6_9 ){
-
+			// 4 -- 7 = 12 -- 03
 			n47 = middleMan->getDividedNode( tetra2.getCellId(4), tetra2.getCellId(7) );
 
-			nodeTable[0] = tetra2.getCellId(7);
-			nodeTable[1] = tetra2.getCellId(4);
-			nodeTable[2] = tetra2.getCellId(9);
-			nodeTable[3] = tetra2.getCellId(8);
+			nodeTable[0] = tetra2.getCellId(7); // 03
+			nodeTable[1] = tetra2.getCellId(4); // 12
+			nodeTable[2] = tetra2.getCellId(9); // 23
+			nodeTable[3] = tetra2.getCellId(8); // 13
 			nodeTable[4] = n49;
 			nodeTable[5] = n79;
 			nodeTable[6] = n47;
@@ -1469,10 +1466,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n89;
 			ef[0] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(4);
-			nodeTable[1] = tetra2.getCellId(7);
-			nodeTable[2] = tetra2.getCellId(9);
-			nodeTable[3] = tetra2.getCellId(5);
+			nodeTable[0] = tetra2.getCellId(4); // 12
+			nodeTable[1] = tetra2.getCellId(7); // 03
+			nodeTable[2] = tetra2.getCellId(9); // 23
+			nodeTable[3] = tetra2.getCellId(5); // 02
 			nodeTable[4] = n79;
 			nodeTable[5] = n49;
 			nodeTable[6] = n47;
@@ -1481,10 +1478,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n59;
 			ef[1] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(4);
-			nodeTable[1] = tetra2.getCellId(7);
-			nodeTable[2] = tetra2.getCellId(6);
-			nodeTable[3] = tetra2.getCellId(8);
+			nodeTable[0] = tetra2.getCellId(4); // 12
+			nodeTable[1] = tetra2.getCellId(7); // 03
+			nodeTable[2] = tetra2.getCellId(6); // 01
+			nodeTable[3] = tetra2.getCellId(8); // 13
 			nodeTable[4] = n67;
 			nodeTable[5] = n46;
 			nodeTable[6] = n47;
@@ -1493,10 +1490,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n68;
 			ef[2] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(7);
-			nodeTable[1] = tetra2.getCellId(4);
-			nodeTable[2] = tetra2.getCellId(6);
-			nodeTable[3] = tetra2.getCellId(5);
+			nodeTable[0] = tetra2.getCellId(7); // 03
+			nodeTable[1] = tetra2.getCellId(4); // 12
+			nodeTable[2] = tetra2.getCellId(6); // 01
+			nodeTable[3] = tetra2.getCellId(5); // 02
 			nodeTable[4] = n46;
 			nodeTable[5] = n67;
 			nodeTable[6] = n47;
@@ -1506,13 +1503,13 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			ef[3] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
 		}else if( d5_8 <= d4_7 && d5_8 <= d6_9 ){
-
+			// 5 -- 8 == 02 -- 13
 			n58 = middleMan->getDividedNode( tetra2.getCellId(5), tetra2.getCellId(8) );
 
-			nodeTable[0] = tetra2.getCellId(5);
-			nodeTable[1] = tetra2.getCellId(8);
-			nodeTable[2] = tetra2.getCellId(4);
-			nodeTable[3] = tetra2.getCellId(9);
+			nodeTable[0] = tetra2.getCellId(5); // 02
+			nodeTable[1] = tetra2.getCellId(8); // 13
+			nodeTable[2] = tetra2.getCellId(4); // 12
+			nodeTable[3] = tetra2.getCellId(9); // 23
 			nodeTable[4] = n48;
 			nodeTable[5] = n45;
 			nodeTable[6] = n58;
@@ -1521,10 +1518,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n49;
 			ef[0] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(8);
-			nodeTable[1] = tetra2.getCellId(5);
-			nodeTable[2] = tetra2.getCellId(7);
-			nodeTable[3] = tetra2.getCellId(9);
+			nodeTable[0] = tetra2.getCellId(8); // 13
+			nodeTable[1] = tetra2.getCellId(5); // 02
+			nodeTable[2] = tetra2.getCellId(7); // 03
+			nodeTable[3] = tetra2.getCellId(9); // 23
 			nodeTable[4] = n57;
 			nodeTable[5] = n78;
 			nodeTable[6] = n58;
@@ -1533,10 +1530,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n79;
 			ef[1] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(5);
-			nodeTable[1] = tetra2.getCellId(8);
-			nodeTable[2] = tetra2.getCellId(7);
-			nodeTable[3] = tetra2.getCellId(6);
+			nodeTable[0] = tetra2.getCellId(5); // 02
+			nodeTable[1] = tetra2.getCellId(8); // 13
+			nodeTable[2] = tetra2.getCellId(7); // 03
+			nodeTable[3] = tetra2.getCellId(6); // 01
 			nodeTable[4] = n78;
 			nodeTable[5] = n57;
 			nodeTable[6] = n58;
@@ -1545,10 +1542,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n67;
 			ef[2] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(8);
-			nodeTable[1] = tetra2.getCellId(5);
-			nodeTable[2] = tetra2.getCellId(4);
-			nodeTable[3] = tetra2.getCellId(6);
+			nodeTable[0] = tetra2.getCellId(8); // 13
+			nodeTable[1] = tetra2.getCellId(5); // 02
+			nodeTable[2] = tetra2.getCellId(4); // 12
+			nodeTable[3] = tetra2.getCellId(6); // 01
 			nodeTable[4] = n45;
 			nodeTable[5] = n48;
 			nodeTable[6] = n58;
@@ -1558,13 +1555,13 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			ef[3] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
 		}else{
-
+			// 6 -- 9 == 01 -- 23
 			n69 = middleMan->getDividedNode( tetra2.getCellId(6), tetra2.getCellId(9) );
 
-			nodeTable[0] = tetra2.getCellId(6);
-			nodeTable[1] = tetra2.getCellId(9);
-			nodeTable[2] = tetra2.getCellId(8);
-			nodeTable[3] = tetra2.getCellId(4);
+			nodeTable[0] = tetra2.getCellId(6); // 01
+			nodeTable[1] = tetra2.getCellId(9); // 23
+			nodeTable[2] = tetra2.getCellId(8); // 13
+			nodeTable[3] = tetra2.getCellId(4); // 12
 			nodeTable[4] = n89;
 			nodeTable[5] = n68;
 			nodeTable[6] = n69;
@@ -1573,10 +1570,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n48;
 			ef[0] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(6);
-			nodeTable[1] = tetra2.getCellId(9);
-			nodeTable[2] = tetra2.getCellId(5);
-			nodeTable[3] = tetra2.getCellId(7);
+			nodeTable[0] = tetra2.getCellId(6); // 01
+			nodeTable[1] = tetra2.getCellId(9); // 23
+			nodeTable[2] = tetra2.getCellId(5); // 02
+			nodeTable[3] = tetra2.getCellId(7); // 03
 			nodeTable[4] = n59;
 			nodeTable[5] = n56;
 			nodeTable[6] = n69;
@@ -1585,10 +1582,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n57;
 			ef[1] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(9);
-			nodeTable[1] = tetra2.getCellId(6);
-			nodeTable[2] = tetra2.getCellId(8);
-			nodeTable[3] = tetra2.getCellId(7);
+			nodeTable[0] = tetra2.getCellId(9); // 23
+			nodeTable[1] = tetra2.getCellId(6); // 01
+			nodeTable[2] = tetra2.getCellId(8); // 13
+			nodeTable[3] = tetra2.getCellId(7); // 03
 			nodeTable[4] = n68;
 			nodeTable[5] = n89;
 			nodeTable[6] = n69;
@@ -1597,10 +1594,10 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeTable[9] = n78;
 			ef[2] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-			nodeTable[0] = tetra2.getCellId(9);
-			nodeTable[1] = tetra2.getCellId(6);
-			nodeTable[2] = tetra2.getCellId(5);
-			nodeTable[3] = tetra2.getCellId(4);
+			nodeTable[0] = tetra2.getCellId(9); // 23
+			nodeTable[1] = tetra2.getCellId(6); // 01
+			nodeTable[2] = tetra2.getCellId(5); // 02
+			nodeTable[3] = tetra2.getCellId(4); // 12
 			nodeTable[4] = n56;
 			nodeTable[5] = n59;
 			nodeTable[6] = n69;
@@ -1641,7 +1638,7 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeGroupUpdate( tetra2.getCellId(7), tetra2.getCellId(8), n78, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra2.getCellId(7), tetra2.getCellId(9), n79, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra2.getCellId(8), tetra2.getCellId(9), n89, dIter->originalData, dIter->refinedData );
-
+			// どれか一つだけ有効
 			nodeGroupUpdate( tetra2.getCellId(4), tetra2.getCellId(7), n47, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra2.getCellId(5), tetra2.getCellId(8), n58, dIter->originalData, dIter->refinedData );
 			nodeGroupUpdate( tetra2.getCellId(6), tetra2.getCellId(9), n69, dIter->originalData, dIter->refinedData );
@@ -1674,7 +1671,7 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			nodeVariableUpdate( tetra2.getCellId(7), tetra2.getCellId(8), n78, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra2.getCellId(7), tetra2.getCellId(9), n79, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra2.getCellId(8), tetra2.getCellId(9), n89, dIter->originalData, dIter->refinedData );
-
+			// どれか一つだけ有効
 			nodeVariableUpdate( tetra2.getCellId(4), tetra2.getCellId(7), n47, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra2.getCellId(5), tetra2.getCellId(8), n58, dIter->originalData, dIter->refinedData );
 			nodeVariableUpdate( tetra2.getCellId(6), tetra2.getCellId(9), n69, dIter->originalData, dIter->refinedData );
@@ -1683,7 +1680,7 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
+					// faceGroup の更新
 					for(int j=0;j<4;++j){
 						if( i == j ){
 							dIter->refinedData->addId( kmb::Face(ef[i],0) );
@@ -1706,18 +1703,18 @@ kmb::MeshRefiner::refineTetrahedron2( kmb::elementIdType elementId, kmb::Element
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3, n4, n5, n6, n7 ]
+// => [n0,  n01, nf0, n03, n04, nf2, c,   nf5]
+// => [n01,  n1, n12, nf0, nf2, n15, nf3, c  ]
+// => [nf0, n12, n2,  n23, c,   nf3, n26, nf4]
+// => [n30, nf0, n23, n3,  nf5, c,   nf4, n37]
+// => [n04, nf2, c,   nf5, n4,  n54, nf1, n47]
+// => [nf2, n15, nf3, c,   n45, n5,  n56, nf1]
+// => [c,   nf3, n26, nf4, nf1, n56, n6,  n67]
+// => [nf5, c,   nf4, n37, n47, nf1, n67, n7 ]
+// face の順番は親を引き継ぐ
 void
-kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBase &hexa, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, const kmb::ElementBase &hexa, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
@@ -1739,23 +1736,23 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 		kmb::nullNodeId,
 		kmb::nullNodeId
 	};
-
+	// 12 = kmb::Element::getEdgeCount( kmb::HEXAHEDRON )
 	kmb::nodeIdType ne[12];
 	for(int i=0;i<12;++i){
 		ne[i] = middleMan->getDividedNode( hexa.getEdgeCellId(i,0), hexa.getEdgeCellId(i,1) );
 	}
-
-
-
-
-
-
-
-
-
-
-
-
+	// ne[0] = n01
+	// ne[1] = n12
+	// ne[2] = n23
+	// ne[3] = n03
+	// ne[4] = n45
+	// ne[5] = n56
+	// ne[6] = n67
+	// ne[7] = n47
+	// ne[8] = n04
+	// ne[9] = n15
+	// ne[10] = n26
+	// ne[11] = n37
 	kmb::nodeIdType nf0 = middleMan->getCenterNode( hexa, 0, elementId );
 	kmb::nodeIdType nf1 = middleMan->getCenterNode( hexa, 1, elementId );
 	kmb::nodeIdType nf2 = middleMan->getCenterNode( hexa, 2, elementId );
@@ -1880,10 +1877,10 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
+					// faceGroup の更新
 					for(int j=0;j<4;++j){
-
-
+						// e の順番は元の節点を含むように作ってあるので
+						// face の頂点番号を e の添字に使えばよい
 						int index = kmb::Hexahedron::faceTable[i][j];
 						dIter->refinedData->addId( kmb::Face(e[index],i) );
 					}
@@ -1901,18 +1898,18 @@ kmb::MeshRefiner::refineHexahedron( kmb::elementIdType elementId, kmb::ElementBa
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14, n15, n16, n17, n18, n19 ]
+// => [n0,  n8,  nf0, n11, n16, nf2, c,   nf5, n0_8, nf0_8, nf0_11, n0_11, nf2_16, nf2_c, nf5_c, nf5_16, n0_16, nf2_8, nf0_c, nf5_11]
+// => [n8,  n1,  n9,  nf0, nf2, n17, nf3, c  , n1_8, n1_9, nf0_9, nf0_8, nf2_17, nf3_17, nf3_c, nf2_c, nf2_8, n1_17, nf3_9, nf0_c]
+// => [nf0, n9,  n2,  n10, c,   nf3, n18, nf4, nf0_9, n2_9, n2_10, nf0_10, nf3_c, nf3_18, nf4_18, nf4_c, nf0_c, nf3_9, n2_18, nf4_10]
+// => [n11, nf0, n10, n3,  nf5, c,   nf4, n19, nf0_11, nf0_10, n3_10, n3_11, nf5_c, nf4_c, nf4_19, nf5_19, nf5_11, nf0_c, nf4_10, n3_19]
+// => [n16, nf2, c,   nf5, n4,  n12, nf1, n15, nf2_16, nf2_c, nf5_c, nf5_16, n4_12, nf1_12, nf1_15, n4_15, n4_16, nf2_12, nf1_c, nf5_15]
+// => [nf2, n17, nf3, c,   n12, n5,  n13, nf1, nf2_17, nf3_17, nf3_c, nf2_c, n5_12, n5_13, nf1_13, nf1_12, nf2_12, n5_17, nf3_13, nf1_c]
+// => [c,   nf3, n18, nf4, nf1, n13, n6,  n14, nf3_c, nf3_18, nf4_18, nf4_c, nf1_13, n6_13, n6_14, nf1_14, nf1_c, nf3_13, n6_18, nf4_14]
+// => [nf5, c,   nf4, n19, n15, nf1, n14, n7,  nf5_c, nf4_c, nf4_19, nf5_19, nf1_15, nf1_14, n7_14, n7_15, nf5_15, nf1_c, nf4_14, n7_19]
+// face の順番は親を引き継ぐように並び替える
 void
-kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementBase &hexa2, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, const kmb::ElementBase &hexa2, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
@@ -1946,22 +1943,22 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 		kmb::nullNodeId,
 		kmb::nullNodeId
 	};
-
+	// 12 = kmb::Element::getEdgeCount( kmb::HEXAHEDRON2 )
 	kmb::nodeIdType ne0[12];
 	kmb::nodeIdType ne1[12];
 
-
-
-
-
-
-
-
-
-
-
-
-
+	// ne0[0] = n0_8   ne1[0] = n8_1
+	// ne0[1] = n1_9   ne1[1] = n9_2
+	// ne0[2] = n2_10  ne1[2] = n10_3
+	// ne0[3] = n0_11  ne1[3] = n11_3
+	// ne0[4] = n4_12  ne1[4] = n12_5
+	// ne0[5] = n5_13  ne1[5] = n13_6
+	// ne0[6] = n6_14  ne1[6] = n14_7
+	// ne0[7] = n4_15  ne1[7] = n15_7
+	// ne0[8] = n0_16  ne1[8] = n16_4
+	// ne0[9] = n1_17  ne1[9] = n17_5
+	// ne0[10] = n2_18 ne1[10] = n18_6
+	// ne0[11] = n3_19 ne1[11] = n19_7
 	kmb::nodeIdType nf0 = kmb::nullNodeId;
 	kmb::nodeIdType nf1 = kmb::nullNodeId;
 	kmb::nodeIdType nf2 = kmb::nullNodeId;
@@ -2421,10 +2418,10 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
+					// faceGroup の更新
 					for(int j=0;j<4;++j){
-
-
+						// e の順番は元の節点を含むように作ってあるので
+						// face の頂点番号を e の添字に使えばよい
 						int index = kmb::Hexahedron2::faceTable[i][j];
 						dIter->refinedData->addId( kmb::Face(e[index],i) );
 					}
@@ -2442,31 +2439,31 @@ kmb::MeshRefiner::refineHexahedron2( kmb::elementIdType elementId, kmb::ElementB
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3, n4, n5 ]
+// => [ n0,  ne2, ne1, ne6, nf2, nf4 ]
+// => [ ne2, n1,  ne0, nf2, ne7, nf3 ]
+// => [ ne1, ne0, n2,  nf4, nf3, ne8 ]
+// => [ ne6, nf2, nf4, n3,  ne5, ne4 ]
+// => [ nf2, ne7, nf3, ne5, n4,  ne3 ]
+// => [ nf4, nf3, ne8, ne4, ne3, n5  ]
+// => [ ne2, ne0, ne1, nf2, nf3, nf4 ]
+// => [ ne5, ne4, ne3, nf2, nf4, nf3 ]
+// face の順番が親を引き継ぐように並び替える（最後の2個を除く）
+// 最後の2個は 0 番目の面が外側をむいている
+// nf2 = n0143
+// nf3 = n1254
+// nf4 = n2035
+// ne0 = n12
+// ne1 = n02
+// ne2 = n01
+// ne3 = n45
+// ne4 = n35
+// ne5 = n34
+// ne6 = n03
+// ne7 = n14
+// ne8 = n25
 void
-kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &wedge, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, const kmb::ElementBase &wedge, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
@@ -2486,7 +2483,7 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 		kmb::nullNodeId,
 		kmb::nullNodeId
 	};
-
+	// 9 = kmb::Element::getEdgeCount( kmb::WEDGE )
 	kmb::nodeIdType ne[9];
 	for(int i=0;i<9;++i){
 		ne[i] = middleMan->getDividedNode( wedge.getEdgeCellId(i,0), wedge.getEdgeCellId(i,1) );
@@ -2586,8 +2583,8 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
-
+					// faceGroup の更新
+					// 頂点番号と細分した要素の添え字が一致するようにしている
 					int faceVertexCount = kmb::Element::getBoundaryVertexCount( kmb::WEDGE, i );
 					for(int j=0;j<faceVertexCount;++j){
 						int index = kmb::Wedge::faceTable[i][j];
@@ -2612,30 +2609,30 @@ kmb::MeshRefiner::refineWedge( kmb::elementIdType elementId, kmb::ElementBase &w
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12, n13, n14 ]
+// => [ n0,  n8,  n7,  n12, nf2, nf4, n7_8, ne01, ne02, nf2_f4, nf4_12, nf2_12, ne06, nf2_8, nf4_7]
+// => [ n8,  n1,  n6,  nf2, n13, nf3, ne00, n6_8, ne12, nf3_13, nf2_f3, nf2_13, nf2_8, ne07, nf3_6]
+// => [ n7,  n6,  n2,  nf4, nf3, n14, ne10, ne11, n6_7, nf3_14, nf4_14, nf3_f4, nf4_7, nf3_6, ne08]
+// => [ n12, nf2, nf4, n3,  n11, n10, nf2_f4, nf4_12, nf2_12, n10_11, ne04, ne05, ne16, nf2_11, nf4_10]
+// => [ nf2, n13, nf3, n11, n4,  n9,  nf3_13, nf2_f3, nf2_13, ne03, n9_11, ne15, nf2_11, ne17, nf3_9]
+// => [ nf4, nf3, n14, n10, n9 , n5,  nf3_14, nf4_14, nf3_f4, ne13, ne14, n9_10, nf4_10, nf3_9, ne18]
+// => [ n8,  n6,  n7,  nf2, nf3, nf4, n6_7, n7_8, n6_8, nf3_f4, nf2_f4, nf2_f3, nf2_8, nf3_6, nf4_7]
+// => [ n11, n10, n9,  nf2, nf4, nf3, n9_10, n9_11, n10_11, nf3_f4, nf2_f3, nf2_f4, nf2_11, nf4_10, nf3_9]
+// face の順番が親を引き継ぐように並び替える（最後の2個を除く）
+// nf2 = n0143
+// nf3 = n1254
+// nf4 = n2035
+// ne0_0 = n16  ne1_0 = n26
+// ne0_1 = n07  ne1_1 = n27
+// ne0_2 = n08  ne1_2 = n18
+// ne0_3 = n49  ne1_3 = n59
+// ne0_4 = n310 ne1_4 = n510
+// ne0_5 = n311 ne1_5 = n411
+// ne0_6 = n012 ne1_6 = n312
+// ne0_7 = n113 ne1_7 = n413
+// ne0_8 = n214 ne1_8 = n514
 void
-kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &wedge2, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, const kmb::ElementBase &wedge2, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[8] = {
 		kmb::Element::nullElementId,
@@ -2664,7 +2661,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		kmb::nullNodeId,
 		kmb::nullNodeId
 	};
-
+	// 9 = kmb::Element::getEdgeCount( kmb::WEDGE )
 	kmb::nodeIdType ne0[9];
 	kmb::nodeIdType ne1[9];
 	kmb::nodeIdType nf2 = kmb::nullNodeId;
@@ -2788,7 +2785,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		nodeTable[14] = nf4_7;
 		e[0] = refinedBody->addElement( kmb::WEDGE2, nodeTable );
 
-
+// => [ n8,  n1,  n6,  nf2, n13, nf3, ne00, n6_8, ne12, nf3_13, nf2_f3, nf2_13, nf2_8, ne07, nf3_6]
 		nodeTable[0] = wedge2.getCellId(8);
 		nodeTable[1] = wedge2.getCellId(1);
 		nodeTable[2] = wedge2.getCellId(6);
@@ -2806,7 +2803,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		nodeTable[14] = nf3_6;
 		e[1] = refinedBody->addElement( kmb::WEDGE2, nodeTable );
 
-
+// => [ n7,  n6,  n2,  nf4, nf3, n14, ne10, ne11, n6_7, nf3_14, nf4_14, nf3_f4, nf4_7, nf3_6, ne08]
 		nodeTable[0] = wedge2.getCellId(7);
 		nodeTable[1] = wedge2.getCellId(6);
 		nodeTable[2] = wedge2.getCellId(2);
@@ -2824,7 +2821,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		nodeTable[14] = ne0[8];
 		e[2] = refinedBody->addElement( kmb::WEDGE2, nodeTable );
 
-
+// => [ n12, nf2, nf4, n3,  n11, n10, nf2_f4, nf4_12, nf2_12, n10_11, ne04, ne05, ne16, nf2_11, nf4_10]
 		nodeTable[0] = wedge2.getCellId(12);
 		nodeTable[1] = nf2;
 		nodeTable[2] = nf4;
@@ -2842,7 +2839,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		nodeTable[14] = nf4_10;
 		e[3] = refinedBody->addElement( kmb::WEDGE2, nodeTable );
 
-
+// => [ nf2, n13, nf3, n11, n4,  n9,  nf3_13, nf2_f3, nf2_13, ne03, n9_11, ne15, nf2_11, ne17, nf3_9]
 		nodeTable[0] = nf2;
 		nodeTable[1] = wedge2.getCellId(13);
 		nodeTable[2] = nf3;
@@ -2860,7 +2857,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		nodeTable[14] = nf3_9;
 		e[4] = refinedBody->addElement( kmb::WEDGE2, nodeTable );
 
-
+// => [ nf4, nf3, n14, n10, n9 , n5,  nf3_14, nf4_14, nf3_f4, ne13, ne14, n9_10, nf4_10, nf3_9, ne18]
 		nodeTable[0] = nf4;
 		nodeTable[1] = nf3;
 		nodeTable[2] = wedge2.getCellId(14);
@@ -2878,7 +2875,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		nodeTable[14] = ne1[8];
 		e[5] = refinedBody->addElement( kmb::WEDGE2, nodeTable );
 
-
+// => [ n8,  n6,  n7,  nf2, nf3, nf4, n6_7, n7_8, n6_8, nf3_f4, nf2_f4, nf2_f3, nf2_8, nf3_6, nf4_7]
 		nodeTable[0] = wedge2.getCellId(8);
 		nodeTable[1] = wedge2.getCellId(6);
 		nodeTable[2] = wedge2.getCellId(7);
@@ -2896,7 +2893,7 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 		nodeTable[14] = nf4_7;
 		e[6] = refinedBody->addElement( kmb::WEDGE2, nodeTable );
 
-
+// => [ n11, n10, n9,  nf2, nf4, nf3, n9_10, n9_11, n10_11, nf3_f4, nf2_f3, nf2_f4, nf2_11, nf4_10, nf3_9]
 		nodeTable[0] = wedge2.getCellId(11);
 		nodeTable[1] = wedge2.getCellId(10);
 		nodeTable[2] = wedge2.getCellId(9);
@@ -2998,8 +2995,8 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 			for(int i=0;i<faceNum;++i){
 				kmb::Face f(elementId, i);
 				if( dIter->originalData->hasId( f ) ){
-
-
+					// faceGroup の更新
+					// 頂点番号と細分した要素の添え字が一致するようにしている
 					int faceVertexCount = kmb::Element::getBoundaryVertexCount( kmb::WEDGE2, i );
 					for(int j=0;j<faceVertexCount;++j){
 						int index = kmb::Wedge::faceTable[i][j];
@@ -3024,29 +3021,29 @@ kmb::MeshRefiner::refineWedge2( kmb::elementIdType elementId, kmb::ElementBase &
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3, n4 ]
+// => [ n0,  ne0, ne1, ne2, ne3 ]
+// => [ ne0, n1,  ne4, nf4, ne7 ]
+// => [ ne1, ne4, n2,  ne5, nf4 ]
+// => [ ne2, nf4, ne5, n3,  ne6 ]
+// => [ ne3, ne7, nf4, ne6, n4  ]
+// => [ nf4, ne0, ne4, ne1 ] => [ne0,ne4,ne1] が0番目の面
+// => [ ne1, nf4, ne2, ne5 ] => [ne1,ne5,ne2] が1番目の面
+// => [ ne2, ne6, nf4, ne3 ] => [ne2,ne6,ne3] が2番目の面
+// => [ ne3, ne0, ne7, nf4 ] => [ne3,ne7,ne0] が3番目の面
+// => [ nf4, ne3, ne2, ne1, ne0 ] => 外側を向いている面はない
+// face の順番が親を引き継ぐように並び替えている
+// nf4 => n1234
+// ne0 => n01
+// ne1 => n02
+// ne2 => n03
+// ne3 => n04
+// ne4 => n12
+// ne5 => n23
+// ne6 => n34
+// ne7 => n14
 void
-kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase &pyramid, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, const kmb::ElementBase &pyramid, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[10] = {
 		kmb::Element::nullElementId,
@@ -3067,7 +3064,7 @@ kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase 
 		kmb::nullNodeId,
 		kmb::nullNodeId
 	};
-
+	// 8 = kmb::Element::getEdgeCount( kmb::PYRAMID )
 	kmb::nodeIdType ne[8];
 	for(int i=0;i<8;++i){
 		ne[i] = middleMan->getDividedNode( pyramid.getEdgeCellId(i,0), pyramid.getEdgeCellId(i,1) );
@@ -3159,7 +3156,7 @@ kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase 
 			}
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
-
+			// faceGroup の更新
 			kmb::Face f0(elementId,0);
 			kmb::Face f1(elementId,1);
 			kmb::Face f2(elementId,2);
@@ -3207,29 +3204,29 @@ kmb::MeshRefiner::refinePyramid( kmb::elementIdType elementId, kmb::ElementBase 
 	}
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// [ n0, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12 ]
+// => [ n0,  n5,  n6,  n7,  n8,  ne00,  ne01,  ne02,  ne03,  n5_6,   n6_7,   n7_8,   n5_8  ]
+// => [ n5,  n1,  n9,  nf4, n12, ne10,  n5_9,  nf4_5, n5_12, ne04,   nf4_9,  nf4_12, ne07  ]
+// => [ n6,  n9,  n2,  n10, nf4, n6_9,  ne11,  n6_10, nf4_6, ne14,   ne05,   nf4_10, nf4_9 ]
+// => [ n7,  nf4, n10, n3,  n11, nf4_7, n7_10, ne12,  n7_11, nf4_10, ne15,   ne06,   nf4_11]
+// => [ n8,  n12, nf4, n11, n4,  n8_12, nf4_8, n8_11, ne13 , nf4_12, nf4_11, ne16,   ne17 ]
+// => [ nf4, n5 , n9,  n6,  n5_9,   nf4_9, nf4_5, nf4_6, n5_6,   n6_9   ] => [n5,n9,n6] が0番目の面
+// => [ n6,  nf4, n7,  n10, nf4_7,  n6_7,  nf4_6, n6_10, nf4_10, n7_10  ] => [n6,n10,n7] が1番目の面
+// => [ n7,  n11, nf4, n8,  nf4_11, nf4_7, n7_11, n7_8,  n8_11,  nf4_8  ] => [n7,n11,n8] が2番目の面
+// => [ n8,  n5,  n12, nf4, n5_12,  n8_12, n5_8,  nf4_8, nf4_5,  nf4_12 ] => [n8,n12,n5] が3番目の面
+// => [ nf4, n8,  n7,  n6, n5, nf4_8, nf4_7, nf4_6, nf4_5, n7_8, n6_7, n5_6, n5_8 ] => 外側を向いている面はない
+// face の順番が親を引き継ぐように並び替えている
+// nf4 => n1234
+// ne0 => n5    ne00 => n0_5  ne10 => n1_5
+// ne1 => n6    ne01 => n0_6  ne11 => n2_6
+// ne2 => n7    ne02 => n0_7  ne12 => n3_7
+// ne3 => n8    ne03 => n0_8  ne13 => n4_8
+// ne4 => n9    ne04 => n1_9  ne14 => n2_9
+// ne5 => n10   ne05 => n2_10 ne15 => n3_10
+// ne6 => n11   ne06 => n3_11 ne16 => n4_11
+// ne7 => n12   ne07 => n1_12 ne17 => n4_12
 void
-kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase &pyramid2, kmb::ElementContainer* refinedBody )
+kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, const kmb::ElementBase &pyramid2, kmb::ElementContainer* refinedBody )
 {
 	kmb::elementIdType e[10] = {
 		kmb::Element::nullElementId,
@@ -3258,7 +3255,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		kmb::nullNodeId,
 		kmb::nullNodeId
 	};
-
+	// 8 = kmb::Element::getEdgeCount( kmb::PYRAMID2 )
 	kmb::nodeIdType ne0[8];
 	kmb::nodeIdType ne1[8];
 	kmb::nodeIdType nf4 = kmb::nullNodeId;
@@ -3303,8 +3300,8 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nf4_11 = middleMan->getDividedNode3( pyramid2[11], nf4, pyramid2[9] );
 		nf4_12 = middleMan->getDividedNode3( pyramid2[12], nf4, pyramid2[10] );
 
-
-
+		// 実際には形状関数が三角形２次要素と一致していないのでおかしい
+		// n5_6 n6_7 n7_8 n5_8 だけ正しい
 		n5_6 = middleMan->getDividedNode5( pyramid2[5], pyramid2[6], pyramid2[1], pyramid2[2], pyramid2[9] );
 		n5_9 = middleMan->getDividedNode5( pyramid2[5], pyramid2[9], pyramid2[0], pyramid2[2], pyramid2[6] );
 		n6_9 = middleMan->getDividedNode5( pyramid2[6], pyramid2[9], pyramid2[0], pyramid2[1], pyramid2[5] );
@@ -3353,7 +3350,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 	}
 
 	if( refinedBody ){
-
+// => [ n0,  n5,  n6,  n7,  n8,  ne00,  ne01,  ne02,  ne03,  n5_6,   n6_7,   n7_8,   n5_8  ]
 		nodeTable[0] = pyramid2.getCellId(0);
 		nodeTable[1] = pyramid2.getCellId(5);
 		nodeTable[2] = pyramid2.getCellId(6);
@@ -3369,7 +3366,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[12] = n5_8;
 		e[0] = refinedBody->addElement( kmb::PYRAMID2, nodeTable );
 
-
+// => [ n5,  n1,  n9,  nf4, n12, ne10,  n5_9,  nf4_5, n5_12, ne04,   nf4_9,  nf4_12, ne07  ]
 		nodeTable[0] = pyramid2.getCellId(5);
 		nodeTable[1] = pyramid2.getCellId(1);
 		nodeTable[2] = pyramid2.getCellId(9);
@@ -3385,7 +3382,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[12] = ne0[7];
 		e[1] = refinedBody->addElement( kmb::PYRAMID2, nodeTable );
 
-
+// => [ n6,  n9,  n2,  n10, nf4, n6_9,  ne11,  n6_10, nf4_6, ne14,   ne05,   nf4_10, nf4_9 ]
 		nodeTable[0] = pyramid2.getCellId(6);
 		nodeTable[1] = pyramid2.getCellId(9);
 		nodeTable[2] = pyramid2.getCellId(2);
@@ -3401,7 +3398,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[12] = nf4_9;
 		e[2] = refinedBody->addElement( kmb::PYRAMID2, nodeTable );
 
-
+// => [ n7,  nf4, n10, n3,  n11, nf4_7, n7_10, ne12,  n7_11, nf4_10, ne15,   ne06,   nf4_11]
 		nodeTable[0] = pyramid2.getCellId(7);
 		nodeTable[1] = nf4;
 		nodeTable[2] = pyramid2.getCellId(10);
@@ -3417,7 +3414,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[12] = nf4_11;
 		e[3] = refinedBody->addElement( kmb::PYRAMID2, nodeTable );
 
-
+// => [ n8,  n12, nf4, n11, n4,  n8_12, nf4_8, n8_11, ne13 , nf4_12, nf4_11, ne16,   ne17 ]
 		nodeTable[0] = pyramid2.getCellId(8);
 		nodeTable[1] = pyramid2.getCellId(12);
 		nodeTable[2] = nf4;
@@ -3433,7 +3430,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[12] = ne1[7];
 		e[4] = refinedBody->addElement( kmb::PYRAMID2, nodeTable );
 
-
+// => [ nf4, n5 , n9,  n6,  n5_9,   nf4_9, nf4_5, nf4_6, n5_6,   n6_9   ] => [n5,n9,n6] が0番目の面
 		nodeTable[0] = nf4;
 		nodeTable[1] = pyramid2.getCellId(5);
 		nodeTable[2] = pyramid2.getCellId(9);
@@ -3446,7 +3443,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[9] = n6_9;
 		e[5] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-
+// => [ n6,  nf4, n7,  n10, nf4_7,  n6_7,  nf4_6, n6_10, nf4_10, n7_10  ] => [n6,n10,n7] が1番目の面
 		nodeTable[0] = pyramid2.getCellId(6);
 		nodeTable[1] = nf4;
 		nodeTable[2] = pyramid2.getCellId(7);
@@ -3459,7 +3456,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[9] = n7_10;
 		e[6] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-
+// => [ n7,  n11, nf4, n8,  nf4_11, nf4_7, n7_11, n7_8,  n8_11,  nf4_8  ] => [n7,n11,n8] が2番目の面
 		nodeTable[0] = pyramid2.getCellId(7);
 		nodeTable[1] = pyramid2.getCellId(11);
 		nodeTable[2] = nf4;
@@ -3472,7 +3469,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[9] = nf4_8;
 		e[7] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-
+// => [ n8,  n5,  n12, nf4, n5_12,  n8_12, n5_8,  nf4_8, nf4_5,  nf4_12 ] => [n8,n12,n5] が3番目の面
 		nodeTable[0] = pyramid2.getCellId(8);
 		nodeTable[1] = pyramid2.getCellId(5);
 		nodeTable[2] = pyramid2.getCellId(12);
@@ -3485,7 +3482,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 		nodeTable[9] = nf4_12;
 		e[8] = refinedBody->addElement( kmb::TETRAHEDRON2, nodeTable );
 
-
+// => [ nf4, n8,  n7,  n6, n5, nf4_8, nf4_7, nf4_6, nf4_5, n7_8, n6_7, n5_6, n5_8 ] => 外側を向いている面はない
 		nodeTable[0] = nf4;
 		nodeTable[1] = pyramid2.getCellId(8);
 		nodeTable[2] = pyramid2.getCellId(7);
@@ -3573,7 +3570,7 @@ kmb::MeshRefiner::refinePyramid2( kmb::elementIdType elementId, kmb::ElementBase
 			nodeVariableUpdate( pyramid2.getCellId(8), pyramid2.getCellId(12),  n8_12, dIter->originalData, dIter->refinedData );
 		}
 		else if( refinedBody && dIter->originalData->getBindingMode() == kmb::DataBindings::FaceGroup ){
-
+			// faceGroup の更新
 			kmb::Face f0(elementId,0);
 			kmb::Face f1(elementId,1);
 			kmb::Face f2(elementId,2);
@@ -3630,7 +3627,7 @@ kmb::MeshRefiner::getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* ori
 		if( elementId != kmb::Element::nullElementId ){
 			kmb::ElementContainer::const_iterator eIter = mesh->findElement( elementId );
 			if( !eIter.isFinished() ){
-
+				// 要素の全体を使っているのか、面を使っているのかの判断をする
 				int i0 = eIter.indexOf(a);
 				int i1 = eIter.indexOf(b);
 				int faceIndex = eIter.getFaceIndex(i0,i1);
@@ -3664,8 +3661,8 @@ kmb::MeshRefiner::getOriginal(kmb::nodeIdType middleNodeId, kmb::nodeIdType* ori
 	return kmb::UNKNOWNTYPE;
 }
 
-
-
+// 注意
+// 対角線を無理やり SEGMENT として中間点を求めると QUAD / HEXAHEDRON の中間点を求めてしまう
 kmb::nodeIdType
 kmb::MeshRefiner::getMiddle(kmb::ElementBase &element) const
 {
@@ -3688,16 +3685,6 @@ kmb::MeshRefiner::getMiddle(kmb::ElementBase &element) const
 	return middle;
 }
 
-double
-kmb::MeshRefiner::distanceSqBetweenNodes( kmb::nodeIdType n0, kmb::nodeIdType n1 )
-{
-	kmb::Point3D p0, p1;
-	if( mesh->getNode(n0, p0), mesh->getNode(n1, p1) ){
-		return p0.distanceSq(p1);
-	}
-	return DBL_MAX;
-}
-
 bool
 kmb::MeshRefiner::nodeGroupUpdate( kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n01, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
 {
@@ -3716,7 +3703,7 @@ kmb::MeshRefiner::nodeGroupUpdate( kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::
 }
 
 bool
-kmb::MeshRefiner::nodeGroupUpdate( kmb::ElementBase &elem, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
+kmb::MeshRefiner::nodeGroupUpdate( const kmb::ElementBase &elem, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
 {
 	if( originalData==NULL || refinedData==NULL || centerId == kmb::nullNodeId){
 		return false;
@@ -3739,7 +3726,7 @@ kmb::MeshRefiner::nodeGroupUpdate( kmb::ElementBase &elem, kmb::nodeIdType cente
 }
 
 bool
-kmb::MeshRefiner::nodeGroupUpdate( kmb::ElementBase &elem, int faceIndex, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
+kmb::MeshRefiner::nodeGroupUpdate( const kmb::ElementBase &elem, int faceIndex, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
 {
 	if( originalData==NULL || refinedData==NULL || centerId == kmb::nullNodeId ){
 		return false;
@@ -3802,7 +3789,7 @@ kmb::MeshRefiner::nodeVariableUpdate( kmb::nodeIdType n0, kmb::nodeIdType n1, km
 }
 
 bool
-kmb::MeshRefiner::nodeVariableUpdate( kmb::ElementBase &elem, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
+kmb::MeshRefiner::nodeVariableUpdate( const kmb::ElementBase &elem, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
 {
 	if( originalData==NULL || refinedData==NULL || centerId == kmb::nullNodeId ){
 		return false;
@@ -3847,7 +3834,7 @@ kmb::MeshRefiner::nodeVariableUpdate( kmb::ElementBase &elem, kmb::nodeIdType ce
 }
 
 bool
-kmb::MeshRefiner::nodeVariableUpdate( kmb::ElementBase &elem, int faceIndex, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
+kmb::MeshRefiner::nodeVariableUpdate( const kmb::ElementBase &elem, int faceIndex, kmb::nodeIdType centerId, const kmb::DataBindings* originalData, kmb::DataBindings* refinedData)
 {
 	if( originalData==NULL || refinedData==NULL || centerId == kmb::nullNodeId ){
 		return false;

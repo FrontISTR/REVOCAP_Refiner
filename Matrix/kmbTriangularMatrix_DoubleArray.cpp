@@ -16,15 +16,15 @@
 
 #include <algorithm>
 
-
-
-
-
-
-
-
-
-
+// 内部配列の順番
+// 
+// 0 1 3 6
+// * 2 4 7
+// * * 5 8
+// * * * 9
+//
+// i 行 j 列 ( j >= i )  : j*(j+1)/2 + i
+//
 
 
 kmb::UpperTriangularMatrix_DoubleArray::UpperTriangularMatrix_DoubleArray(int size)
@@ -97,15 +97,15 @@ kmb::UpperTriangularMatrix_DoubleArray::clear(void)
 	}
 }
 
-
-
-
-
-
-
-
-
-
+// 内部配列の順番
+// 
+// 0 * * *
+// 1 2 * *
+// 3 4 5 *
+// 6 7 8 9
+//
+// i 行 j 列 ( j <= i ) : i*(i+1)/2 + j
+//
 
 
 kmb::LowerTriangularMatrix_DoubleArray::LowerTriangularMatrix_DoubleArray(int size)

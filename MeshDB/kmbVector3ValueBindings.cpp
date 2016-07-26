@@ -27,6 +27,8 @@
 #pragma warning(disable:869)
 #endif
 
+const char* kmb::Vector3ValueBindings::CONTAINER_TYPE = "Vector3ValueBindings";
+
 kmb::Vector3ValueBindings::Vector3ValueBindings(size_t count,kmb::DataBindings::bindingMode bmode)
 : kmb::DataBindings()
 , size(0)

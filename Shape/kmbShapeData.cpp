@@ -183,8 +183,8 @@ kmb::ShapeData::fixShape(double precision,double tolerance)
 	delete tmp_shape;
 }
 
-
-
+// ShapeFix_FixSmallFace
+// ShapeFix_ShapeTolerance
 void
 kmb::ShapeData::dropSmallEdge(double precision,double tolerance)
 {
@@ -201,7 +201,7 @@ kmb::ShapeData::isClosed(void) const
 	return false;
 }
 
-
+// OpenCASCADE の表現形式から REVOCAP の形式への変換
 int
 kmb::ShapeData::getBezierSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, std::vector<kmb::Surface3D*> &surfaces) const
 {
@@ -210,7 +210,7 @@ kmb::ShapeData::getBezierSurface( TopoDS_Face &face, Handle_Geom_Surface &surf, 
 	int nu = bsf->NbUPoles();
 	int nv = bsf->NbVPoles();
 	bezier->setOrder( nu, nv );
-
+	// i,j の順番に注意
 	for(int j=1;j<=nv;++j){
 		for(int i=1;i<=nu;++i){
 			gp_Pnt pt = bsf->Pole(i,j);
@@ -244,7 +244,7 @@ kmb::ShapeData::getBSplineSurface( TopoDS_Face &face, Handle_Geom_Surface &surf,
 	}
 	int nu = bsp->NbUPoles();
 	int nv = bsp->NbVPoles();
-
+	// i,j の順番に注意
 	for(int j=1;j<=nv;++j){
 		for(int i=1;i<=nu;++i){
 			gp_Pnt pt = bsp->Pole(i,j);
@@ -265,7 +265,7 @@ kmb::ShapeData::getCylindricalSurface( TopoDS_Face &face, Handle_Geom_Surface &s
 	std::cout << "cylindrical bounds " << u0 << " " << u1 << " " << v0 << " " << v1  << std::endl;
 	std::cout << "periodic => " << cylinder->IsUPeriodic() << std::endl;
 	if( cylinder->IsUPeriodic() && fabs(u1-u0-2*PI)<1.0e-6 ){
-
+		// REVOCAP 形式としては、２つの Nurbs で表現する
 		kmb::NurbsSurface3D* col0 = new kmb::NurbsSurface3D();
 		kmb::NurbsSurface3D* col1 = new kmb::NurbsSurface3D();
 		col0->setOrder( 3, 2 );
@@ -373,7 +373,7 @@ kmb::ShapeData::getCylindricalSurface( TopoDS_Face &face, Handle_Geom_Surface &s
 		surfaces.push_back( col1 );
 		return 2;
 	}else if( cylinder->IsUPeriodic() && fabs(u1-u0)>PI ){
-
+		// 半円よりも大きいものは REVOCAP 形式としては、2つの Nurbs で表現する
 		kmb::NurbsSurface3D* col0 = new kmb::NurbsSurface3D();
 		kmb::NurbsSurface3D* col1 = new kmb::NurbsSurface3D();
 		col0->setOrder(3,2);
@@ -449,7 +449,7 @@ kmb::ShapeData::getCylindricalSurface( TopoDS_Face &face, Handle_Geom_Surface &s
 		surfaces.push_back( col1 );
 		return 2;
 	}else if( cylinder->IsUPeriodic() ){
-
+		// 半円よりも小さいものは REVOCAP 形式としては、1つの Nurbs で表現する
 		kmb::NurbsSurface3D* col0 = new kmb::NurbsSurface3D();
 		col0->setOrder(3,2);
 		col0->appendUKnot(0.0);
@@ -652,20 +652,6 @@ kmb::ShapeData::getSurfaces( std::vector<kmb::Surface3D*> &surfaces) const
 		TopoDS_Face face = TopoDS::Face(exFace.Current());
 		if( !face.IsNull() ){
 			Handle(Geom_Surface) surf = BRep_Tool::Surface(face);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 			if( surf->IsKind( STANDARD_TYPE(Geom_BezierSurface) ) ){
 				count += getBezierSurface( face, surf, surfaces );
 			}else if( surf->IsKind( STANDARD_TYPE(Geom_BSplineSurface) ) ){
@@ -674,7 +660,7 @@ kmb::ShapeData::getSurfaces( std::vector<kmb::Surface3D*> &surfaces) const
 				std::cout << "not supported Geom_RectangularTrimmedSurface" << std::endl;
 				Handle(Geom_RectangularTrimmedSurface) rts =
 					Handle(Geom_RectangularTrimmedSurface)::DownCast(surf);
-
+				// 基底曲面のトリムになっているはず
 				rts->BasisSurface();
 			}else if( surf->IsKind( STANDARD_TYPE(Geom_ElementarySurface) ) ){
 				if( surf->IsKind( STANDARD_TYPE(Geom_ConicalSurface) ) ){

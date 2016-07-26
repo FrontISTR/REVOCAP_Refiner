@@ -15,8 +15,8 @@
 /*
  * gcc -D_CONSOLE mainHexa2.c -L../lib/i486-linux/ -lstdc++ -lRcapRefiner
  *
- * ƒTƒ“ƒvƒ‹Às—á•ƒeƒXƒg—pƒvƒƒOƒ‰ƒ€
- * ˜Z–Ê‘Ì‚QŸ—v‘f‚Ì×•ªƒ`ƒFƒbƒN—p
+ * ã‚µãƒ³ãƒ—ãƒ«å®Ÿè¡Œä¾‹ï¼†ãƒ†ã‚¹ãƒˆç”¨ãƒ—ãƒ­ã‚°ãƒ©ãƒ 
+ * å…­é¢ä½“ï¼’æ¬¡è¦ç´ ã®ç´°åˆ†ãƒã‚§ãƒƒã‚¯ç”¨
  *
  */
 
@@ -30,7 +30,7 @@
 
 int main(void)
 {
-	/* ˜Z–Ê‘Ì‚ğ2‚Â•À‚×‚é */
+	/* å…­é¢ä½“ã‚’2ã¤ä¸¦ã¹ã‚‹ */
 	float64_t coords[96] = {
 		0.0, 0.0, 0.0,
 		1.0, 0.0, 0.0,
@@ -73,44 +73,44 @@ int main(void)
 		5,6,7,8, 9,10,11,12, 17,18,19,20, 21,22,23,24, 29,30,31,32,
 	};
 
-	/* ×•ªŒã‚Ì˜Z–Ê‘Ì‚Ìß“_”z—ñFo—Í‚Í2*8=16ŒÂ */
+	/* ç´°åˆ†å¾Œã®å…­é¢ä½“ã®ç¯€ç‚¹é…åˆ—ï¼šå‡ºåŠ›ã¯2*8=16å€‹ */
 	int32_t* refineHexas = NULL;
-	/* ×•ª‚·‚é—v‘f‚ÌŒ^(’è”’l) */
+	/* ç´°åˆ†ã™ã‚‹è¦ç´ ã®å‹(å®šæ•°å€¤) */
 	int8_t etype = RCAP_HEXAHEDRON2;
 	int32_t nodeOffset = 1;
 	int32_t elementOffset = 1;
 
-	/* ‰Šúß“_‚ÌŒÂ” */
+	/* åˆæœŸç¯€ç‚¹ã®å€‹æ•° */
 	size_t nodeCount = 32;
-	/* ‰Šú—v‘f‚ÌŒÂ” */
+	/* åˆæœŸè¦ç´ ã®å€‹æ•° */
 	size_t elementCount = 2;
-	/* ×•ªŒã‚Ì—v‘f‚ÌŒÂ” */
+	/* ç´°åˆ†å¾Œã®è¦ç´ ã®å€‹æ•° */
 	size_t refineElementCount = 0;
-	/* Œ³‚Ìß“_‚Ìæ“¾ */
+	/* å…ƒã®ç¯€ç‚¹ã®å–å¾— */
 	int32_t org[20] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
-	/* ‹«ŠEğŒiß“_ƒOƒ‹[ƒvj */
+	/* å¢ƒç•Œæ¡ä»¶ï¼ˆç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ï¼‰ */
 	int32_t ng0[13] = {1,2,5,6,9,10,13,25,26,17,29,30,21};
 	int32_t* result_ng0 = NULL;
 	size_t ng0Count = 13;
 
-	/* ƒJƒEƒ“ƒ^ */
+	/* ã‚«ã‚¦ãƒ³ã‚¿ */
 	int32_t i = 0;
 	size_t j = 0;
-	/* ƒeƒ“ƒ|ƒ‰ƒŠ */
+	/* ãƒ†ãƒ³ãƒãƒ©ãƒª */
 	float64_t x = 0.0, y = 0.0, z = 0.0;
 	int32_t n = 0;
 
-	/* ß“_”Ô†‚ÌƒIƒtƒZƒbƒg’l‚ğ—^‚¦‚é */
+	/* ç¯€ç‚¹ç•ªå·ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆå€¤ã‚’ä¸ãˆã‚‹ */
 	rcapInitRefiner( nodeOffset, elementOffset );
 
 	printf("REVOCAP_Refiner sample program : Fitting Hexahedron Second\n");
 	printf("----- Original Model -----\n");
 	printf("---\n");
 
-	/* À•W’l‚ğ Refiner ‚É—^‚¦‚é */
+	/* åº§æ¨™å€¤ã‚’ Refiner ã«ä¸ãˆã‚‹ */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
-	/* ×•ª‘O‚Ìß“_” */
+	/* ç´°åˆ†å‰ã®ç¯€ç‚¹æ•° */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 32 );
 	printf("node:\n");
@@ -120,7 +120,7 @@ int main(void)
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
 
-	/* ×•ª‘O‚Ì—v‘f” */
+	/* ç´°åˆ†å‰ã®è¦ç´ æ•° */
 	assert( elementCount == 2 );
 	printf("element:\n");
 	printf("  - size: %zu\n", elementCount );
@@ -134,7 +134,7 @@ int main(void)
 			hexas[20*i+16], hexas[20*i+17], hexas[20*i+18], hexas[20*i+19]);
 	}
 
-	/* ß“_ƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	rcapAppendNodeGroup("ng0",ng0Count,ng0);
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	assert( ng0Count == 13 );
@@ -151,7 +151,7 @@ int main(void)
 	printf("----- Refined Model -----\n");
 	printf("---\n");
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	assert( refineElementCount == 16 );
 	refineHexas = (int32_t*)calloc( 20*refineElementCount, sizeof(int32_t) );
@@ -160,7 +160,7 @@ int main(void)
 
 	rcapCommit();
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	assert( refineNodeCount == 141 );
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
@@ -171,7 +171,7 @@ int main(void)
 	for(i=0;(size_t)i<refineNodeCount;++i){
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, resultCoords[3*i], resultCoords[3*i+1], resultCoords[3*i+2] );
 	}
-	// ƒ`ƒFƒbƒN
+	// ãƒã‚§ãƒƒã‚¯
 	for(i=0;i<(int32_t)refineNodeCount;++i){
 		etype = rcapGetOriginal( i+nodeOffset, org );
 		if( etype == RCAP_SEGMENT ){
@@ -223,7 +223,7 @@ int main(void)
 	}
 	free( resultCoords );
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -237,7 +237,7 @@ int main(void)
 			);
 	}
 
-	/* ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
 	rcapGetNodeGroup("ng0",ng0Count,result_ng0);
@@ -252,7 +252,7 @@ int main(void)
 		printf("    - %d\n", result_ng0[i]);
 	}
 
-	// ƒ`ƒFƒbƒN
+	// ãƒã‚§ãƒƒã‚¯
 	org[0] = 1; org[1] = 13;
 	n = rcapGetMiddle( RCAP_SEGMENT, org );
 	assert( n != -1 );

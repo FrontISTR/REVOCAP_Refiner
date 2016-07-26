@@ -14,7 +14,7 @@
 ----------------------------------------------------------------------*/
 /*
  *
- * ‚Q’iŠKŽÀsƒTƒ“ƒvƒ‹ƒvƒƒOƒ‰ƒ€
+ * ï¼’æ®µéšŽå®Ÿè¡Œã‚µãƒ³ãƒ—ãƒ«ãƒ—ãƒ­ã‚°ãƒ©ãƒ 
  *
  */
 
@@ -29,8 +29,8 @@
 int main(void)
 {
 	/*
-	 * Žg‚¢•û‚Ì—á
-	 * ‰‚ß‚Ì5‚Â‚Í×•ª‚·‚é‘O‚Ìß“_À•W
+	 * ä½¿ã„æ–¹ã®ä¾‹
+	 * åˆã‚ã®5ã¤ã¯ç´°åˆ†ã™ã‚‹å‰ã®ç¯€ç‚¹åº§æ¨™
 	 */
 	float64_t coords[15] = {
 		0.0, 0.0, 0.0,
@@ -39,57 +39,57 @@ int main(void)
 		0.0, 0.0, 1.0,
 		1.0, 1.0, 1.0
 	};
-	/* ×•ªŒã‚ÌÀ•WF•K—v‚É‰ž‚¶‚Ä calloc ‚·‚é */
+	/* ç´°åˆ†å¾Œã®åº§æ¨™ï¼šå¿…è¦ã«å¿œã˜ã¦ calloc ã™ã‚‹ */
 	float64_t* resultCoords = NULL;
-	/* Žl–Ê‘Ì‚Ìß“_”z—ñF“ü—Í‚Í2ŒÂ */
+	/* å››é¢ä½“ã®ç¯€ç‚¹é…åˆ—ï¼šå…¥åŠ›ã¯2å€‹ */
 	int32_t tetras[8] = {
 		0, 1, 2, 3,
 		1, 2, 3, 4
 	};
-	/* ×•ªŒã‚ÌŽl–Ê‘Ì‚Ìß“_”z—ñFo—Í‚Í2*8=16ŒÂ*/
+	/* ç´°åˆ†å¾Œã®å››é¢ä½“ã®ç¯€ç‚¹é…åˆ—ï¼šå‡ºåŠ›ã¯2*8=16å€‹*/
 	int32_t* refineTetras = NULL;
-	/* ‚Q’iŠK×•ªŒã‚ÌŽl–Ê‘Ì‚Ìß“_”z—ñFo—Í‚Í2*8*8=128ŒÂ*/
+	/* ï¼’æ®µéšŽç´°åˆ†å¾Œã®å››é¢ä½“ã®ç¯€ç‚¹é…åˆ—ï¼šå‡ºåŠ›ã¯2*8*8=128å€‹*/
 	int32_t* refine2Tetras = NULL;
-	/* ×•ª‚·‚é—v‘f‚ÌŒ^(’è”’l) */
+	/* ç´°åˆ†ã™ã‚‹è¦ç´ ã®åž‹(å®šæ•°å€¤) */
 	int8_t etype = RCAP_TETRAHEDRON;
-	/* ƒƒbƒVƒ…‚Ìß“_”z—ñ‚ÉŒ»‚ê‚éß“_”Ô†‚ÌÅ‰‚Ì’l */
-	/* C ‚©‚çŒÄ‚Ô‚Æ‚«‚Í 0 fortran ‚©‚çŒÄ‚Ôê‡‚Í 1 */
+	/* ãƒ¡ãƒƒã‚·ãƒ¥ã®ç¯€ç‚¹é…åˆ—ã«ç¾ã‚Œã‚‹ç¯€ç‚¹ç•ªå·ã®æœ€åˆã®å€¤ */
+	/* C ã‹ã‚‰å‘¼ã¶ã¨ãã¯ 0 fortran ã‹ã‚‰å‘¼ã¶å ´åˆã¯ 1 */
 	int32_t nodeOffset = 0;
 	int32_t elementOffset = 0;
-	/* ‰Šúß“_‚ÌŒÂ” */
+	/* åˆæœŸç¯€ç‚¹ã®å€‹æ•° */
 	size_t nodeCount = 5;
-	/* ‰Šú—v‘f‚ÌŒÂ” */
+	/* åˆæœŸè¦ç´ ã®å€‹æ•° */
 	size_t elementCount = 2;
-	/* ×•ªŒã‚Ì—v‘f‚ÌŒÂ” */
+	/* ç´°åˆ†å¾Œã®è¦ç´ ã®å€‹æ•° */
 	size_t refineElementCount = 0;
-	/* ×•ªŒã‚Ìß“_‚ÌŒÂ” */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã®å€‹æ•° */
 	size_t refineNodeCount = 0;
-	/* —v‘f‚Ì×•ª‚Æ“¯Žž‚ÉXV‚·‚éß“_ƒOƒ‹[ƒv */
+	/* è¦ç´ ã®ç´°åˆ†ã¨åŒæ™‚ã«æ›´æ–°ã™ã‚‹ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ— */
 	int32_t ng0[3] = {0,1,4};
 	size_t ngCount = 3;
 	int32_t* result_ng0 = NULL;
-	/* —v‘f‚Ì×•ª‚Æ“¯Žž‚ÉXV‚·‚é–ÊƒOƒ‹[ƒv */
-	/* —v‘f”Ô†‚Æ—v‘f“à–Ê”Ô†‚Ì‡‚ÉŒðŒÝ‚É•À‚×‚é */
+	/* è¦ç´ ã®ç´°åˆ†ã¨åŒæ™‚ã«æ›´æ–°ã™ã‚‹é¢ã‚°ãƒ«ãƒ¼ãƒ— */
+	/* è¦ç´ ç•ªå·ã¨è¦ç´ å†…é¢ç•ªå·ã®é †ã«äº¤äº’ã«ä¸¦ã¹ã‚‹ */
 	int32_t fg0[4] = {0,0,1,1};  /* [1,2,3] [1,4,3] */
 	size_t fgCount = 2;
 	int32_t* result_fg0 = NULL;
 
-	/* ƒ‹[ƒv‚ÌƒJƒEƒ“ƒ^ */
+	/* ãƒ«ãƒ¼ãƒ—ã®ã‚«ã‚¦ãƒ³ã‚¿ */
 	int32_t i = 0;
 	int32_t j = 0;
 
-	/* ß“_”Ô†‚ÌƒIƒtƒZƒbƒg’l‚ð—^‚¦‚é */
+	/* ç¯€ç‚¹ç•ªå·ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆå€¤ã‚’ä¸Žãˆã‚‹ */
 	rcapInitRefiner( nodeOffset, elementOffset );
 
 	printf("REVOCAP_Refiner sample program : Multi Stage Refine\n");
 	printf("----- Original Model -----\n");
 	printf("---\n");
 	/*
-	 * globalId ‚ÆÀ•W’l‚ð Refiner ‚É‹³‚¦‚é
-	 * localIds ‚Í NULL ‚ð‚ ‚½‚¦‚é‚Æ coords ‚Í nodeOffset ‚©‚ç‡”Ô‚É•À‚ñ‚Å‚¢‚é‚à‚Ì‚Æ‰ðŽß‚·‚é
+	 * globalId ã¨åº§æ¨™å€¤ã‚’ Refiner ã«æ•™ãˆã‚‹
+	 * localIds ã¯ NULL ã‚’ã‚ãŸãˆã‚‹ã¨ coords ã¯ nodeOffset ã‹ã‚‰é †ç•ªã«ä¸¦ã‚“ã§ã„ã‚‹ã‚‚ã®ã¨è§£é‡ˆã™ã‚‹
 	 */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
-	/* ×•ª‘O‚Ìß“_” */
+	/* ç´°åˆ†å‰ã®ç¯€ç‚¹æ•° */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 5 );
 	printf("node:\n");
@@ -99,7 +99,7 @@ int main(void)
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
 
-	/* ×•ª‘O‚Ì—v‘f” */
+	/* ç´°åˆ†å‰ã®è¦ç´ æ•° */
 	assert( elementCount == 2 );
 	printf("element:\n");
 	printf("  - size: %zu\n", elementCount );
@@ -109,7 +109,7 @@ int main(void)
 			tetras[4*i], tetras[4*i+1], tetras[4*i+2], tetras[4*i+3] );
 	}
 
-	/* ß“_ƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	rcapAppendNodeGroup("innovate",ngCount,ng0);
 	ngCount = rcapGetNodeGroupCount("innovate");
 	assert( ngCount == 3 );
@@ -123,7 +123,7 @@ int main(void)
 		printf("    - %d\n", ng0[i]);
 	}
 
-	/* –ÊƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* é¢ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	rcapAppendFaceGroup("revolute",fgCount,fg0);
 	fgCount = rcapGetFaceGroupCount("revolute");
 	assert( fgCount == 2 );
@@ -138,7 +138,7 @@ int main(void)
 
 	/*---------------------- REFINE STEP 1 -----------------------------------------*/
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	assert( refineElementCount == 16 );
 	refineTetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
@@ -149,7 +149,7 @@ int main(void)
 	printf("----- Refined Model 1 -----\n");
 	printf("---\n");
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
@@ -160,7 +160,7 @@ int main(void)
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, resultCoords[3*i], resultCoords[3*i+1], resultCoords[3*i+2] );
 	}
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -169,7 +169,7 @@ int main(void)
 			refineTetras[4*i], refineTetras[4*i+1], refineTetras[4*i+2], refineTetras[4*i+3] );
 	}
 
-	/* ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	ngCount = rcapGetNodeGroupCount("innovate");
 	assert( ngCount > 0 );
 	result_ng0 = (int32_t*)calloc( ngCount, sizeof(int32_t) );
@@ -186,7 +186,7 @@ int main(void)
 	free( result_ng0 );
 	result_ng0 = NULL;
 
-	/* ×•ªŒã‚Ì–ÊƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®é¢ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	fgCount = rcapGetFaceGroupCount("revolute");
 	assert( fgCount > 0 );
 	result_fg0 = (int32_t*)calloc( fgCount*2, sizeof(int32_t) );
@@ -206,12 +206,12 @@ int main(void)
 	free( resultCoords );
 	resultCoords = NULL;
 
-	/* ‘æ‚Q’i‚Ì×•ª‚Ì‘O‚ÉƒLƒƒƒbƒVƒ…‚ðƒNƒŠƒA */
+	/* ç¬¬ï¼’æ®µã®ç´°åˆ†ã®å‰ã«ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã‚’ã‚¯ãƒªã‚¢ */
 	rcapClearRefiner();
 
 	/*---------------------- REFINE STEP 2 -----------------------------------------*/
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	elementCount = refineElementCount;
 	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	refine2Tetras = (int32_t*)calloc( 4*refineElementCount, sizeof(int32_t) );
@@ -221,7 +221,7 @@ int main(void)
 	printf("----- Refined Model 2 -----\n");
 	printf("---\n");
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
@@ -232,7 +232,7 @@ int main(void)
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, resultCoords[3*i], resultCoords[3*i+1], resultCoords[3*i+2] );
 	}
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -241,7 +241,7 @@ int main(void)
 			refine2Tetras[4*i], refine2Tetras[4*i+1], refine2Tetras[4*i+2], refine2Tetras[4*i+3] );
 	}
 
-	/* ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	ngCount = rcapGetNodeGroupCount("innovate");
 	assert( ngCount > 0 );
 	result_ng0 = (int32_t*)calloc( ngCount, sizeof(int32_t) );
@@ -258,7 +258,7 @@ int main(void)
 	free( result_ng0 );
 	result_ng0 = NULL;
 
-	/* ×•ªŒã‚Ì–ÊƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®é¢ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	fgCount = rcapGetFaceGroupCount("revolute");
 	assert( fgCount > 0 );
 	result_fg0 = (int32_t*)calloc( fgCount*2, sizeof(int32_t) );

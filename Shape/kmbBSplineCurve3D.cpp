@@ -116,7 +116,7 @@ kmb::BSplineCurve3D::getDerivative( double t, kmb::Vector3D& tangent ) const
 	if( deg < 0 ){
 		return false;
 	}
-
+	// 0 次 B-Spline 曲線の微分は常に0
 	if( deg < 1 ){
 		return true;
 	}
@@ -136,7 +136,7 @@ kmb::BSplineCurve3D::getSecondDerivative( double t, kmb::Vector3D& tangent ) con
 	if( deg < 0 ){
 		return false;
 	}
-
+	// 0,1 次 B-Spline 曲線の2階微分は常に0
 	if( deg < 2 ){
 		return true;
 	}

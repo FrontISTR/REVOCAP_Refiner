@@ -56,7 +56,6 @@ kmb::Polygon::setEdges(kmb::ElementContainer *edges,bool clone)
 		}else{
 			this->edges = new kmb::ElementContainerMap();
 		}
-
 		kmb::ElementContainer::iterator eIter = edges->begin();
 		while( eIter != edges->end() )
 		{
@@ -265,7 +264,6 @@ kmb::Polygon::getNodeId(kmb::nodeIdType nodeId,int offset) const
 	kmb::nodeIdType retNodeId = kmb::nullNodeId;
 	if( edges == NULL || neighborInfo.getElementCountAroundNode(nodeId) == 0 )
 		return retNodeId;
-
 	retNodeId = nodeId;
 
 	if( offset > 0 ){
@@ -286,12 +284,12 @@ kmb::Polygon::isClosed(void) const
 	if( edges == NULL ){
 		return false;
 	}
-
+// それぞれの辺の最初の頂点について、入ってくる辺の個数と出て行く辺の個数が等しいことを言う
 	bool retVal = true;
 	kmb::ElementContainer::iterator eIter = edges->begin();
 	while( !eIter.isFinished() )
 	{
-
+		// 節点のまわりに2つの要素があることを確認
 		kmb::nodeIdType nodeId = eIter.getCellId(0);
 		int innerElement = 0;
 		int outerElement = 0;
@@ -331,8 +329,7 @@ kmb::Polygon::hasDoubleNode(void) const
 	kmb::ElementContainerMap::iterator eIter = edges->begin();
 	while( eIter != edges->end() )
 	{
-
-
+		// 節点のまわりに2つより多くの要素があることを確認
 		kmb::nodeIdType nodeId = eIter.getCellId(0);
 		if( neighborInfo.getElementCountAroundNode( nodeId ) > 2 ){
 			irregalNodeId = nodeId;
@@ -400,7 +397,7 @@ kmb::Polygon::getNextElement
 	if( edges == NULL || !edges->isUniqueDim(1) )
 		return nextID;
 
-
+	// 現在の要素
 	kmb::ElementContainer::const_iterator nowElement = edges->find( elementID );
 	if( nowElement.isFinished() )
 		return nextID;
@@ -467,10 +464,10 @@ kmb::Polygon::dividePolygonsByDiagonals(
 	if( points == NULL ){
 		return;
 	}
-
-
+	// 辺と対角線をすべて登録
+	// 対角線は両方の向きを登録
 	std::multimap< kmb::nodeIdType, kmb::nodeIdType > nodePairs;
-
+	// 辺を登録
 	kmb::ElementContainer::iterator eIter = edges->begin();
 	while( !eIter.isFinished() )
 	{
@@ -478,14 +475,14 @@ kmb::Polygon::dividePolygonsByDiagonals(
 			( eIter.getCellId(0), eIter.getCellId(1) ) );
 		++eIter;
 	}
-
+	// 対角線の登録
 	std::vector< std::pair<kmb::nodeIdType, kmb::nodeIdType> >::iterator dIter = diagonals.begin();
 	while( dIter != diagonals.end() )
 	{
-
+		// 登録されていないことを確認
 		std::multimap< kmb::nodeIdType, kmb::nodeIdType >::iterator f0Iter = nodePairs.lower_bound(dIter->first);
 		std::multimap< kmb::nodeIdType, kmb::nodeIdType >::iterator f1Iter = nodePairs.upper_bound(dIter->first);
-		bool flag = false;
+		bool flag = false; // 既に登録されていたら true
 		while( f0Iter != f1Iter ){
 			if( f0Iter->second == dIter->second ){
 				flag = true;
@@ -499,12 +496,12 @@ kmb::Polygon::dividePolygonsByDiagonals(
 		++dIter;
 	}
 
-
+	// nodePair から Polygon を作る
 	while( true ){
 		std::multimap< kmb::nodeIdType, kmb::nodeIdType >::iterator
 			nIter = nodePairs.begin();
 		if( nIter == nodePairs.end() ){
-
+			// nodePairs が空集合
 			break;
 		}else{
 			kmb::nodeIdType prevId = nIter->first;
@@ -513,31 +510,10 @@ kmb::Polygon::dividePolygonsByDiagonals(
 			polygon = new kmb::Polygon();
 			kmb::nodeIdType startId = nodeId;
 			while( nodeId != kmb::nullNodeId ){
-
+				// 次の節点を検索したら要素を削除
 				kmb::nodeIdType nextId =
 					kmb::Polygon::getNextNode(prevId,nodeId,points,nodePairs,true);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 				if( nextId != kmb::nullNodeId ){
-
-
-
-
-
 					polygon->addSegment( nodeId, nextId );
 				}
 				prevId = nodeId;
@@ -549,7 +525,7 @@ kmb::Polygon::dividePolygonsByDiagonals(
 			if( polygon->getSize() >= 3 && polygon->isClosed() ){
 				polygons.push_back( polygon );
 			}else{
-
+				// 分割するのに失敗した
 				delete polygon;
 			}
 		}
@@ -574,7 +550,7 @@ kmb::Polygon::getNextNode(
 	{
 		return nextId;
 	}
-
+	// 次がひとつしかないときは無条件でそれを使う
 	if( nodePairs.count(nodeId) == 1){
 		std::multimap< kmb::nodeIdType, kmb::nodeIdType >::iterator nextIter = nodePairs.find(nodeId);
 		nextId = nextIter->second;
@@ -582,7 +558,7 @@ kmb::Polygon::getNextNode(
 			nodePairs.erase( nextIter );
 		}
 	}
-
+	// そうでないときは角度を調べて内側にあるものを使う
 	else{
 		kmb::Maximizer maximizer;
 		std::multimap< kmb::nodeIdType, kmb::nodeIdType >::iterator
@@ -619,7 +595,7 @@ kmb::Polygon::getEndPoints( kmb::nodeIdType &initial, kmb::nodeIdType &end ) con
 	initial = kmb::nullNodeId;
 	end = kmb::nullNodeId;
 
-
+	// edge の先頭と最後の点を探す
 	kmb::ElementContainer::iterator eIter = edges->begin();
 	while( !eIter.isFinished() ){
 		kmb::nodeIdType node0 = eIter.getCellId(0);
@@ -641,6 +617,6 @@ kmb::Polygon::getEndPoints( kmb::nodeIdType &initial, kmb::nodeIdType &end ) con
 		end = kmb::nullNodeId;
 		return false;
 	}
-
+	// 連結なら true を返す
 	return true;
 }

@@ -16,7 +16,7 @@
 #include "Geometry/kmbRegion.h"
 
 /*
- * �`��֐��̒�`��ȂǂɌ����W���I�ȒP��
+ * 形状関数の定義域などに現れる標準的な単体
  * (x,y,z)  0 < x, 0 < y, 0 < z, x+y+z < d
  *
  */
@@ -30,10 +30,10 @@ private:
 public:
 	SimplexRegion(double d=1.0);
 	virtual ~SimplexRegion(void);
-
+	/// 判定関数
 	virtual locationType intersect(const Point3D &point) const;
 	virtual bool intersect(const BoxRegion& box) const;
-
+	/// 距離関数
 	virtual double distanceSq(const Point3D &point) const;
 };
 

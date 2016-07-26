@@ -43,9 +43,9 @@
 /********************************************************************************
 =begin
 
-=== 2���O�p�`�v�f (TRIANGLE2)
+=== 2次三角形要素 (TRIANGLE2)
 
-�ڑ��s��
+接続行列
 
 	{  0,  1, -1,  0, -2,  2},
 	{ -1,  0,  1,  2,  0, -2},
@@ -54,7 +54,7 @@
 	{  2,  0, -2,  0,  0,  0},
 	{ -2,  2,  0,  0,  0,  0},
 
-��
+辺
 
 	{ 1, 2, 3},
 	{ 2, 0, 4},
@@ -62,7 +62,7 @@
 
 =end
 
-�`��֐�
+形状関数
 0 : (1-s-t)*(1-2*s-2*t) => (s,t) = (  0,   0)
 1 : s*(2*s-1)           => (s,t) = (  1,   0)
 2 : t*(2*t-1)           => (s,t) = (  0,   1)
@@ -179,9 +179,9 @@ kmb::Triangle2::checkShapeFunctionDomain(double s,double t)
 	return kmb::Minimizer::getMin( 1.0-s-t, s, t );
 }
 
-
-
-
+// g = \sum coeff[i] * points[i] - target
+// これは2変数の3次元関数なので
+// ( g * dg/ds, g * dg/dt ) を考える
 bool
 kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3D* points,double naturalCoords[2])
 {
@@ -189,7 +189,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 		return false;
 	}
 	/*
-	 * 3�p�`2���̗v�f���W�����߂邽�߂Ƀj���[�g���@���s��
+	 * 3角形2次の要素座標を求めるためにニュートン法を行う
 	 */
 	class nr_local : public kmb::OptTargetVV {
 	public:
@@ -211,7 +211,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 			g[0] -= target[0];
 			g[1] -= target[1];
 			g[2] -= target[2];
-
+			// s で微分
 			kmb::Triangle2::shapeFunction_ds(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgds[i] = 0.0;
@@ -219,7 +219,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 					dgds[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// t で微分
 			kmb::Triangle2::shapeFunction_dt(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdt[i] = 0.0;
@@ -248,7 +248,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 			g[0] -= target[0];
 			g[1] -= target[1];
 			g[2] -= target[2];
-
+			// s で微分
 			kmb::Triangle2::shapeFunction_ds(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgds[i] = 0.0;
@@ -256,7 +256,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 					dgds[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// t で微分
 			kmb::Triangle2::shapeFunction_dt(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdt[i] = 0.0;
@@ -264,7 +264,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 					dgdt[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// ss
 			kmb::Triangle2::shapeFunction_dsds(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdss[i] = 0.0;
@@ -272,7 +272,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 					dgdss[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// st
 			kmb::Triangle2::shapeFunction_dsdt(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdst[i] = 0.0;
@@ -280,7 +280,7 @@ kmb::Triangle2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Poin
 					dgdst[i] += coeff[j] * points[j][i];
 				}
 			}
-
+			// tt
 			kmb::Triangle2::shapeFunction_dsds(t[0],t[1],coeff);
 			for(int i=0;i<3;++i){
 				dgdtt[i] = 0.0;

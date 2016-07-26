@@ -29,6 +29,7 @@
 #include <BRepMesh.hxx>
 #include <BRep_Tool.hxx>
 #include <BRepTools.hxx>
+#include <BRepMesh_IncrementalMesh.hxx>
 #include <ShapeAnalysis.hxx>
 #include <ShapeAnalysis_Shell.hxx>
 #include <ShapeAnalysis_Surface.hxx>
@@ -43,6 +44,7 @@ kmb::PatchGenerator::PatchGenerator(void)
 , incremental(0.002)
 , tolerance(1.0e-5)
 , modelDiameter(-1.0)
+, relative(true)
 {
 }
 
@@ -86,15 +88,25 @@ kmb::PatchGenerator::getTolerance(void) const
 	return tolerance;
 }
 
+void kmb::PatchGenerator::setRelative(bool f)
+{
+	this->relative = f;
+}
+
+bool kmb::PatchGenerator::getRelative(void) const
+{
+	return this->relative;
+}
+
 bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 {
 	if( shape.getShape().IsNull() ){
 		return false;
 	}
 
-
+	// 最初に execute したモデルのサイズを基準にする
 	if( modelDiameter < 0.0 ){
-		modelDiameter = shape.getBoundingBox().maxRange();
+		modelDiameter = shape.getBoundingBox().range();
 	}
 
 	if( mesh.getNodes() == NULL ){
@@ -109,10 +121,14 @@ bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 
 	kmb::OctreePoint3D octree;
 	octree.setContainer( mesh.getNodes() );
+	
+	BRepMesh_IncrementalMesh imesh(
+		shape.getShape(), 
+		static_cast<Standard_Real>( incremental*modelDiameter ),
+		relative );
+	imesh.Perform();
 
-	BRepMesh::Mesh( shape.getShape(), static_cast<Standard_Real>( incremental*modelDiameter ) );
-
-
+	// TopoDS_Shape に含まれる Face の iterator
 	TopExp_Explorer exFace;
 	for( exFace.Init(shape.getShape(),TopAbs_FACE); exFace.More(); exFace.Next() ){
 		TopoDS_Face face = TopoDS::Face(exFace.Current());
@@ -130,11 +146,11 @@ bool kmb::PatchGenerator::execute(kmb::ShapeData& shape,kmb::MeshData& mesh)
 
 			ShapeAnalysis_ShapeContents anaContents;
 			anaContents.Perform(face);
-			if(anaContents.ModifyTrimmed3dMode()){
+			if( anaContents.ModifyTrimmed3dMode() ){
 				std::cout << " modify trimmed mode " << std::endl;
 			}
 
-			if( !BRepTools::Triangulation(face, static_cast<Standard_Real>( deflection*modelDiameter ) ) ){
+			if( !BRepTools::Triangulation(face, static_cast<Standard_Real>( relative ? deflection*modelDiameter : deflection ) ) ){
 				std::cout << "BRepTools false!" << endl;
 				continue;
 			}

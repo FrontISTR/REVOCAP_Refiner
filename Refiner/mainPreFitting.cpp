@@ -13,11 +13,11 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * Fitting �̑O�������s��
+ * Fitting の前処理を行う
  *
- * �ʏ�̃��b�V���̏ꍇ�A�\�ʏ�̐ߓ_�ɑ΂��āANURBS �Ȗʂ̃p�����[�^���t�Z����
+ * 通常のメッシュの場合、表面上の節点に対して、NURBS 曲面のパラメータを逆算する
  *
- * Debug �p => REVOCAP YAML ���b�V�� NodeGroup �Ƃ��� "boundary" �Ƃ������O�ō���Ă����΂悢
+ * Debug 用 => REVOCAP YAML メッシュ NodeGroup として "boundary" という名前で作っておけばよい
  */
 
 #ifdef _CONSOLE

@@ -103,13 +103,13 @@ kmb::ElementBase::getType(std::string str)
 		return kmb::TRIANGLE;
 	else if(str == "TRIANGLE2" || str == "TRI2")
 		return kmb::TRIANGLE2;
-	else if(str == "QUAD" || str == "QUADRILATERAL")
+	else if(str == "QUADRILATERAL" || str == "QUAD")
 		return kmb::QUAD;
-	else if(str == "QUAD2" || str == "QUADRILATERAL2")
+	else if(str == "QUADRILATERAL2" || str == "QUAD2")
 		return kmb::QUAD2;
-	else if(str == "TETRAHEDRON")
+	else if(str == "TETRAHEDRON" || str == "TETRA")
 		return kmb::TETRAHEDRON;
-	else if(str == "TETRAHEDRON2")
+	else if(str == "TETRAHEDRON2" || str == "TETRA2")
 		return kmb::TETRAHEDRON2;
 	else if(str == "PYRAMID")
 		return kmb::PYRAMID;
@@ -119,9 +119,9 @@ kmb::ElementBase::getType(std::string str)
 		return kmb::WEDGE;
 	else if(str == "WEDGE2")
 		return kmb::WEDGE2;
-	else if(str == "HEXAHEDRON")
+	else if(str == "HEXAHEDRON" || str == "HEXA")
 		return kmb::HEXAHEDRON;
-	else if(str == "HEXAHEDRON2")
+	else if(str == "HEXAHEDRON2" || str == "HEXA2")
 		return kmb::HEXAHEDRON2;
 	else if(str == "QUAD_INTERFACE")
 		return kmb::QUADRILATERAL_INTERFACE;
@@ -430,7 +430,7 @@ kmb::ElementBase::getBoundaryType(kmb::elementType type,int index)
 	if( index < -1 || len <= index ){
 		return kmb::UNKNOWNTYPE;
 	}else if( index == -1 ){
-
+		// -1 のときは全体を表す
 		return type;
 	}
 	switch(type){
@@ -752,7 +752,7 @@ kmb::ElementBase::getDegree(kmb::elementType type)
 	}
 }
 
-
+// instance version
 
 int
 kmb::ElementBase::getNodeCount(void) const
@@ -976,7 +976,7 @@ kmb::ElementBase::getBoundaryCellId(int index,int i) const
 kmb::nodeIdType
 kmb::ElementBase::getEdgeCellId(int index,int i) const
 {
-
+	// 2次要素なら辺上の節点は3つ
 	if( 0 <= i && 0 <= index && index < getEdgeCount() && i < getDegree()+1 ){
 		switch( getType() )
 		{
@@ -1449,7 +1449,7 @@ kmb::ElementBase::isFace(int index0,int index1,int index2,int index3,int &faceIn
 	return ret;
 }
 
-
+// 2点から決まる面を返す
 int
 kmb::ElementBase::getFaceIndex(int index0,int index1) const
 {
@@ -2338,6 +2338,7 @@ kmb::ElementBase::previousNode(kmb::nodeIdType nodeId) const
 	return kmb::nullNodeId;
 }
 
+//---------------- 生成メソッド ----------------------------
 
 
 kmb::Element*
@@ -2465,7 +2466,7 @@ kmb::Element::reverseClone( std::map< kmb::nodeIdType, kmb::nodeIdType >& nodeMa
 	return elem;
 }
 
-
+//---------------- ノード番号操作 ------------------------
 
 bool
 kmb::Element::setCellId(int index,kmb::nodeIdType id)
@@ -2492,7 +2493,7 @@ kmb::Element::operator[](const int i)
 	return cell[i];
 }
 
-
+//---------------- 型情報 ------------------------
 
 kmb::elementType
 kmb::Element::getType() const

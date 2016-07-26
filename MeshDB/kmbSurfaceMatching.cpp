@@ -133,10 +133,10 @@ kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 			slaveFaceGroup = NULL;
 			return;
 		}
-
-
-
-
+		// distance matrix の作成
+		// 行：master (element id)
+		// 列：slave  (face)
+		// 成分：それぞれの距離
 		distanceMatrix = new kmb::Matrix_DoubleArray( masterLen, slaveLen );
 		elementIds = new kmb::elementIdType[masterLen];
 		faces = new kmb::Face[slaveLen];
@@ -159,7 +159,7 @@ kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 			++mIter;
 			++i;
 		}
-
+		// connection table の作成
 		int i0,i1;
 		for(int j0=0;j0<masterLen;++j0){
 			kmb::ElementContainer::iterator m0Iter = masterSurf->find(elementIds[j0]);
@@ -170,19 +170,12 @@ kmb::SurfaceMatching::setPair(kmb::bodyIdType bodyId,const char* faceGroup)
 				}
 			}
 		}
-
-
-
-
-
-
-
 		calcMapping();
 	}
 }
 
-
-
+// mapping : face => [対応する面,回転]
+// face の位相と面の位相が一致するとは限らないので注意する
 bool
 kmb::SurfaceMatching::calcMapping(void)
 {
@@ -192,8 +185,8 @@ kmb::SurfaceMatching::calcMapping(void)
 	if( distanceMatrix == NULL || mesh == NULL || elementIds == NULL || faces == NULL ){
 		return false;
 	}
-
-
+	// 行：master (element id) = rSize
+	// 列：slave  (face)       = cSize
 	int rSize = distanceMatrix->getRowSize();
 	int cSize = distanceMatrix->getColSize();
 	if( cSize < rSize ){
@@ -202,9 +195,9 @@ kmb::SurfaceMatching::calcMapping(void)
 
 	kmb::Minimizer min;
 	kmb::Permutation perm;
-
+	// master(element Id) => slave(face) への単射の全体のイテレータ
 	perm.initialize( cSize, rSize );
-
+	// 最小値をとる master => slave の順列
 	int* minPerm = new int[rSize];
 	for(int i=0;i<rSize;++i){
 		minPerm[i] = -1;
@@ -222,7 +215,7 @@ kmb::SurfaceMatching::calcMapping(void)
 				}
 			}
 			if( min.update( sumDist ) && checkTopologicalMapping(perm) ){
-
+				// minPerm を更新
 				for(int i=0;i<rSize;++i){
 					minPerm[i] = perm.getPerm(i);
 				}
@@ -239,7 +232,7 @@ kmb::SurfaceMatching::calcMapping(void)
 	}
 
 	if( minPerm[0] >= 0 ){
-
+		// 存在していることを確認する
 		for(int i=0;i<rSize;++i){
 			int index = -1;
 			kmb::ElementContainer::iterator eIter = masterSurf->find( elementIds[i] );
@@ -252,7 +245,7 @@ kmb::SurfaceMatching::calcMapping(void)
 	return true;
 }
 
-
+// perm : element => faces
 int
 kmb::SurfaceMatching::checkTopologicalMapping( kmb::Permutation& perm ) const
 {
@@ -287,7 +280,7 @@ kmb::SurfaceMatching::constructDummyElements(void)
 	{
 		return appendCount;
 	}
-
+	// 3 回ぐらいやっておけば安心？？
 	for(int i=0;i<3;++i){
 		kmb::DataBindings::iterator fIter = slaveFaceGroup->begin();
 		while( !fIter.isFinished() ){
@@ -312,7 +305,7 @@ kmb::SurfaceMatching::getMatchingElementId(kmb::Face f,int &index)
 {
 	std::map< kmb::Face, kmb::SurfaceMatching::rotatedElement >::const_iterator mIter = mapping.find(f);
 	if( mIter == mapping.end() ){
-
+		// 必要なら masterSurf に追加する
 		kmb::elementIdType elementId = appendDummyElement(f);
 		if( elementId != kmb::Element::nullElementId ){
 			index = 0;
@@ -325,8 +318,8 @@ kmb::SurfaceMatching::getMatchingElementId(kmb::Face f,int &index)
 	}
 }
 
-
-
+// 近傍ができてからしか追加できないので
+// 順序を変えて実行すると成功する場合があるので注意
 kmb::elementIdType
 kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 {
@@ -345,7 +338,7 @@ kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 	}
 
 	kmb::elementIdType appendId = kmb::Element::nullElementId;
-
+	// f の周りの Face とそれに対応する element の情報を取得する
 	kmb::elementType etype = f.getFaceElementType( mesh );
 	int len = kmb::Element::getBoundaryCount( etype );
 	kmb::Face* bfaces = new kmb::Face[len];
@@ -355,16 +348,16 @@ kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 		matchingElements[i].elementId = kmb::Element::nullElementId;
 		matchingElements[i].index = -1;
 		neighborInfo->getFaceNeighborByIndex(f,i,slaveElements,bfaces[i]);
-
+		// ここでは getMatchingElement を使わずに登録済みの情報だけを使う
 		std::map< kmb::Face, kmb::SurfaceMatching::rotatedElement >::iterator mIter = mapping.find(bfaces[i]);
 		if( mIter != mapping.end() ){
 			matchingElements[i] = mIter->second;
 		}
 	}
-
-
-
-
+	// f の周りの情報から dummy element を作る
+	// 向きは f に合わせる（index = 0）
+	// QUAD のまわりは QUAD があることを前提とする
+	// TRIANGLE のまわりは TRIANGLE があることを前提とする
 	if( etype == kmb::TRIANGLE ){
 	}else if( etype == kmb::QUAD ){
 		kmb::nodeIdType nodes[4] = { kmb::nullNodeId, kmb::nullNodeId, kmb::nullNodeId, kmb::nullNodeId };
@@ -383,7 +376,7 @@ kmb::SurfaceMatching::appendDummyElement(kmb::Face f)
 						q1.getCellId(0), q1.getCellId(1), q1.getCellId(2), q1.getCellId(3),
 						i0, i1 ) == kmb::ElementRelation::ADJACENT && i0 == i )
 				{
-
+					// i 番目の辺は [i,i+1] => 最初の節点は i
 					nodes[i] = elem.getCellId( (i1 + 1 + matchingElements[i].index)%4 );
 					nodes[(i+1)%4] = elem.getCellId( (i1 + matchingElements[i].index)%4 );
 				}
@@ -463,7 +456,7 @@ kmb::SurfaceMatching::duplicateNode(kmb::nodeIdType n0)
 	if( this->mesh == NULL ){
 		return kmb::nullNodeId;
 	}
-
+	// 追加した節点を覚えておかなくてはいけない
 	kmb::Node point;
 	kmb::nodeIdType n1;
 	mesh->getNode( n0, point );

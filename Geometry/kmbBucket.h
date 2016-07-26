@@ -12,15 +12,15 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
-
-
-
-
-
+//
+// 空間を格子状に分割して、それぞれの領域に含まれている節点・要素の情報を取得する
+// 保存するのは Point3DContainer または ElementContainer で保存されているものの ID
+// ある節点または要素が複数の格子の領域に含まれていることは許すために multimap を使う。
+//
+// T は nodeIdType elementIdType など
+//
+// Bucket<T>::iterator で T の型のイテレータが得られる
+//
 
 #pragma once
 
@@ -34,16 +34,16 @@
 
 namespace kmb{
 
-
-
-
-
-
-
-
-
-
-
+// (i,j,k) をまとめて扱うためのクラス
+// 大小関係は i,j,k の順に優先
+// 大小関係で並べたループは
+//	for(i){
+//		for(j){
+//			for(k){
+//			}
+//		}
+//	}
+//	と同じ
 class BucketIndex{
 public:
 	int i,j,k;
@@ -69,7 +69,7 @@ public:
 		this->k = other.k;
 		return *this;
 	}
-
+	// next したときに最初の index になるようにする
 	void init(void){
 		set(0,0,-1);
 	}
@@ -82,8 +82,8 @@ public:
 	void init_kji(const BucketIndex& minIndex){
 		set(minIndex.i-1,minIndex.j,minIndex.k);
 	}
-
-
+	// ループの外側から i j k
+	// k から順に増やす operator < の順と同じ
 	bool next(const BucketIndex& maxIndex){
 		if( k < maxIndex.k-1 ){
 			++k;
@@ -102,8 +102,8 @@ public:
 			return false;
 		}
 	}
-
-
+	// ループの外側から i j k
+	// k から順に増やす operator < の順と同じ
 	bool next(const BucketIndex& maxIndex,const BucketIndex& minIndex){
 		if( k < maxIndex.k-1 ){
 			++k;
@@ -122,8 +122,8 @@ public:
 			return false;
 		}
 	}
-
-
+	// ループの外側から k j i 
+	// i から順に増やす operator < の順と違う
 	bool next_kji(const BucketIndex& maxIndex){
 		if( i < maxIndex.i-1 ){
 			++i;
@@ -142,8 +142,8 @@ public:
 			return false;
 		}
 	}
-
-
+	// ループの外側から k j i 
+	// i から順に増やす operator < の順と違う
 	bool next_kji(const BucketIndex& maxIndex,const BucketIndex& minIndex){
 		if( i < maxIndex.i-1 ){
 			++i;
@@ -189,8 +189,8 @@ public:
 	 : bucketRegion(box), xnum(xnum), ynum(ynum), znum(znum){};
 	virtual ~Bucket(void){};
 
-
-
+	// 格納されているデータのクリア
+	// 背景格子の情報は残る
 	void clear(void){
 		regions.clear();
 	}
@@ -215,7 +215,7 @@ public:
 		numZ = this->znum;
 	};
 
-
+	// 全体が num 程度になるように x y z を配分して Grid を作る
 	void setRegionGrid(const kmb::BoxRegion &box, size_t num){
 		if( num == 0 ){ num = 1; }
 		this->bucketRegion = box;
@@ -245,7 +245,7 @@ public:
 		return true;
 	}
 
-
+	// (i,j,k) 番目の格子を取得する
 	void getSubRegion(int i,int j,int k,kmb::BoxRegion& box) const{
 		box.setMinMax(
 			bucketRegion.minX() + (i * bucketRegion.rangeX()) / xnum,
@@ -258,11 +258,11 @@ public:
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 	double getSubRegionMinX(int i,int j,int k) const{
 		return bucketRegion.minX() + (i * bucketRegion.rangeX()) / xnum;
@@ -312,7 +312,7 @@ public:
 		indexType i = static_cast<indexType>( (x-bucketRegion.minX()) / bucketRegion.rangeX() * xnum );
 		indexType j = static_cast<indexType>( (y-bucketRegion.minY()) / bucketRegion.rangeY() * ynum );
 		indexType k = static_cast<indexType>( (z-bucketRegion.minZ()) / bucketRegion.rangeZ() * znum );
-
+		// maxX maxY maxZ のところだけ特別対応
 		if( x == bucketRegion.maxX() ){
 			i = xnum-1;
 		}
@@ -343,7 +343,7 @@ public:
 		iterator(void){};
 		virtual ~iterator(void){};
 
-
+		// 格納している T 型の参照を返す
 		const T& get(void) const{ return it->second; };
 
 		int getIndex() const{ return it->first; };
@@ -474,17 +474,17 @@ public:
 	};
 
 protected:
-
-
-
-
+	// 座標から index を取得する
+	// 親 box の中にあれば true を返す
+	// 親 box の外にあっても i j k は境界の値を入れて false を返す
+	// x, y, z が無限大の場合は割り算で数値誤差になるので注意
 	bool getSubIndices(double x,double y,double z,int& i,int& j,int& k) const
 	{
 		bool res = true;
 		i = static_cast<int>( (x-bucketRegion.minX()) / bucketRegion.rangeX() * xnum );
 		j = static_cast<int>( (y-bucketRegion.minY()) / bucketRegion.rangeY() * ynum );
 		k = static_cast<int>( (z-bucketRegion.minZ()) / bucketRegion.rangeZ() * znum );
-
+		// maxX maxY maxZ のところだけ特別対応
 		if( x == bucketRegion.maxX() ){
 			i = xnum-1;
 		}
@@ -504,7 +504,7 @@ protected:
 	};
 };
 
-
+// Point3D についてのリファレンス実装
 
 class Point3DContainer;
 
@@ -521,16 +521,16 @@ public:
 	int append(kmb::nodeIdType nodeId);
 	int appendAll(void);
 
-
+	// 距離を返す
 	double getNearest(const double x,const double y,const double z,kmb::nodeIdType &nearestId) const;
-
+	// 節点番号を与えて、thresh 以下の他の点があるかどうか
 	size_t getNearPoints(kmb::nodeIdType nodeId,double thresh,std::vector<kmb::nodeIdType>& nodeIds) const;
 protected:
-
-
+	// (i,j,k) のバケットの中での最小値を探索
+	// 距離を返す
 	double getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,kmb::nodeIdType &nearestId) const;
-
-
+	// (imin,jmin,kmin) から (imax,jmax,kmax) のバケットの中での最小値を探索
+	// ただし (imin_ex,jmin_ex,kmin_ex) から (imax_ex,jmax_ex,kmax_ex) を除く
 	double getNearestInBucket2(const kmb::Point3D& pt,
 		int imin,int jmin,int kmin,int imax,int jmax,int kmax,
 		int imin_ex,int jmin_ex,int kmin_ex,int imax_ex,int jmax_ex,int kmax_ex,

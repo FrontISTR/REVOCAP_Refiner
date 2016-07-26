@@ -5,46 +5,46 @@
   2011.03.23  version 1.0
 
   The University of Tokyo, CISS Project
-  "ŽŸ¢‘ã‚à‚Ì‚Ã‚­‚èƒVƒ~ƒ…ƒŒ[ƒVƒ‡ƒ“ƒVƒXƒeƒ€" Group.
+  "æ¬¡ä¸–ä»£ã‚‚ã®ã¥ãã‚Šã‚·ãƒŸãƒ¥ãƒ¬ãƒ¼ã‚·ãƒ§ãƒ³ã‚·ã‚¹ãƒ†ãƒ " Group.
 
-  ‚¨–â‚¢‡‚í‚¹æ
+  ãŠå•ã„åˆã‚ã›å…ˆ
     e-mail:  software@ciss.iis.u-tokyo.ac.jp
 
 ================================================================================
 
-‚±‚Ìƒtƒ@ƒCƒ‹‚Í REVOCAP_Refiner-1.0.XX.tgz ‚ð“WŠJ‚µ‚Ä‚Å‚«‚éƒtƒHƒ‹ƒ_‚Æƒtƒ@ƒCƒ‹‚Ìà–¾‘‚Å‚·B
+ã“ã®ãƒ•ã‚¡ã‚¤ãƒ«ã¯ REVOCAP_Refiner-1.0.XX.tgz ã‚’å±•é–‹ã—ã¦ã§ãã‚‹ãƒ•ã‚©ãƒ«ãƒ€ã¨ãƒ•ã‚¡ã‚¤ãƒ«ã®èª¬æ˜Žæ›¸ã§ã™ã€‚
 
-== ƒtƒHƒ‹ƒ_‚Ì\‘¢
+== ãƒ•ã‚©ãƒ«ãƒ€ã®æ§‹é€ 
 
- +- README_Refiner.txt     ( ‚±‚Ìƒtƒ@ƒCƒ‹ )
- +- Geometry               ( Šô‰½ˆ——pƒ‰ƒCƒuƒ‰ƒŠ )
- +- Matrix                 ( s—ñˆ——pƒ‰ƒCƒuƒ‰ƒŠ )
- +- MeshDB                 ( ƒƒbƒVƒ…ˆ——pƒ‰ƒCƒuƒ‰ƒŠ )
- +- MeshGen                ( ƒƒbƒVƒ…¶¬—pƒ‰ƒCƒuƒ‰ƒŠ )
- +- Shape                  ( CAD Œ`óˆ——pƒ‰ƒCƒuƒ‰ƒŠ )
- +- Refiner                ( ƒƒbƒVƒ…×•ª‰»ƒ‚ƒWƒ…[ƒ‹–{‘Ì )
- +- Makefile               ( ŽÀs‘Ìì¬—p‚ÌƒƒCƒNƒtƒ@ƒCƒ‹ )
- +- MakefileRefiner.in     ( Makefile ‚Ì Refiner —p‚ÌÝ’èƒtƒ@ƒCƒ‹ )
- +- OPTIONS                ( Makefile ‚ÌƒIƒvƒVƒ‡ƒ“Žw’è—p‚Ìƒtƒ@ƒCƒ‹ )
- +- VERSION                ( ƒo[ƒWƒ‡ƒ“‹LÚƒtƒ@ƒCƒ‹ )
- +- Documents              ( ƒhƒLƒ…ƒƒ“ƒg—Þ )
+ +- README_Refiner.txt     ( ã“ã®ãƒ•ã‚¡ã‚¤ãƒ« )
+ +- Geometry               ( å¹¾ä½•å‡¦ç†ç”¨ãƒ©ã‚¤ãƒ–ãƒ©ãƒª )
+ +- Matrix                 ( è¡Œåˆ—å‡¦ç†ç”¨ãƒ©ã‚¤ãƒ–ãƒ©ãƒª )
+ +- MeshDB                 ( ãƒ¡ãƒƒã‚·ãƒ¥å‡¦ç†ç”¨ãƒ©ã‚¤ãƒ–ãƒ©ãƒª )
+ +- MeshGen                ( ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆç”¨ãƒ©ã‚¤ãƒ–ãƒ©ãƒª )
+ +- Shape                  ( CAD å½¢çŠ¶å‡¦ç†ç”¨ãƒ©ã‚¤ãƒ–ãƒ©ãƒª )
+ +- Refiner                ( ãƒ¡ãƒƒã‚·ãƒ¥ç´°åˆ†åŒ–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«æœ¬ä½“ )
+ +- Makefile               ( å®Ÿè¡Œä½“ä½œæˆç”¨ã®ãƒ¡ã‚¤ã‚¯ãƒ•ã‚¡ã‚¤ãƒ« )
+ +- MakefileRefiner.in     ( Makefile ã® Refiner ç”¨ã®è¨­å®šãƒ•ã‚¡ã‚¤ãƒ« )
+ +- OPTIONS                ( Makefile ã®ã‚ªãƒ—ã‚·ãƒ§ãƒ³æŒ‡å®šç”¨ã®ãƒ•ã‚¡ã‚¤ãƒ« )
+ +- VERSION                ( ãƒãƒ¼ã‚¸ãƒ§ãƒ³è¨˜è¼‰ãƒ•ã‚¡ã‚¤ãƒ« )
+ +- Documents              ( ãƒ‰ã‚­ãƒ¥ãƒ¡ãƒ³ãƒˆé¡ž )
 
-REVOCAP_Refiner ‚Ìƒ`ƒ…[ƒgƒŠƒAƒ‹‚Æƒ}ƒjƒ…ƒAƒ‹‚Í Documents ƒtƒHƒ‹ƒ_‚Ì’†‚É“ü‚Á‚Ä‚¢‚Ü‚·B
+REVOCAP_Refiner ã®ãƒãƒ¥ãƒ¼ãƒˆãƒªã‚¢ãƒ«ã¨ãƒžãƒ‹ãƒ¥ã‚¢ãƒ«ã¯ Documents ãƒ•ã‚©ãƒ«ãƒ€ã®ä¸­ã«å…¥ã£ã¦ã„ã¾ã™ã€‚
 
-‚²Žg—p‚Ì‘O‚ÉAŽg—p‹–‘øðŒ‚ÉŠÖ‚·‚é•¶‘
-Documents/CISS_lic_agree2011_ja.pdf (‰pŒê”ÅDocuments/CISS_lic_agree2011_en.pdf)
-‚Ì“à—e‚ð‚²Šm”F‚­‚¾‚³‚¢B
+ã”ä½¿ç”¨ã®å‰ã«ã€ä½¿ç”¨è¨±è«¾æ¡ä»¶ã«é–¢ã™ã‚‹æ–‡æ›¸
+Documents/CISS_lic_agree2011_ja.pdf (è‹±èªžç‰ˆDocuments/CISS_lic_agree2011_en.pdf)
+ã®å†…å®¹ã‚’ã”ç¢ºèªãã ã•ã„ã€‚
 
-REVOCAP_Refiner ‚ÍŠô‰½ˆ—AƒƒbƒVƒ…ˆ—AƒƒbƒVƒ…¶¬AƒƒbƒVƒ…“üo—Íƒ‰ƒCƒuƒ‰ƒŠ‚Í
-REVOCAP_PrePost ‚Æ‹¤’Ê‚Ì‚à‚Ì‚ðŽg‚Á‚Ä‚¢‚Ü‚·B
+REVOCAP_Refiner ã¯å¹¾ä½•å‡¦ç†ã€ãƒ¡ãƒƒã‚·ãƒ¥å‡¦ç†ã€ãƒ¡ãƒƒã‚·ãƒ¥ç”Ÿæˆã€ãƒ¡ãƒƒã‚·ãƒ¥å…¥å‡ºåŠ›ãƒ©ã‚¤ãƒ–ãƒ©ãƒªã¯
+REVOCAP_PrePost ã¨å…±é€šã®ã‚‚ã®ã‚’ä½¿ã£ã¦ã„ã¾ã™ã€‚
 
-Makefile ‚Í REVOCAP_PrePost ‚Æ‹¤’Ê‚É‚È‚Á‚Ä‚¢‚é‚Ì‚Å’ˆÓ‚µ‚Ä‚­‚¾‚³‚¢B
+Makefile ã¯ REVOCAP_PrePost ã¨å…±é€šã«ãªã£ã¦ã„ã‚‹ã®ã§æ³¨æ„ã—ã¦ãã ã•ã„ã€‚
 
-ƒ‰ƒCƒuƒ‰ƒŠ‚Ìì‚è•û‚ÆƒeƒXƒg
+ãƒ©ã‚¤ãƒ–ãƒ©ãƒªã®ä½œã‚Šæ–¹ã¨ãƒ†ã‚¹ãƒˆ
 
-(1) OPTIONS ƒtƒ@ƒCƒ‹‚ðŒ©‚ÄAƒRƒ“ƒpƒCƒ‰‚âƒ}ƒNƒ•Ï”‚ð•ÒW‚µ‚Ä‚­‚¾‚³‚¢
-(2) make Refiner          ×•ª‰»ƒ‚ƒWƒ…[ƒ‹‚ðƒƒCƒN‚µ‚Ü‚·
-(3) make RefinerSampleC   CŒ¾Œê‚Å‘‚©‚ê‚½ƒTƒ“ƒvƒ‹ƒvƒƒOƒ‰ƒ€‚ðƒƒCƒN‚µ‚Ü‚·
-(3) make RefinerSampleF   FortranŒ¾Œê‚Å‘‚©‚ê‚½ƒTƒ“ƒvƒ‹ƒvƒƒOƒ‰ƒ€‚ðƒƒCƒN‚µ‚Ü‚·
-(4) make RefinerClean     ¶¬‚³‚ê‚½ƒtƒ@ƒCƒ‹‚ðíœ‚·‚é
+(1) OPTIONS ãƒ•ã‚¡ã‚¤ãƒ«ã‚’è¦‹ã¦ã€ã‚³ãƒ³ãƒ‘ã‚¤ãƒ©ã‚„ãƒžã‚¯ãƒ­å¤‰æ•°ã‚’ç·¨é›†ã—ã¦ãã ã•ã„
+(2) make Refiner          ç´°åˆ†åŒ–ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«ã‚’ãƒ¡ã‚¤ã‚¯ã—ã¾ã™
+(3) make RefinerSampleC   Cè¨€èªžã§æ›¸ã‹ã‚ŒãŸã‚µãƒ³ãƒ—ãƒ«ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’ãƒ¡ã‚¤ã‚¯ã—ã¾ã™
+(3) make RefinerSampleF   Fortranè¨€èªžã§æ›¸ã‹ã‚ŒãŸã‚µãƒ³ãƒ—ãƒ«ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚’ãƒ¡ã‚¤ã‚¯ã—ã¾ã™
+(4) make RefinerClean     ç”Ÿæˆã•ã‚ŒãŸãƒ•ã‚¡ã‚¤ãƒ«ã‚’å‰Šé™¤ã™ã‚‹
 

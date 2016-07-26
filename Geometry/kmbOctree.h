@@ -15,17 +15,17 @@
 #pragma once
 
 /*
- * �ߓ_�܂��͗v�f���ʒu���Ɋ�Â��ĊK�w�I�Ɋi�[����
- * �e���v���[�g�N���X
+ * 節点または要素を位置情報に基づいて階層的に格納する
+ * テンプレートクラス
  *
  * T = nodeIdType or elementIdType
  */
 
 /*
- * T �� idarray �� maxCount �܂Ŋi�[����
- * �i�[�ł��Ȃ��Ȃ����� box �� center �ŕ����āA
- * 8�̎q���ɕ��z����
- * ���݊i�[����Ă������ count �ɋL�^����
+ * T を idarray に maxCount まで格納する
+ * 格納できなくなったら box を center で分けて、
+ * 8個の子供に分配する
+ * 現在格納されている個数を count に記録する
  */
 
 #include "Geometry/kmbGeometry3D.h"
@@ -39,11 +39,11 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 namespace kmb{
@@ -107,12 +107,12 @@ protected:
 			}
 		};
 
-
+		// 自分の階層に含まれている点の個数
 		size_t getLocalCount(void) const{
 			return count;
 		}
 
-
+		// 自分より下の階層に含まれている点の個数
 		size_t getCount(void) const{
 			size_t sum = 0;
 			if( children != NULL ){
@@ -129,7 +129,7 @@ protected:
 			center.setCoordinate(x,y,z);
 		}
 
-
+		// 格納されている T 型の要素について最短距離を返す
 		double getNearest(const double x,const double y,const double z,T &t) const{
 			double d = getNearestSq(x,y,z,t);
 			if( d > 0.0 ){
@@ -144,7 +144,7 @@ protected:
 			box.getCenter( center );
 		}
 
-
+		// 座標を与えて追加
 		int appendByPoint(const kmb::Point3D &pt,const T t){
 			box.update(pt);
 			if( children != NULL )
@@ -163,8 +163,8 @@ protected:
 			return 0;
 		}
 
-
-
+		// 領域を与えて追加
+		// 重複していてもよい
 		int appendByRegion(const kmb::BoxRegion &b,const T t){
 			box.update(b);
 			if( children != NULL )
@@ -184,7 +184,7 @@ protected:
 				if( bxmin && bymax && bzmin ) res += children[2]->appendByRegion(b,t);
 				if( bxmin && bymin && bzmax ) res += children[1]->appendByRegion(b,t);
 				if( bxmin && bymin && bzmin ) res += children[0]->appendByRegion(b,t);
-
+//				REVOCAP_Debug_X("%d %d\n",this->layer,res);
 				return res;
 			}
 			else if( idarray != NULL )
@@ -194,7 +194,7 @@ protected:
 				if( count == maxCount ){
 					createChildren();
 				}
-
+//				REVOCAP_Debug_X("%d [1] %d\n",this->layer,count);
 				return 1;
 			}
 			return 0;
@@ -252,11 +252,11 @@ protected:
 				( ( bz ) ? 1 : 0 );
 		}
 
-
+		// 子の階層を作る
 		void createChildren(void){
 			if( children == NULL )
 			{
-
+				// 原則として子の階層を作ったら center の値は変えてはいけない
 				box.getCenter( center );
 				children = new typename kmb::Octree<T>::OctreeNode*[8];
 				children[0] = new typename kmb::Octree<T>::OctreeNode(octree,
@@ -275,13 +275,13 @@ protected:
 					box.maxX(), box.maxY(), box.minZ(), center.x(), center.y(), center.z(), layer+1 );
 				children[7] = new typename kmb::Octree<T>::OctreeNode(octree,
 					box.maxX(), box.maxY(), box.maxZ(), center.x(), center.y(), center.z(), layer+1 );
-
+				// 子供に Id をコピー
 				for(unsigned int i=0;i<count;++i)
 				{
 					octree->append(idarray[i],this);
 				}
 				this->count = 0;
-
+				// children を持ったら idarray は NULL
 				delete[] idarray;
 				idarray = NULL;
 			}
@@ -298,52 +298,52 @@ protected:
 				bool bx = ( x > center.x() );
 				bool by = ( y > center.y() );
 				bool bz = ( z > center.z() );
-
+//				REVOCAP_Debug_X("child index %d\n",getChildIndex(bx,by,bz));
 				if( min.update( children[ getChildIndex(bx,by,bz) ]->getNearestSq(x,y,z,tmp) ) ){
 					t = tmp;
 				}
-
-
-
+				// 隣接領域よりも近いかどうかを確かめる
+				// min は更新されるので、毎回調べる
+				// x
 				if( (x-center.x())*(x-center.x()) < min.getMin() &&
 					min.update( children[ getChildIndex(!bx,by,bz) ]->getNearestSq(x,y,z,tmp) ) )
 				{
 					t = tmp;
 				}
-
+				// y
 				if( (y-center.y())*(y-center.y()) < min.getMin() &&
 					min.update( children[ getChildIndex(bx,!by,bz) ]->getNearestSq(x,y,z,tmp) ) )
 				{
 					t = tmp;
 				}
-
+				// z
 				if( (z-center.z())*(z-center.z()) < min.getMin() &&
 					min.update( children[ getChildIndex(bx,by,!bz) ]->getNearestSq(x,y,z,tmp) ) )
 				{
 					t = tmp;
 				}
-
+				// x y
 				if( (x-center.x())*(x-center.x()) < min.getMin() &&
 					(y-center.y())*(y-center.y()) < min.getMin() &&
 					min.update( children[ getChildIndex(!bx,!by,bz) ]->getNearestSq(x,y,z,tmp) ) )
 				{
 					t = tmp;
 				}
-
+				// y z
 				if( (y-center.y())*(y-center.y()) < min.getMin() &&
 					(z-center.z())*(z-center.z()) < min.getMin() &&
 					min.update( children[ getChildIndex(bx,!by,!bz) ]->getNearestSq(x,y,z,tmp) ) )
 				{
 					t = tmp;
 				}
-
+				// z x
 				if( (z-center.z())*(z-center.z()) < min.getMin() &&
 					(x-center.x())*(x-center.x()) < min.getMin() &&
 					min.update( children[ getChildIndex(!bx,by,!bz) ]->getNearestSq(x,y,z,tmp) ) )
 				{
 					t = tmp;
 				}
-
+				// x y z
 				if( (x-center.x())*(x-center.x()) < min.getMin() &&
 					(y-center.y())*(y-center.y()) < min.getMin() &&
 					(z-center.z())*(z-center.z()) < min.getMin() &&
@@ -355,24 +355,24 @@ protected:
 			}
 			else if( idarray != NULL )
 			{
-
+//				REVOCAP_Debug_X("tree count %d\n",count);
 				for(unsigned int i=0;i<count;++i)
 				{
 					if( min.update( octree->getDistanceSq(x,y,z,idarray[i]) ) ){
 						t = idarray[i];
 					}
 				}
-
+//				REVOCAP_Debug_X("min = %f\n",min.getMin());
 				return min.getMin();
 			}
 			return min.getMin();
 		}
 	};
 protected:
-
+	// OctreeNode は NULL にしない
 	OctreeNode* topNode;
 	size_t maxCount;
-
+	// 子の階層に行くにしたがって maxCount を増やす
 	bool maxExpand;
 public:
 	Octree(size_t mCount=256)
@@ -404,25 +404,25 @@ public:
 	size_t getCount(void) const{
 		return topNode->getCount();
 	}
-
-
+	// id を与えて追加
+	// これは特殊化するクラスで実装する
 	virtual int append(const T t,typename kmb::Octree<T>::OctreeNode* octNode=NULL) = 0;
-
-
+	// コンテナの要素すべて追加
+	// これは特殊化するクラスで実装する
 	virtual int appendAll(typename kmb::Octree<T>::OctreeNode* octNode=NULL) = 0;
-
-
-
+	// id を与えて距離の２乗を返す
+	// これは特殊化するクラスで実装する
+	// 注：getNearest から呼んでいるオーバーヘッドを減らせば少し速くなる
 	virtual double getDistanceSq(const double x,const double y,const double z,const T t) const = 0;
-
+	// 距離を返す
 	double getNearest(const double x,const double y,const double z,T &t) const{
 		return topNode->getNearest(x,y,z,t);
 	}
-
+	// 領域との関係を返す
 	virtual bool getIntersectToRegion(const kmb::Region* region,const T t) const{
 		return false;
 	}
-
+	// debug print
 	void debugPrint(void){
 		if( topNode ){
 			topNode->debugPrint();
@@ -441,7 +441,7 @@ public:
 
 		iterator  operator++(int n){
 			typename kmb::Octree<T>::iterator itClone;
-			itClone.iter = iter;
+			itClone.iter = iter; 
 			iter++;
 			return itClone;
 		};
@@ -473,7 +473,7 @@ public:
 
 		const_iterator operator++(int n){
 			typename kmb::Octree<T>::iterator itClone;
-			itClone.iter = iter;
+			itClone.iter = iter; 
 			iter++;
 			return itClone;
 		};

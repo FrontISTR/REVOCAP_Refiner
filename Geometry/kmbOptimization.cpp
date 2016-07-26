@@ -80,8 +80,8 @@ kmb::Optimization::calcMinOnGrid( OptTargetSS_0 &obj, double& opt_t, const doubl
 	return minimizer.getMin();
 }
 
-
-
+// 0 <= n[i] <= div[i] で分割する
+// 点の個数は Π(div[i]+1) であることに注意
 bool
 kmb::Optimization::calcMinOnGrid( OptTargetSV_0 &obj, double* opt_t, const double* min_t, const double* max_t, const int* div )
 {
@@ -153,7 +153,7 @@ kmb::Optimization::calcMinOnGridWithRegion( OptTargetSV_0 &obj, double* opt_t, c
 }
 
 
-
+// Πdiv[i] 個のセルの中心での評価値を使う
 bool
 kmb::Optimization::calcMinOnCell( OptTargetSV_0 &obj, double* optmin_t, double* optmax_t, const double* min_t, const double* max_t, const int* div )
 {
@@ -315,7 +315,7 @@ kmb::Optimization::calcZero_DN( OptTargetSS &obj, double init_t )
 		}
 		d = obj.df(t0);
 		if( fabs(d) < epsilon ){
-
+			// 失敗
 			break;
 		}
 		d = - residual / d;
@@ -336,13 +336,13 @@ kmb::Optimization::calcZero_DN( OptTargetVV &obj, double* opt_t, const double* i
 		return false;
 	}
 	int dim = obj.getDomainDim();
-	kmb::ColumnVector_DoubleArray t(dim);
-	kmb::ColumnVector_DoubleArray t0(dim);
-	kmb::ColumnVector_DoubleArray y(dim);
-	kmb::ColumnVector_DoubleArray y0(dim);
-	kmb::ColumnVector_DoubleArray d(dim);
-	kmb::SquareMatrix_DoubleArray j(dim);
-
+	kmb::ColumnVector_DoubleArray t(dim);  // 現在の点
+	kmb::ColumnVector_DoubleArray t0(dim); // 次の点
+	kmb::ColumnVector_DoubleArray y(dim);  // 関数値
+	kmb::ColumnVector_DoubleArray y0(dim); // 関数値
+	kmb::ColumnVector_DoubleArray d(dim);  // 方向
+	kmb::SquareMatrix_DoubleArray j(dim);  // 行列
+	// 初期値
 	for(int i=0;i<dim;++i){
 		t0[i] = init_t[i];
 	}
@@ -372,7 +372,7 @@ kmb::Optimization::calcZero_DN( OptTargetVV &obj, double* opt_t, const double* i
 			obj.f(t,y);
 		}while( y.normSq() > ( 1 - 0.5*r ) * ( 1 - 0.5*r ) * residual );
 		if( t0.distanceSq(t) < epsilon*epsilon ){
-
+			// 収束せずに停留してしまった場合
 			break;
 		}
 		t0 = t;
@@ -420,12 +420,12 @@ kmb::Optimization::calcMin_BFGS( OptTargetSV &obj, double* opt_t, double* init_t
 		return false;
 	}
 	int dim = obj.getDomainDim();
-	double* t0 = new double[dim];
-	double* t  = new double[dim];
-	double* d  = new double[dim];
-	double alpha = 0.0;
-	double* u  = new double[dim];
-	kmb::SquareMatrix_DoubleArray b(dim);
+	double* t0 = new double[dim]; // 現在の点
+	double* t  = new double[dim];  // 次の点
+	double* d  = new double[dim];  // 探索方向
+	double alpha = 0.0; // d 方向のステップ幅
+	double* u  = new double[dim];  // 勾配変化量
+	kmb::SquareMatrix_DoubleArray b(dim);  // 行列
 	bool res = false;
 
 	b.identity();
@@ -434,7 +434,7 @@ kmb::Optimization::calcMin_BFGS( OptTargetSV &obj, double* opt_t, double* init_t
 	}
 	iterCount = 0;
 	while( iterCount < iterMax ){
-
+		// 探索方向 d の決定
 		obj.df( t0, u );
 		for(int i=0;i<dim;++i){
 			u[i] *= -1.0;
@@ -442,8 +442,8 @@ kmb::Optimization::calcMin_BFGS( OptTargetSV &obj, double* opt_t, double* init_t
 		if( !b.solve( u, d ) ){
 			break;
 		}
-
-
+		// t0 + alpha * d の直線探索
+		// Armijo 条件 with xi = 0.5, 減少率 = 0.8
 		alpha = 1.0 / 0.8;
 		double v = - kmb::ColumnVector::inner( d, u, dim );
 		double y = obj.f(t0);
@@ -453,7 +453,7 @@ kmb::Optimization::calcMin_BFGS( OptTargetSV &obj, double* opt_t, double* init_t
 				t[i] = t0[i] + alpha * d[i];
 			}
 		}while( obj.f(t) > y + 0.5 * alpha * v && alpha > DBL_MIN );
-
+		// 終了判定
 		obj.df( t, d );
 		residual = kmb::ColumnVector::normSq( d, dim );
 		if( residual < epsilon*epsilon ){
@@ -463,16 +463,16 @@ kmb::Optimization::calcMin_BFGS( OptTargetSV &obj, double* opt_t, double* init_t
 			res = true;
 			break;
 		}
-
+		// b の更新の準備
 		for(int i=0;i<dim;++i){
 			u[i] += d[i];
 			d[i] = t[i] - t0[i];
 			t0[i] = t[i];
 		}
-
-
-
-
+		// b の更新
+		// u = df(t) - df(t0)
+		// d = t - t0
+		// t : temp
 		b.multiply_vect_left(d,t);
 		double q0 = b.quadratic<double*>(d,d);
 		double q1 = kmb::ColumnVector::inner( d, u, dim );
@@ -551,7 +551,7 @@ kmb::Optimization::calcMin_GS( OptTargetSS_0 &obj, double min_t, double max_t )
 	}
 }
 
-
+// 実装しているのは DomainDim == 2 or 3 のとき
 bool
 kmb::Optimization::calcMin_GS( OptTargetSV_0 &obj, double* opt_t, const double* min_t, const double* max_t )
 {
@@ -585,7 +585,7 @@ kmb::Optimization::calcMin_GS( OptTargetSV_0 &obj, double* opt_t, const double* 
 		if( diff < n*kmb::Optimization::epsilon ){
 			break;
 		}
-
+		// m = 2^n 個の点を調べて最大値をとるところを探す
 		if( n == 2 ){
 			for(int i=0;i<n;++i){
 				s0[i] = (1.0-tau) * t0[i] + tau * t1[i];
@@ -722,7 +722,7 @@ kmb::Optimization::calcMin_CG( OptTargetSV &obj, double* opt_t, const double* mi
 	double* grad = new double[n];
 	double* grad_prev = new double[n];
 	double* conj = new double[n];
-
+	// 初期値
 	if( init_t != NULL ){
 		for(int i=0;i<n;++i){
 			t[i] = init_t[i];
@@ -732,7 +732,7 @@ kmb::Optimization::calcMin_CG( OptTargetSV &obj, double* opt_t, const double* mi
 			t[i] = 0.5*(min_t[i] + max_t[i]);
 		}
 	}
-
+	// １次元探索のためのサブクラス
 	class cg_local : public kmb::OptTargetSS_0 {
 	private:
 		int n;
@@ -749,7 +749,7 @@ kmb::Optimization::calcMin_CG( OptTargetSV &obj, double* opt_t, const double* mi
 		~cg_local(void){
 			delete[] local_t;
 		}
-
+		// minimize : obj.f( t + s * conj )
 		double f( double s ){
 			for(int i=0;i<n;++i){
 				local_t[i] = t[i] + s * conj[i];
@@ -763,7 +763,7 @@ kmb::Optimization::calcMin_CG( OptTargetSV &obj, double* opt_t, const double* mi
 	double epsilonSq = epsilon * epsilon;
 	iterCount = 0;
 	double lenSq = 0.0;
-
+	// beta で、ひとつ前の 1.0/lenSq も覚えておく
 	double beta = 0.0;
 	double sub_opt = 0.0;
 	double sub_min = 0.0;
@@ -798,8 +798,8 @@ kmb::Optimization::calcMin_CG( OptTargetSV &obj, double* opt_t, const double* mi
 			}
 		}
 		beta = 1.0 / lenSq;
-
-
+		// １次元探索した結果を sub_opt とする。
+		// t から conj 方向に動かした時の定義域を sub_min sub_max で求める
 		minimizer.initialize();
 		maximizer.initialize();
 		for(int i=0;i<n;++i){

@@ -13,14 +13,14 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * �傫���ς̔z������z�I�ȓ񎟌��z��Ŏ�����������
+ * 大きさ可変の配列を仮想的な二次元配列で実現したもの
  * Bi-Layerd Array
  *
- * SubArray �͑傫���� 2 �ׂ̂��ɂ���
+ * SubArray は大きさが 2 のべきにする
  * subSize = 1<<bitlength = 2^bitlength
  *
- * n >= 1 �Ȃ�v�f�� n ��������ƍl����
- * ���W�l���i�[����Ƃ��� BLArray<double,3> �̂悤�ɂ���
+ * n >= 1 なら要素が n 成分あると考える
+ * 座標値を格納するときは BLArray<double,3> のようにする
  *
  */
 
@@ -60,8 +60,8 @@ protected:
 };
 
 /**
- * BLArray �� index
- * topIndex �� subIndex ���Ǘ�����
+ * BLArray の index
+ * topIndex と subIndex を管理する
  */
 class BLArrayIndex
 {
@@ -89,7 +89,7 @@ public:
 	size_t getTopIndex(void) const;
 };
 
-/* n �� T ����ׂĊi�[����Ƃ� */
+/* n 個の T を並べて格納するとき */
 template<typename T,int n=1>
 class BLArray : public BLArrayBase
 {
@@ -133,11 +133,11 @@ public:
 			}
 		}
 	}
-
-
-
-
-
+	// メイン配列とサブ配列の大きさを決める
+	// 2^n * tSize >= size を満たす最小の n を決めて、
+	// サブ配列の大きさは 2^n とする
+	// メイン配列の大きさは subSize * topSize > size を満たすように決めた topSize とする
+	// この処理のあとには getSize() >= size が保証される
 	bool initialize(size_t size,size_t tSize=1)
 	{
 		clear();
@@ -145,10 +145,10 @@ public:
 			return false;
 		}
 		bitlength = 0U;
-		while( size > (1U<<bitlength)*tSize && bitlength < MAX_BITLENGTH ){
+		while( size > (static_cast<size_t>(1U)<<bitlength)*tSize && bitlength < MAX_BITLENGTH ){
 			++bitlength;
 		}
-		subSize = 1U << bitlength;
+		subSize = static_cast<size_t>(1U) << bitlength;
 		topSize = (size>>bitlength)+1;
 		localbitmask = static_cast<unsigned int>(subSize-1);
 		ary = new T*[ topSize ];
@@ -168,7 +168,18 @@ public:
 	{
 		return set(index.getTopIndex(),index.getSubIndex(),t);
 	}
-	const T& operator()(const kmb::BLArrayIndex &index,int j=0){
+
+	T& operator()(const kmb::BLArrayIndex &index,int j=0){
+		const size_t& tIndex = index.getTopIndex();
+		const size_t& sIndex = index.getSubIndex();
+		return ary[tIndex][n*sIndex+j];
+	}
+	T& operator()(size_t i,int j=0){
+		const size_t& tIndex = i>>bitlength;
+		const size_t& sIndex = i&localbitmask;
+		return ary[tIndex][n*sIndex+j];
+	}
+	const T& operator()(const kmb::BLArrayIndex &index,int j=0) const{
 		const size_t& tIndex = index.getTopIndex();
 		const size_t& sIndex = index.getSubIndex();
 		if( tIndex >= topSize ){
@@ -179,7 +190,7 @@ public:
 		}
 		return ary[tIndex][n*sIndex+j];
 	}
-	const T& operator()(size_t i,int j=0){
+	const T& operator()(size_t i,int j=0) const{
 		const size_t& tIndex = i>>bitlength;
 		const size_t& sIndex = i&localbitmask;
 		if( tIndex >= topSize ){
@@ -242,13 +253,13 @@ public:
 			ary[tIndex] != NULL &&
 			ary[tIndex][n*sIndex] != defval;
 	}
-
+	// 最初に何かが格納されている index を返す
 	bool first(BLArrayIndex &index) const
 	{
 		for(size_t i = 0;i<topSize;++i){
 			if( ary[i] != NULL ){
 				for(size_t j = 0;j<subSize;++j){
-
+					// 全ての成分に値が入っているか
 					bool flag = true;
 					for(int k=0;k<n;++k){
 						flag &= ( ary[i][n*j+k] != defval );
@@ -324,12 +335,12 @@ protected:
 		}
 		return true;
 	}
-
+	// 実際の subarray の確保は必要になった時に行う
 	bool increaseSubArray(size_t tSize){
 		if( tSize > topSize ){
-
+			// 元の親配列を保存
 			T** temp = ary;
-
+			// 新しい親配列を作る
 			ary = new T*[ tSize ];
 			for(size_t i = 0;i<topSize;++i){
 				ary[i] = temp[i];
@@ -337,12 +348,6 @@ protected:
 			for(size_t i = topSize;i<tSize;++i){
 				ary[i] = NULL;
 			}
-
-
-
-
-
-
 			delete[] temp;
 			topSize = tSize;
 			return true;
@@ -362,7 +367,7 @@ protected:
 	}
 };
 
-/* T �̃|�C���^��ۑ����鎞 */
+/* T のポインタを保存する時 */
 template<typename T>
 class BLArrayPtr : public BLArrayBase
 {
@@ -399,8 +404,8 @@ public:
 			localbitmask = 0U;
 		}
 	}
-
-
+	// ポインタを NULL にするだけでメモリの解放はしない
+	// このクラスの外でメモリ管理をしている場合
 	void clearData(void){
 		if( ary ){
 			for(size_t i = 0;i<topSize;++i){
@@ -419,10 +424,10 @@ public:
 			return false;
 		}
 		bitlength = 0U;
-		while( size > (1U<<bitlength)*tSize && bitlength < MAX_BITLENGTH ){
+		while( size > (static_cast<size_t>(1U)<<bitlength)*tSize && bitlength < MAX_BITLENGTH ){
 			++bitlength;
 		}
-		subSize = 1U << bitlength;
+		subSize = static_cast<size_t>(1U) << bitlength;
 		topSize = (size>>bitlength)+1;
 		localbitmask = static_cast<unsigned int>(subSize-1);
 		ary = new T**[ topSize ];
@@ -460,7 +465,7 @@ public:
 			ary[tIndex] != NULL &&
 			ary[tIndex][sIndex] != NULL;
 	}
-
+	// 最初に格納されている index を返す
 	bool first(BLArrayIndex &index) const
 	{
 		for(size_t i = 0;i<topSize;++i){
@@ -497,7 +502,7 @@ protected:
 		}
 		return ary[tIndex][sIndex];
 	}
-
+	// 実際の subarray の確保は必要になった時に行う
 	bool increaseSubArray(size_t tSize){
 		if( tSize > topSize ){
 			T*** temp = ary;
@@ -508,12 +513,6 @@ protected:
 			for(size_t i = topSize;i<tSize;++i){
 				ary[i] = NULL;
 			}
-
-
-
-
-
-
 			delete[] temp;
 			topSize = tSize;
 			return true;

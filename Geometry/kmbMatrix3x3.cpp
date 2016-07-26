@@ -57,12 +57,12 @@ kmb::Matrix3x3::Matrix3x3(
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 int
@@ -106,11 +106,11 @@ kmb::Matrix3x3::operator*(const Matrix3x3& other)
 {
 	double mat[9];
 	for(int i=0;i<3;++i){
-		mat[0+i] =
+		mat[0+i] = 
 			m[i]*other.m[0] + m[3+i]*other.m[1] + m[6+i]*other.m[2];
-		mat[3+i] =
+		mat[3+i] = 
 			m[i]*other.m[3] + m[3+i]*other.m[4] + m[6+i]*other.m[5];
-		mat[6+i] =
+		mat[6+i] = 
 			m[i]*other.m[6] + m[3+i]*other.m[7] + m[6+i]*other.m[8];
 	}
 	return Matrix3x3(mat);
@@ -255,12 +255,12 @@ kmb::Matrix3x3::determinant(
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 double
@@ -314,14 +314,14 @@ kmb::Matrix3x3::createRotation(double angle,const Vector3D& axis)
 	m[0] = c+x*x*(1.0-c);	m[3] = x*y*(1.0-c)-z*s;	m[6] = x*z*(1.0-c)+y*s;
 	m[1] = x*y*(1.0-c)+z*s;	m[4] = c+y*y*(1.0-c);	m[7] = y*z*(1.0-c)-x*s;
 	m[2] = x*z*(1.0-c)-y*s;	m[5] = y*z*(1.0-c)+x*s;	m[8] = c+z*z*(1.0-c);
-
+	
 	return kmb::Matrix3x3(m);
 }
 
 kmb::Matrix3x3
 kmb::Matrix3x3::createReflection(const kmb::Vector3D& axis)
 {
-	double m[9] =
+	double m[9] = 
 		{1.0, 0.0, 0.0,
 		 0.0, 1.0, 0.0,
 		 0.0, 0.0, 1.0};
@@ -373,7 +373,7 @@ kmb::Matrix3x3::solve(const Vector3D& b) const
 bool
 kmb::Matrix3x3::solve(const Vector3D& b,Vector3D& x) const
 {
-
+	// 消去法
 	double coef[12] = {
 		m[0],m[1],m[2],
 		m[3],m[4],m[5],
@@ -382,10 +382,10 @@ kmb::Matrix3x3::solve(const Vector3D& b,Vector3D& x) const
 	};
 
 	kmb::Matrix_DoubleArray mat(3,4,coef);
-
+	
 	int ind = -1;
 	double m = 0.0;
-
+	// 0 列
 	for(int i=0;i<3;++i){
 		double d = fabs(mat.get(i,0));
 		if( d > m ){
@@ -402,7 +402,7 @@ kmb::Matrix3x3::solve(const Vector3D& b,Vector3D& x) const
 	mat.row_transf(0, 1, -mat.get(1,0));
 	mat.row_transf(0, 2, -mat.get(2,0));
 
-
+	// 1 列
 	ind = -1;
 	m = 0.0;
 	for(int i=1;i<3;++i){
@@ -421,7 +421,7 @@ kmb::Matrix3x3::solve(const Vector3D& b,Vector3D& x) const
 	mat.row_transf(1, 2, -mat.get(2,1));
 	mat.row_transf(1, 0, -mat.get(0,1));
 
-
+	// 2 列
 	if( mat.get(2,2) == 0.0 ){
 		return false;
 	}
@@ -439,7 +439,7 @@ kmb::Matrix3x3::solve(const Vector3D& b,Vector3D& x) const
 bool
 kmb::Matrix3x3::solveSafely(const Vector3D& b,Vector3D& x,double thresh) const
 {
-
+	// 消去法
 	double coef[12] = {
 		m[0],m[1],m[2],
 		m[3],m[4],m[5],
@@ -448,10 +448,10 @@ kmb::Matrix3x3::solveSafely(const Vector3D& b,Vector3D& x,double thresh) const
 	};
 
 	kmb::Matrix_DoubleArray mat(3,4,coef);
-
+	
 	int ind = -1;
 	double m = 0.0;
-
+	// 0 列
 	for(int i=0;i<3;++i){
 		double d = fabs(mat.get(i,0));
 		if( d > m ){
@@ -468,7 +468,7 @@ kmb::Matrix3x3::solveSafely(const Vector3D& b,Vector3D& x,double thresh) const
 	mat.row_transf(0, 1, -mat.get(1,0));
 	mat.row_transf(0, 2, -mat.get(2,0));
 
-
+	// 1 列
 	ind = -1;
 	m = 0.0;
 	for(int i=1;i<3;++i){
@@ -487,7 +487,7 @@ kmb::Matrix3x3::solveSafely(const Vector3D& b,Vector3D& x,double thresh) const
 	mat.row_transf(1, 2, -mat.get(2,1));
 	mat.row_transf(1, 0, -mat.get(0,1));
 
-
+	// 2 列
 	if( fabs(mat.get(2,2)) < thresh ){
 		return false;
 	}

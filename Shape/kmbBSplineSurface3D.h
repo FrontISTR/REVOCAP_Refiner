@@ -25,7 +25,7 @@ namespace kmb{
 class BSplineSurface3D : public Surface3D
 {
 private:
-
+	// uOrder * vOrder の制御点を与える
 	unsigned int uOrder, vOrder;
 	kmb::BSpline uBspline, vBspline;
 	std::vector< kmb::Point3D > ctrlPts;
@@ -38,8 +38,8 @@ public:
 	virtual bool isDomain( double u, double v ) const;
 	virtual bool isUDomain( double u ) const;
 	virtual bool isVDomain( double v ) const;
-
-
+	// 登録済みの制御点の個数と適合するなら true を返す
+	// そうでなければ false を返す。この場合は制御点の設定が必要
 	bool setOrder(unsigned int uOrder,unsigned int vOrder);
 	bool getOrder(unsigned int &uOrder,unsigned int &vOrder) const;
 	bool getKnotCount(unsigned int &uCount,unsigned int &vCount) const;

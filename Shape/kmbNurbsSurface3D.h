@@ -24,7 +24,7 @@ namespace kmb{
 class NurbsSurface3D : public Surface3D
 {
 private:
-
+	// uOrder * vOrder の制御点を与える
 	unsigned int uOrder, vOrder;
 	kmb::BSpline uBspline, vBspline;
 	std::vector< kmb::Point4D > ctrlPts;
@@ -40,8 +40,8 @@ public:
 	virtual bool isDomain( double u, double v ) const;
 	virtual bool isUDomain( double u ) const;
 	virtual bool isVDomain( double v ) const;
-
-
+	// 登録済みの制御点の個数と適合するなら true を返す
+	// そうでなければ false を返す。この場合は制御点の設定が必要
 	bool setOrder(unsigned int uOrder,unsigned int vOrder);
 	bool getOrder(unsigned int &uOrder,unsigned int &vOrder) const;
 	bool getKnotCount(unsigned int &uCount,unsigned int &vCount) const;
@@ -65,12 +65,12 @@ public:
 	virtual bool getNearest( const kmb::Point3D& point, double &u, double &v ) const;
 protected:
 
-
-
-
+	// 微分した有理式の分子だけ計算する
+	// S(u,v) = Q(u,v)/w(u,v) の微分の分子
+	// S'w = Q' - Sw'
 	virtual bool getSubDerivative( derivativeType d, double u, double v, kmb::Vector3D &tangent ) const;
 	virtual bool getWeightDerivative( derivativeType d, double u, double v, double &w ) const;
-
+	// S(u,v) = Q(u,v)/w(u,v) の w(u,v)
 	virtual bool getWeight( double u, double v, double &w ) const;
 };
 

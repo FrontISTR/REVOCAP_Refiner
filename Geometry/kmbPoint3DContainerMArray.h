@@ -12,14 +12,14 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
+// BLArray を使ったコンテナ
 #pragma once
 #include "Geometry/kmbPoint3DContainer.h"
 #include "Common/kmbBLArray.h"
 
 namespace kmb{
 
-class Point3DContainerMArray : public Point3DContainer
+class Point3DContainerMArray : public Point3DContainerDirectAccessable
 {
 private:
 	BLArray<double,3> pointArray;
@@ -49,6 +49,14 @@ public:
 	virtual const_iterator begin(void) const;
 	virtual iterator find(kmb::nodeIdType nodeId);
 	virtual const_iterator find(kmb::nodeIdType nodeId) const;
+
+	virtual double operator()(kmb::nodeIdType nodeId,int i) const{
+		return pointArray(static_cast<size_t>(nodeId),i);
+	}
+	virtual double& operator()(kmb::nodeIdType nodeId,int i){
+		return pointArray(static_cast<size_t>(nodeId),i);
+	}
+	virtual void commit(kmb::nodeIdType nodeId);
 
 protected:
 	class _iteratorMArray : public Point3DContainer::_iterator

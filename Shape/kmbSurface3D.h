@@ -50,7 +50,7 @@ public:
 	void setSurfaceId(long id);
 	virtual surfaceType getSurfaceType(void) const = 0;
 	virtual int writeRNF( std::ofstream &output, std::string indent="  ") const = 0;
-
+	// 定義域の外ならば false を返す
 	virtual bool getPoint( double u, double v, kmb::Point3D &point ) const = 0;
 	virtual void getDomain( double &min_u, double &max_u, double &min_v, double &max_v ) const = 0;
 	virtual bool isDomain( double u, double v ) const = 0;
@@ -62,8 +62,8 @@ public:
 	virtual bool getMiddlePoint( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const;
 	virtual bool getMiddlePointByNearest( double u0, double v0, double u1, double v1, double &u, double &v, kmb::Point3D &point ) const;
 
-
-
+	// Newton-Raphson 法で point にもっとも近い 曲面上の点を求める
+	// Newton-Raphson 法が収束しなかったときは false を返す
 	virtual bool getNearest( const kmb::Point3D& point, double &u, double &v ) const;
 
 	double getEpsilon(void) const;

@@ -30,7 +30,7 @@ public:
 	static const int connectionTable[6][6];
 	static const int faceTable[5][3];
 	static const int edgeTable[12][2];
-
+	// 2点から決まる面番号を返す
 	static const int faceIndexTable[6][6];
 };
 

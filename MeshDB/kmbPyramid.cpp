@@ -35,9 +35,9 @@
 /********************************************************************************
 =begin
 
-=== 1���l�p���v�f (PYRAMID)
+=== 1次四角錐要素 (PYRAMID)
 
-�ڑ��s��
+接続行列
 
 	{ 0, 1, 1, 1, 1},
 	{ 1, 0, 1, 0, 1},
@@ -45,7 +45,7 @@
 	{ 1, 0, 1, 0, 1},
 	{ 1, 1, 0, 1, 0}
 
-��
+面
 
 	{ 0, 1, 2},
 	{ 0, 2, 3},
@@ -53,7 +53,7 @@
 	{ 0, 4, 1},
 	{ 4, 3, 2, 1}
 
-��
+辺
 
 	{ 0, 1},
 	{ 0, 2},
@@ -66,7 +66,7 @@
 
 =end
 
-�`��֐� (-1 <= s,t,u <= 1)
+形状関数 (-1 <= s,t,u <= 1)
 0 : 1/2(1+u)                     => (s,t,u) = (  0,  0,  1)
 1 : 1/8(1-s)(1-t)(1-u)           => (s,t,u) = ( -1, -1, -1)
 2 : 1/8(1+s)(1-t)(1-u)           => (s,t,u) = (  1, -1, -1)
@@ -76,7 +76,7 @@
 *********************************************************************************/
 const int kmb::Pyramid::nodeCount = 5;
 
-
+// 隣接行列
 const int kmb::Pyramid::connectionTable[5][5] =
 {
 	{ 0, 1, 1, 1, 1},
@@ -86,16 +86,16 @@ const int kmb::Pyramid::connectionTable[5][5] =
 	{ 1, 1, 0, 1, 0}
 };
 
-
-
-
-
-
-
-
-
-
-
+// 面を構成する多角形の添え字番号
+// 外側から見て左回りが正
+// 0 を天頂とし
+// 1234 が四角形
+// 面を構成する多角形の添え字番号
+// 0 1 2
+// 0 2 3
+// 0 3 4
+// 0 4 1
+// 4 3 2 1
 
 const int kmb::Pyramid::faceTable[5][4] =
 {
@@ -122,13 +122,13 @@ bool
 kmb::Pyramid::isEquivalent(int index[5])
 {
 	const int len = kmb::Element::getNodeCount(kmb::PYRAMID);
-
+	// 置換じゃない時は無条件にだめ
 	for(int i=0;i<len;++i){
 		if(index[i] < 0 || len <= index[i]){
 			return false;
 		}
 	}
-
+	// connection matrix が同じならいいことにする
 	for(int i=0;i<len;++i){
 		for(int j=0;j<len;++j){
 			if( kmb::Pyramid::connectionTable[i][j]
@@ -187,7 +187,7 @@ kmb::Pyramid::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3
 		return false;
 	}
 	/*
-	 * pyramid�̗v�f���W�����߂邽�߂Ƀj���[�g���@���s��
+	 * pyramidの要素座標を求めるためにニュートン法を行う
 	 */
 	class nr_local : public kmb::OptTargetVV {
 	public:
@@ -211,19 +211,19 @@ kmb::Pyramid::getNaturalCoordinates(const kmb::Point3D &target,const kmb::Point3
 		}
 		bool df(const ColumnVector &t,Matrix &jac){
 			for(int i=0;i<3;++i){
-
+				// s で微分
 				jac.set(i,0,0.125 * (
 					-(1.0-t[1])*(1.0-t[2])*points[1][i]
 					+(1.0-t[1])*(1.0-t[2])*points[2][i]
 					+(1.0+t[1])*(1.0-t[2])*points[3][i]
 					-(1.0+t[1])*(1.0-t[2])*points[4][i] ) );
-
+				// t で微分
 				jac.set(i,1,0.125 * (
 					-(1.0-t[0])*(1.0-t[2])*points[1][i]
 					-(1.0+t[0])*(1.0-t[2])*points[2][i]
 					+(1.0+t[0])*(1.0-t[2])*points[3][i]
 					+(1.0-t[0])*(1.0-t[2])*points[4][i] ) );
-
+				// u で微分
 				jac.set(i,2,0.125 * (
 					+4.0*points[0].getCoordinate(i)
 					-(1.0-t[0])*(1.0-t[1])*points[1][i]
@@ -270,12 +270,12 @@ kmb::Pyramid::divideIntoTetrahedrons(const kmb::ElementBase* element,kmb::nodeId
 	}
 	int num = 2;
 
-
-	bool n4 = element->getIndexMinNodeIdOfFace( 4 )%2 == 1;
+	// 対角線をどのように引くか決める
+	bool n4 = element->getIndexMinNodeIdOfFace( 4 )%2 == 1; // [4,3,2,1]
 
 	if( !n4 )
 	{
-
+		// [2,4]
 		tetrahedrons[0][0] = element->getCellId(1);
 		tetrahedrons[0][1] = element->getCellId(2);
 		tetrahedrons[0][2] = element->getCellId(4);
@@ -287,7 +287,7 @@ kmb::Pyramid::divideIntoTetrahedrons(const kmb::ElementBase* element,kmb::nodeId
 	}
 	else
 	{
-
+		// [1,3]
 		tetrahedrons[0][0] = element->getCellId(1);
 		tetrahedrons[0][1] = element->getCellId(2);
 		tetrahedrons[0][2] = element->getCellId(3);

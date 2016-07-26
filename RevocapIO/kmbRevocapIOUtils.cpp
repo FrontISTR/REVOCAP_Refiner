@@ -29,10 +29,10 @@ kmb::RevocapIOUtils::getValue( std::string exp, std::string key, bool keyCaseSen
 		std::string::size_type valFirst = exp.find_first_not_of( " ", eqEnd );
 		if( valFirst == std::string::npos ) return "";
 		std::string::size_type valEnd = exp.find_first_not_of( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-", valFirst );
-
+		// valEnd が npos のときは、文末までを value とする
 		return exp.substr( valFirst, valEnd-valFirst);
 	}else{
-
+		// exp と key を両方小文字にしてから比べる
 		std::string expDownCase = exp;
 		std::string keyDownCase = key;
 		std::transform( exp.begin(), exp.end(), expDownCase.begin(), tolower);
@@ -44,8 +44,8 @@ kmb::RevocapIOUtils::getValue( std::string exp, std::string key, bool keyCaseSen
 		std::string::size_type valFirst = expDownCase.find_first_not_of( " ", eqEnd );
 		if( valFirst == std::string::npos ) return "";
 		std::string::size_type valEnd = expDownCase.find_first_not_of( "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-", valFirst );
-
-
+		// valEnd が npos のときは、文末までを value とする
+		// 値は小文字にする前の exp から取り出す
 		return exp.substr( valFirst, valEnd-valFirst);
 	}
 }
@@ -58,7 +58,7 @@ kmb::RevocapIOUtils::hasKey( std::string exp, std::string key, bool keyCaseSensi
 		if( keyFirst == std::string::npos ) return false;
 		else return true;
 	}else{
-
+		// exp と key を両方小文字にしてから比べる
 		std::string expDownCase = exp;
 		std::string keyDownCase = key;
 		std::transform( exp.begin(), exp.end(), expDownCase.begin(), tolower);
@@ -79,11 +79,12 @@ kmb::RevocapIOUtils::readOneLine(std::istream &input, std::string &str)
 	return input;
 }
 
+// 今までもスペースでもないところまで進めて返す
 std::istringstream& kmb::RevocapIOUtils::skipComma(std::istringstream &tokenizer)
 {
 	while( tokenizer.good() ){
 		int ch = tokenizer.get();
-		if( ch != ',' && ch != ' ' ){
+		if( ch != ',' && ch != ' ' && ch != '\t' ){
 			tokenizer.unget();
 			break;
 		}

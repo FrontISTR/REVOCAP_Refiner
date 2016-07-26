@@ -54,10 +54,10 @@ kmb::MeshDB::getInterpolatedValueInBody(const char* name,kmb::bodyIdType bodyId,
 		}
 		double* nVal = new double[dim];
 		int len = nearestElement.getNodeCount();
-
+		// i => 要素内節点のループ
 		for(int i=0;i<len;++i){
 			data->getPhysicalValue( nearestElement[i], nVal );
-
+			// j => データのループ
 			for(int j=0;j<dim;++j){
 				values[j] += coeff[i] * nVal[j];
 			}
@@ -97,10 +97,10 @@ kmb::MeshDB::getInterpolatedValueInData(const char* name,const char* target,doub
 		}
 		double* nVal = new double[dim];
 		int len = nearestElement.getNodeCount();
-
+		// i => 要素内節点のループ
 		for(int i=0;i<len;++i){
 			data->getPhysicalValue( nearestElement[i], nVal );
-
+			// j => データのループ
 			for(int j=0;j<dim;++j){
 				values[j] += coeff[i] * nVal[j];
 			}
@@ -138,10 +138,10 @@ kmb::MeshDB::getInterpolatedValue(const char* name,double x,double y,double z,do
 			if( this->evaluator->getWeightElement( nearestElement, x, y, z, coeff ) >= tolerance ){
 				double* nVal = new double[dim];
 				int len = nearestElement.getNodeCount();
-
+				// i => 要素内節点のループ
 				for(int i=0;i<len;++i){
 					data->getPhysicalValue( nearestElement[i], nVal );
-
+					// j => データのループ
 					for(int j=0;j<dim;++j){
 						values[j] += coeff[i] * nVal[j];
 					}
@@ -193,10 +193,10 @@ kmb::MeshDB::getInterpolatedValuesInBody(kmb::bodyIdType bodyId,double x,double 
 	if( this->evaluator->getWeightElement( nearestElement, x, y, z, coeff ) >= tolerance ){
 		double* nVal = new double[dim];
 		int len = nearestElement.getNodeCount();
-
+		// i => 要素内節点のループ
 		for(int i=0;i<len;++i){
 			this->getMultiPhysicalValues( nearestElement[i], nVal );
-
+			// j => データのループ
 			for(int j=0;j<dim;++j){
 				values[j] += coeff[i] * nVal[j];
 			}
@@ -232,10 +232,10 @@ kmb::MeshDB::getInterpolatedValuesInData(const char* target,double x,double y,do
 	if( this->evaluator->getWeightElement( nearestElement, x, y, z, coeff ) >= tolerance ){
 		double* nVal = new double[dim];
 		int len = nearestElement.getNodeCount();
-
+		// i => 要素内節点のループ
 		for(int i=0;i<len;++i){
 			this->getMultiPhysicalValues( nearestElement[i], nVal );
-
+			// j => データのループ
 			for(int j=0;j<dim;++j){
 				values[j] += coeff[i] * nVal[j];
 			}
@@ -266,10 +266,10 @@ kmb::MeshDB::getInterpolatedValues(double x,double y,double z,double *values,dou
 				}
 				double* nVal = new double[dim];
 				int len = nearestElement.getNodeCount();
-
+				// i => 要素内節点のループ
 				for(int i=0;i<len;++i){
 					this->getMultiPhysicalValues( nearestElement[i], nVal );
-
+					// j => データのループ
 					for(int j=0;j<dim;++j){
 						values[j] += coeff[i] * nVal[j];
 					}

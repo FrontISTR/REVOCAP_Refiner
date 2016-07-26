@@ -190,7 +190,7 @@ kmb::ElementRelation::getRelation(const kmb::ElementBase &eIter0, int &index0, c
 					case 3:
 					case 4:
 						{
-
+							// 何番目の面に接するかをチェック
 							const int boundaryCount = eIter0.getBoundaryCount();
 							ret = kmb::ElementRelation::OTHERRELATION;
 							for(int i=0;i<boundaryCount;++i){
@@ -351,193 +351,164 @@ kmb::ElementRelation::isAdjacent(const kmb::ElementBase &eIter0, int &index0, co
 		if( eIter0.getCellId(3) == eIter1.getCellId(3) )	rel |= 0x0008;
 		switch( rel )
 		{
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 			case 0x0248:
 			case 0x0482:
 			case 0x0824:
 				index0 = 0;	index1 = 0;	ret = false;	break;
-
+			// 3点が逆向きに一致 123 vs 123
 			case 0x0284:
 			case 0x0842:
 			case 0x0428:
 				index0 = 0;	index1 = 0;	ret = true;		break;
-
+			// 3点が同じ向きに一致 123 vs 032
 			case 0x0418:
 			case 0x0184:
 			case 0x0841:
 				index0 = 0;	index1 = 1;	ret = false;	break;
-
+			// 3点が逆向きに一致 123 vs 032
 			case 0x0481:
 			case 0x0814:
 			case 0x0148:
 				index0 = 0;	index1 = 1;	ret = true;		break;
-
+			// 3点が同じ向きに一致 123 vs 013
 			case 0x0128:
 			case 0x0281:
 			case 0x0812:
 				index0 = 0;	index1 = 2;	ret = false;	break;
-
+			// 3点が逆向きに一致 123 vs 013
 			case 0x0182:
 			case 0x0821:
 			case 0x0218:
 				index0 = 0;	index1 = 2;	ret = true;		break;
-
+			// 3点が同じ向きに一致 123 vs 021
 			case 0x0421:
 			case 0x0214:
 			case 0x0142:
 				index0 = 0;	index1 = 3;	ret = false;	break;
-
+			// 3点が逆向きに一致 123 vs 021
 			case 0x0412:
 			case 0x0124:
 			case 0x0241:
 				index0 = 0;	index1 = 3;	ret = true;		break;
 
-
+			// 3点が同じ向きに一致 032 vs 123
 			case 0x2084:
 			case 0x8042:
 			case 0x4028:
 				index0 = 1;	index1 = 0;	ret = false;	break;
-
+			// 3点が逆向きに一致 032 vs 123
 			case 0x2048:
 			case 0x4082:
 			case 0x8024:
 				index0 = 1;	index1 = 0;	ret = true;		break;
-
+			// 3点が同じ向きに一致 032 vs 032
 			case 0x1048:
 			case 0x4081:
 			case 0x8014:
 				index0 = 1;	index1 = 1;	ret = false;	break;
-
+			// 3点が逆向きに一致 032 vs 032
 			case 0x1084:
 			case 0x4018:
 			case 0x8041:
 				index0 = 1;	index1 = 1;	ret = true;		break;
-
+			// 3点が同じ向きに一致 032 vs 013
 			case 0x1082:
 			case 0x8021:
 			case 0x2018:
 				index0 = 1;	index1 = 2;	ret = false;	break;
-
+			// 3点が逆向きに一致 032 vs 013
 			case 0x1028:
 			case 0x8012:
 			case 0x2081:
 				index0 = 1;	index1 = 2;	ret = true;		break;
-
+			// 3点が同じ向きに一致 032 vs 021
 			case 0x1024:
 			case 0x2041:
 			case 0x4012:
 				index0 = 1;	index1 = 3;	ret = false;	break;
-
+			// 3点が逆向きに一致 032 vs 021
 			case 0x1042:
 			case 0x2014:
 			case 0x4021:
 				index0 = 1;	index1 = 3;	ret = true;		break;
 
-
+			// 3点が同じ向きに一致 013 vs 123
 			case 0x2408:
 			case 0x4802:
 			case 0x8204:
 				index0 = 2;	index1 = 0;	ret = false;	break;
-
+			// 3点が逆向きに一致 013 vs 123
 			case 0x4208:
 			case 0x8402:
 			case 0x2804:
 				index0 = 2;	index1 = 0;	ret = true;		break;
-
+			// 3点が同じ向きに一致 013 vs 032
 			case 0x1804:
 			case 0x8401:
 			case 0x4108:
 				index0 = 2;	index1 = 1;	ret = false;	break;
-
+			// 3点が逆向きに一致 013 vs 032
 			case 0x8104:
 			case 0x4801:
 			case 0x1408:
 				index0 = 2;	index1 = 1;	ret = true;		break;
-
+			// 3点が同じ向きに一致 013 vs 013
 			case 0x1208:
 			case 0x2801:
 			case 0x8102:
 				index0 = 2;	index1 = 2;	ret = false;	break;
-
+			// 3点が逆向きに一致 013 vs 013
 			case 0x2108:
 			case 0x8201:
 			case 0x1802:
 				index0 = 2;	index1 = 2;	ret = true;		break;
-
+			// 3点が同じ向きに一致 013 vs 021
 			case 0x1402:
 			case 0x4201:
 			case 0x2104:
 				index0 = 2;	index1 = 3;	ret = false;	break;
-
+			// 3点が逆向きに一致 013 vs 021
 			case 0x4102:
 			case 0x2401:
 			case 0x1204:
 				index0 = 2;	index1 = 3;	ret = true;		break;
 
-
+			// 3点が同じ向きに一致 021 vs 123
 			case 0x2840:
 			case 0x8420:
 			case 0x4280:
 				index0 = 3;	index1 = 0;	ret = false;	break;
-
+			// 3点が逆向きに一致 021 vs 123
 			case 0x2480:
 			case 0x8240:
 			case 0x4820:
 				index0 = 3;	index1 = 0;	ret = true;		break;
-
+			// 3点が同じ向きに一致 021 vs 032
 			case 0x1480:
 			case 0x4810:
 			case 0x8140:
 				index0 = 3;	index1 = 1;	ret = false;	break;
-
+			// 3点が逆向きに一致 021 vs 032
 			case 0x1840:
 			case 0x4180:
 			case 0x8410:
 				index0 = 3;	index1 = 1;	ret = true;		break;
-
+			// 3点が同じ向きに一致 021 vs 013
 			case 0x1820:
 			case 0x8210:
 			case 0x2180:
 				index0 = 3;	index1 = 2;	ret = false;	break;
-
+			// 3点が逆向きに一致 021 vs 013
 			case 0x1280:
 			case 0x8120:
 			case 0x2810:
 				index0 = 3;	index1 = 2;	ret = true;		break;
-
+			// 3点が同じ向きに一致 021 vs 021
 			case 0x1240:
 			case 0x2410:
 			case 0x4120:
 				index0 = 3;	index1 = 3;	ret = false;	break;
-
+			// 3点が逆向きに一致 021 vs 021
 			case 0x1420:
 			case 0x2140:
 			case 0x4210:
@@ -606,17 +577,17 @@ kmb::ElementRelation::getTriangleRelation
 	if( a2 == b1 )	rel |= 0x002;
 	if( a2 == b2 )	rel |= 0x004;
 	switch( rel ){
-
+		// 同じ向きに3点共有
 		case 0x124:
 		case 0x241:
 		case 0x412:
 			return kmb::ElementRelation::EQUAL;
-
+		// 逆向きに3点共有
 		case 0x421:
 		case 0x214:
 		case 0x142:
 			return kmb::ElementRelation::REVERSE;
-
+		// 同じ向きに2点共有
 		case 0x120:
 			aIndex = 2; bIndex = 2;
 			return kmb::ElementRelation::ANTIADJACENT;
@@ -644,7 +615,7 @@ kmb::ElementRelation::getTriangleRelation
 		case 0x104:
 			aIndex = 1; bIndex = 1;
 			return kmb::ElementRelation::ANTIADJACENT;
-
+		// 逆向きに2点共有
 		case 0x210:
 			aIndex = 2; bIndex = 2;
 			return kmb::ElementRelation::ADJACENT;
@@ -709,19 +680,19 @@ kmb::ElementRelation::getQuadRelation
 		return kmb::ElementRelation::COMMONNODE;
 	}
 	switch( rel ){
-
+	// 向きを保って4点共有
 	case 0x1248:
 	case 0x2481:
 	case 0x4812:
 	case 0x8124:
 		return kmb::ElementRelation::EQUAL;
-
+	// 逆向きに4点共有
 	case 0x1842:
 	case 0x8421:
 	case 0x4218:
 	case 0x2184:
 		return kmb::ElementRelation::REVERSE;
-
+	// 同じ向きに2点共有
 	case 0x1200:
 		aIndex = 0;	bIndex = 0;
 		return kmb::ElementRelation::ANTIADJACENT;
@@ -770,7 +741,7 @@ kmb::ElementRelation::getQuadRelation
 	case 0x1008:
 		aIndex = 3;	bIndex = 3;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 逆向きに2点共有
 	case 0x2100:
 		aIndex = 0;	bIndex = 0;
 		return kmb::ElementRelation::ADJACENT;
@@ -852,7 +823,7 @@ kmb::ElementRelation::getTriangleQuadRelation
 		return kmb::ElementRelation::OTHERRELATION;
 	}
 	switch( rel ){
-
+	// 同じ向きに2点共有
 	case 0x012:
 		aIndex = 0;	bIndex = 0;
 		return kmb::ElementRelation::ANTIADJACENT;
@@ -889,7 +860,7 @@ kmb::ElementRelation::getTriangleQuadRelation
 	case 0x810:
 		aIndex = 2;	bIndex = 3;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 逆向きに2点共有
 	case 0x021:
 		aIndex = 0;	bIndex = 0;
 		return kmb::ElementRelation::ADJACENT;
@@ -963,7 +934,7 @@ kmb::ElementRelation::getTetrahedronRelation
 		return kmb::ElementRelation::COMMONEDGE;
 	}
 	switch( rel ){
-
+	// 4点が同じ向きに一致
 	case 0x1248:
 	case 0x1482:
 	case 0x1824:
@@ -977,7 +948,7 @@ kmb::ElementRelation::getTetrahedronRelation
 	case 0x8214:
 	case 0x8142:
 		return kmb::ElementRelation::EQUAL;
-
+	// 4点が異なる向きに一致
 	case 0x1284:
 	case 0x1428:
 	case 0x1842:
@@ -991,193 +962,193 @@ kmb::ElementRelation::getTetrahedronRelation
 	case 0x8241:
 	case 0x8124:
 		return kmb::ElementRelation::REVERSE;
-
+	// 3点が同じ向きに一致 123 vs 123
 	case 0x0248:
 	case 0x0482:
 	case 0x0824:
 		aIndex = 0;	bIndex = 0;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 123 vs 123
 	case 0x0284:
 	case 0x0842:
 	case 0x0428:
 		aIndex = 0;	bIndex = 0;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 123 vs 032
 	case 0x0418:
 	case 0x0184:
 	case 0x0841:
 		aIndex = 0;	bIndex = 1;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 123 vs 032
 	case 0x0481:
 	case 0x0814:
 	case 0x0148:
 		aIndex = 0;	bIndex = 1;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 123 vs 013
 	case 0x0128:
 	case 0x0281:
 	case 0x0812:
 		aIndex = 0;	bIndex = 2;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 123 vs 013
 	case 0x0182:
 	case 0x0821:
 	case 0x0218:
 		aIndex = 0;	bIndex = 2;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 123 vs 021
 	case 0x0421:
 	case 0x0214:
 	case 0x0142:
 		aIndex = 0;	bIndex = 3;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 123 vs 021
 	case 0x0412:
 	case 0x0124:
 	case 0x0241:
 		aIndex = 0;	bIndex = 3;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 032 vs 123
 	case 0x2084:
 	case 0x8042:
 	case 0x4028:
 		aIndex = 1;	bIndex = 0;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 032 vs 123
 	case 0x2048:
 	case 0x4082:
 	case 0x8024:
 		aIndex = 1;	bIndex = 0;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 032 vs 032
 	case 0x1048:
 	case 0x4081:
 	case 0x8014:
 		aIndex = 1;	bIndex = 1;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 032 vs 032
 	case 0x1084:
 	case 0x4018:
 	case 0x8041:
 		aIndex = 1;	bIndex = 1;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 032 vs 013
 	case 0x1082:
 	case 0x8021:
 	case 0x2018:
 		aIndex = 1;	bIndex = 2;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 032 vs 013
 	case 0x1028:
 	case 0x8012:
 	case 0x2081:
 		aIndex = 1;	bIndex = 2;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 032 vs 021
 	case 0x1024:
 	case 0x2041:
 	case 0x4012:
 		aIndex = 1;	bIndex = 3;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 032 vs 021
 	case 0x1042:
 	case 0x2014:
 	case 0x4021:
 		aIndex = 1;	bIndex = 3;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 013 vs 123
 	case 0x2408:
 	case 0x4802:
 	case 0x8204:
 		aIndex = 2;	bIndex = 0;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 013 vs 123
 	case 0x4208:
 	case 0x8402:
 	case 0x2804:
 		aIndex = 2;	bIndex = 0;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 013 vs 032
 	case 0x1804:
 	case 0x8401:
 	case 0x4108:
 		aIndex = 2;	bIndex = 1;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 013 vs 032
 	case 0x8104:
 	case 0x4801:
 	case 0x1408:
 		aIndex = 2;	bIndex = 1;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 013 vs 013
 	case 0x1208:
 	case 0x2801:
 	case 0x8102:
 		aIndex = 2;	bIndex = 2;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 013 vs 013
 	case 0x2108:
 	case 0x8201:
 	case 0x1802:
 		aIndex = 2;	bIndex = 2;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 013 vs 021
 	case 0x1402:
 	case 0x4201:
 	case 0x2104:
 		aIndex = 2;	bIndex = 3;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 013 vs 021
 	case 0x4102:
 	case 0x2401:
 	case 0x1204:
 		aIndex = 2;	bIndex = 3;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 021 vs 123
 	case 0x2840:
 	case 0x8420:
 	case 0x4280:
 		aIndex = 3;	bIndex = 0;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 021 vs 123
 	case 0x2480:
 	case 0x8240:
 	case 0x4820:
 		aIndex = 3;	bIndex = 0;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 021 vs 032
 	case 0x1480:
 	case 0x4810:
 	case 0x8140:
 		aIndex = 3;	bIndex = 1;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 021 vs 032
 	case 0x1840:
 	case 0x4180:
 	case 0x8410:
 		aIndex = 3;	bIndex = 1;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 021 vs 013
 	case 0x1820:
 	case 0x8210:
 	case 0x2180:
 		aIndex = 3;	bIndex = 2;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 021 vs 013
 	case 0x1280:
 	case 0x8120:
 	case 0x2810:
 		aIndex = 3;	bIndex = 2;
 		return kmb::ElementRelation::ADJACENT;
-
+	// 3点が同じ向きに一致 021 vs 021
 	case 0x1240:
 	case 0x2410:
 	case 0x4120:
 		aIndex = 3;	bIndex = 3;
 		return kmb::ElementRelation::ANTIADJACENT;
-
+	// 3点が逆向きに一致 021 vs 021
 	case 0x1420:
 	case 0x2140:
 	case 0x4210:
@@ -1213,7 +1184,7 @@ kmb::ElementRelation::getTriangleTetrahedronRelation
 		return kmb::ElementRelation::NOCOMMON;
 	}
 	switch( rel ){
-
+	// 0番目の面と一致
 	case 0x248:
 	case 0x824:
 	case 0x482:
@@ -1224,7 +1195,7 @@ kmb::ElementRelation::getTriangleTetrahedronRelation
 	case 0x428:
 		bIndex = 0;
 		return kmb::ElementRelation::ANTIBOUNDARY;
-
+	// 1番目の面と一致
 	case 0x184:
 	case 0x418:
 	case 0x841:
@@ -1235,7 +1206,7 @@ kmb::ElementRelation::getTriangleTetrahedronRelation
 	case 0x814:
 		bIndex = 1;
 		return kmb::ElementRelation::ANTIBOUNDARY;
-
+	// 2番目の面と一致
 	case 0x128:
 	case 0x812:
 	case 0x281:
@@ -1246,7 +1217,7 @@ kmb::ElementRelation::getTriangleTetrahedronRelation
 	case 0x218:
 		bIndex = 2;
 		return kmb::ElementRelation::ANTIBOUNDARY;
-
+	// 3番目の面と一致
 	case 0x142:
 	case 0x214:
 	case 0x421:
@@ -1257,170 +1228,170 @@ kmb::ElementRelation::getTriangleTetrahedronRelation
 	case 0x412:
 		bIndex = 3;
 		return kmb::ElementRelation::ANTIBOUNDARY;
-
+	// 辺共有 (0,0)
 	case 0x024:
 	case 0x042:
 		aIndex = 0;
 		bIndex = 0;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (0,1)
 	case 0x014:
 	case 0x041:
 		aIndex = 0;
 		bIndex = 1;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (0,2)
 	case 0x012:
 	case 0x021:
 		aIndex = 0;
 		bIndex = 2;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (0,3)
 	case 0x018:
 	case 0x081:
 		aIndex = 0;
 		bIndex = 3;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (0,4)
 	case 0x028:
 	case 0x082:
 		aIndex = 0;
 		bIndex = 4;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (0,5)
 	case 0x048:
 	case 0x084:
 		aIndex = 0;
 		bIndex = 5;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (1,0)
 	case 0x402:
 	case 0x204:
 		aIndex = 1;
 		bIndex = 0;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (1,1)
 	case 0x401:
 	case 0x104:
 		aIndex = 1;
 		bIndex = 1;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (1,2)
 	case 0x201:
 	case 0x102:
 		aIndex = 1;
 		bIndex = 2;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (1,3)
 	case 0x801:
 	case 0x108:
 		aIndex = 1;
 		bIndex = 3;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (1,4)
 	case 0x802:
 	case 0x208:
 		aIndex = 1;
 		bIndex = 4;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (1,5)
 	case 0x804:
 	case 0x408:
 		aIndex = 1;
 		bIndex = 5;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (2,0)
 	case 0x240:
 	case 0x420:
 		aIndex = 2;
 		bIndex = 0;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (2,1)
 	case 0x140:
 	case 0x410:
 		aIndex = 2;
 		bIndex = 1;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (2,2)
 	case 0x120:
 	case 0x210:
 		aIndex = 2;
 		bIndex = 2;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (2,3)
 	case 0x180:
 	case 0x810:
 		aIndex = 2;
 		bIndex = 3;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (2,4)
 	case 0x280:
 	case 0x820:
 		aIndex = 2;
 		bIndex = 4;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 辺共有 (2,5)
 	case 0x480:
 	case 0x840:
 		aIndex = 2;
 		bIndex = 5;
 		return kmb::ElementRelation::COMMONEDGE;
-
+	// 点共有 (0,0)
 	case 0x100:
 		aIndex = 0;
 		bIndex = 0;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (0,1)
 	case 0x200:
 		aIndex = 0;
 		bIndex = 1;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (0,2)
 	case 0x400:
 		aIndex = 0;
 		bIndex = 2;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (0,3)
 	case 0x800:
 		aIndex = 0;
 		bIndex = 3;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (1,0)
 	case 0x010:
 		aIndex = 1;
 		bIndex = 0;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (1,1)
 	case 0x020:
 		aIndex = 1;
 		bIndex = 1;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (1,2)
 	case 0x040:
 		aIndex = 1;
 		bIndex = 2;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (1,3)
 	case 0x080:
 		aIndex = 1;
 		bIndex = 3;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (2,0)
 	case 0x001:
 		aIndex = 2;
 		bIndex = 0;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (2,1)
 	case 0x002:
 		aIndex = 2;
 		bIndex = 1;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (2,2)
 	case 0x004:
 		aIndex = 2;
 		bIndex = 2;
 		return kmb::ElementRelation::COMMONNODE;
-
+	// 点共有 (2,3)
 	case 0x008:
 		aIndex = 2;
 		bIndex = 3;
@@ -1793,7 +1764,7 @@ kmb::ElementRelation::getRelationForSegment
 						ret = kmb::ElementRelation::OTHERRELATION;
 					break;
 				default:
-
+					// 立体要素
 					if( conn != 0 )
 						ret = kmb::ElementRelation::COMMONEDGE;
 					else
@@ -1979,7 +1950,7 @@ kmb::ElementRelation::getRelationForTriangle
 					case WEDGE:
 					case WEDGE2:
 						{
-
+							// WEDGE の三角形の Face は 0 番目と 1 番目だけ
 							for(int i=0;i<2;++i){
 								kmb::ElementRelation::relationType r =
 									kmb::ElementRelation::getTriangleRelation(
@@ -2003,7 +1974,7 @@ kmb::ElementRelation::getRelationForTriangle
 					case PYRAMID:
 					case PYRAMID2:
 						{
-
+							// PYRAMID の三角形の Face は 0 番目から 3 番目だけ
 							for(int i=0;i<4;++i){
 								kmb::ElementRelation::relationType r =
 									kmb::ElementRelation::getTriangleRelation(
@@ -2024,14 +1995,14 @@ kmb::ElementRelation::getRelationForTriangle
 							}
 						}
 						break;
-					default:
-
+					default: // for type
+						// それ以外は3点を共有していてもメッシュとしての関係はない
 						ret = kmb::ElementRelation::OTHERRELATION;
 						break;
 					}
 				}
 				break;
-			default:
+			default: // for count
 				break;
 			}
 		}
@@ -2117,7 +2088,7 @@ kmb::ElementRelation::getRelationForQuad
 					case kmb::WEDGE:
 					case kmb::WEDGE2:
 					{
-
+						// Wedge の4角形の Face は 2,3,4 番目
 						for(int i=2;i<5;++i){
 							kmb::ElementRelation::relationType r = kmb::ElementRelation::getQuadRelation(
 								eIter0.getCellId(0), eIter0.getCellId(1), eIter0.getCellId(2), eIter0.getCellId(3),
@@ -2141,7 +2112,7 @@ kmb::ElementRelation::getRelationForQuad
 					case kmb::PYRAMID:
 					case kmb::PYRAMID2:
 					{
-
+						// Pyramid の4角形の Face は 4 番目
 						kmb::ElementRelation::relationType r =
 							kmb::ElementRelation::getQuadRelation(
 							eIter0.getCellId(0), eIter0.getCellId(1), eIter0.getCellId(2), eIter0.getCellId(3),
@@ -2162,7 +2133,7 @@ kmb::ElementRelation::getRelationForQuad
 					case kmb::HEXAHEDRON:
 					case kmb::HEXAHEDRON2:
 					{
-
+						// Hexa の4角形の Face は 0,1,2,3,4,5 番目
 						for(int i=0;i<6;++i){
 							kmb::ElementRelation::relationType r =
 								kmb::ElementRelation::getQuadRelation(
@@ -2264,7 +2235,7 @@ kmb::ElementRelation::getRelationForTetrahedron(const kmb::ElementBase &eIter0, 
 		break;
 	default:
 		{
-
+			// indices[i] = j  <=> tetra の i 番目の節点 = other の j 番目の節点 
 			int indices[4];
 			int count = 0;
 			for(int i=0;i<4;++i){
@@ -2305,7 +2276,7 @@ kmb::ElementRelation::getRelationForTetrahedron(const kmb::ElementBase &eIter0, 
 			case 3:
 				{
 					ret = kmb::ElementRelation::OTHERRELATION;
-
+					// i は Tetra の面番号 = 相対する頂点の番号
 					for(int i=0;i<4;++i){
 						if( indices[i] == -1 ){
 							int res = eIter1.isFace(

@@ -55,7 +55,7 @@ kmb::Matching::getDistanceEdgeToNode( kmb::MeshDB* mesh, kmb::bodyIdType bodyId,
 		kmb::ElementContainer* body = mesh->getBodyPtr(bodyId);
 		return getDistanceEdgeToNodeWithParam(mesh->getNodes(),body,&point,nearestId,param);
 	}else{
-
+		// DBL_MAX
 		return getDistanceEdgeToNodeWithParam(mesh->getNodes(),NULL,NULL,nearestId,param);
 	}
 }
@@ -72,19 +72,19 @@ kmb::Matching::getDistanceEdgeToEdge( kmb::MeshDB* mesh, kmb::bodyIdType edgeId0
 		(edges1=mesh->getBodyPtr(edgeId1)) != NULL &&
 		edges1->isUniqueDim(1) )
 	{
-
+		// edge0 の節点と edge1 の要素の間の距離
 		kmb::ElementContainer::iterator eIter0 = edges0->begin();
 		while( eIter0 != edges0->end() )
 		{
-
+			// 1次元要素の始点との距離の平均をとる
 			ave0.add( getDistanceEdgeToNode( mesh, edgeId1 , eIter0.getCellId(0) ) );
 			++eIter0;
 		}
-
+		// edge1 の節点と edge0 の要素の間の距離
 		kmb::ElementContainer::iterator eIter1 = edges1->begin();
 		while( eIter1 != edges1->end() )
 		{
-
+			// 1次元要素の始点との距離の平均をとる
 			ave1.add( getDistanceEdgeToNode( mesh, edgeId0, eIter1.getCellId(0) ) );
 			++eIter1;
 		}
@@ -108,24 +108,24 @@ kmb::Matching::getDistanceEdgeToEdge( kmb::MeshDB* mesh0, kmb::bodyIdType edgeId
 		(edges1 = mesh1->getBodyPtr(edgeId1)) != NULL &&
 		edges1->isUniqueDim(1) )
 	{
-
+		// edge0 の節点と edge1 の要素の間の距離
 		kmb::ElementContainer::iterator eIter0 = edges0->begin();
 		while( !eIter0.isFinished() )
 		{
 			if( mesh0->getNode(eIter0.getCellId(0),node) )
 			{
-
+				// 1次元要素の始点との距離の平均をとる
 				ave0.add( getDistanceEdgeToNodeWithParam( mesh1->getNodes(),edges1,&node,nearestId,param) );
 			}
 			++eIter0;
 		}
-
+		// edge1 の節点と edge0 の要素の間の距離
 		kmb::ElementContainer::iterator eIter1 = edges1->begin();
 		while( !eIter1.isFinished() )
 		{
 			if( mesh1->getNode(eIter1.getCellId(0),node) )
 			{
-
+				// 1次元要素の始点との距離の平均をとる
 				ave1.add( getDistanceEdgeToNodeWithParam( mesh0->getNodes(),edges0,&node,nearestId,param) );
 			}
 			++eIter1;
@@ -167,7 +167,7 @@ kmb::Matching::getSurfaceRelation
 		return rel;
 	}
 
-
+	// 平面要素のみなることをチェックする
 	if( surf0 == NULL || !surf0->isUniqueDim(2) ||
 		surf1 == NULL || !surf1->isUniqueDim(2) )
 	{
@@ -181,13 +181,13 @@ kmb::Matching::getSurfaceRelation
 		return rel;
 	}
 
-	unsigned int eqCount = 0;
-	unsigned int revCount = 0;
+	unsigned int eqCount = 0;	// 一致している個数
+	unsigned int revCount = 0;	// 逆向きの個数
 
-
-
-
-
+	// 近傍情報を作り直す
+	// surf0 から近傍情報を作って
+	// surf1 の要素の頂点を含む surf0 の要素を検索して
+	// 一致する or 逆向きのものを探す
 	kmb::NodeNeighborInfo neighborInfo;
 	neighborInfo.appendCoboundary( surf0 );
 
@@ -195,9 +195,9 @@ kmb::Matching::getSurfaceRelation
 	while( eIter != surf1->end() )
 	{
 		bool findFlag = false;
-
+		// 最初の頂点だけで見れば十分
 		kmb::nodeIdType nodeID = eIter.getCellId(0);
-
+		// 頂点の周辺要素との関係を調べる
 		kmb::NodeNeighbor::iterator iter = neighborInfo.beginIteratorAt(nodeID);
 		while( iter != neighborInfo.endIteratorAt(nodeID) )
 		{
@@ -228,7 +228,7 @@ kmb::Matching::getSurfaceRelation
 			}
 			++iter;
 		}
-
+		// 頂点の周辺要素の一致するまたは逆向きの要素がない
 		if( !findFlag ){
 			return kmb::ElementRelation::UNKNOWNRELATION;
 		}
@@ -250,7 +250,7 @@ kmb::ElementRelation::relationType
 kmb::Matching::getFaceRelation
 ( kmb::MeshDB* mesh, const char* faceId0, const char* faceId1 )
 {
-
+	// FaceGroup または FaceVariable であることを確認する
 	kmb::DataBindings* face0 = mesh->getDataBindingsPtr(faceId0);
 	kmb::DataBindings* face1 = mesh->getDataBindingsPtr(faceId1);
 	if( mesh == NULL || face0 == NULL || face1 == NULL ){
@@ -270,14 +270,14 @@ kmb::Matching::getFaceRelation
 	if( len0 != len1 ){
 		return kmb::ElementRelation::UNKNOWNRELATION;
 	}
+	
+	unsigned int eqCount = 0;	// 一致している個数
+	unsigned int revCount = 0;	// 逆向きの個数
 
-	unsigned int eqCount = 0;
-	unsigned int revCount = 0;
-
-
-
-
-
+	// 近傍情報を作り直す
+	// face0 から近傍情報を作って
+	// face1 の要素の頂点を含む face0 の要素を検索して
+	// 一致する or 逆向きのものを探す
 	kmb::NodeNeighborFaceInfo coboundary;
 
 	coboundary.appendCoboundary( face0, mesh );
@@ -290,9 +290,9 @@ kmb::Matching::getFaceRelation
 		fIter.getFace( f );
 		kmb::Element* element = f.createElement(mesh);
 		if( element != NULL ){
-
+			// 最初の頂点だけで見れば十分
 			kmb::nodeIdType nodeID = element->getCellId(0);
-
+			// 頂点の周辺との関係を調べる
 			kmb::NodeNeighborFace::iterator iter = coboundary.beginIteratorAt(nodeID);
 			kmb::NodeNeighborFace::iterator iEnd = coboundary.endIteratorAt(nodeID);
 			while( iter != iEnd )
@@ -301,7 +301,6 @@ kmb::Matching::getFaceRelation
 				kmb::Element* nei = nei_f.createElement(mesh);
 				if( nei != NULL ){
 					int i0,i1;
-
 					kmb::ElementRelation::relationType rel =
 						kmb::ElementRelation::getRelation( *element, i0, *nei, i1 );
 					switch( rel ){
@@ -328,7 +327,7 @@ kmb::Matching::getFaceRelation
 			}
 			delete element;
 		}
-
+		// 頂点の周辺要素の一致するまたは逆向きの要素がない
 		if( !findFlag ){
 			return kmb::ElementRelation::UNKNOWNRELATION;
 		}
@@ -354,7 +353,7 @@ kmb::Matching::getDistanceEdgeToNodeWithParam
 {
 	kmb::Minimizer minimizer;
 
-	elemId = kmb::Element::nullElementId;
+	elemId = kmb::Element::nullElementId; // 最小が見つからない
 
 	kmb::Point3D n0;
 	kmb::Point3D n1;
@@ -366,11 +365,11 @@ kmb::Matching::getDistanceEdgeToNodeWithParam
 		{
 			if( points0->getPoint( eIter.getCellId(0), n0 ) &&
 				points0->getPoint( eIter.getCellId(1), n1 ) ){
-
-
+				// t は node0 と node1 の線分を [0,1] に対応させたときの
+				// 垂線の足のパラメータの値
 				double temp;
 				double distSq = point1->distanceSqToSegment( n0, n1, temp );
-
+				// 最小値を取る elemID を覚えておく
 				if( minimizer.update(distSq) )
 				{
 					elemId = eIter.getId();
@@ -412,9 +411,9 @@ kmb::Matching::matchNodeToNode
 }
 */
 
-
-
-
+// nodeMapper[ nodeId of mesh1 ] = nodeId of mesh0 
+// mesh1 の edgeId で与えられる Body 上の節点に対して
+// mesh0 の 1 次元 Body との nodeMatching を行う
 int
 kmb::Matching::matchNodeToNodeOnEdges
 (kmb::MeshDB* mesh0, kmb::MeshDB* mesh1, kmb::bodyIdType edgeId,
@@ -425,7 +424,7 @@ kmb::Matching::matchNodeToNodeOnEdges
 	}
 	kmb::ElementContainer* body = mesh1->getBodyPtr(edgeId);
 
-
+	// get all nodes
 	std::set< kmb::nodeIdType > nodeSet;
 	if( body )
 	{
@@ -439,7 +438,7 @@ kmb::Matching::matchNodeToNodeOnEdges
 		const kmb::nodeIdType nodeId = (*nIter);
 		if( mesh1->getNode( nodeId, node ) )
 		{
-
+			// 自分自身の 1次元の Body についてすべて調べる
 			kmb::bodyIdType bodyCount = mesh0->getBodyCount();
 			for(kmb::bodyIdType bodyId = 0; bodyId < bodyCount; ++bodyId){
 				kmb::ElementContainer* body1 = mesh0->getBodyPtr( bodyId );
@@ -458,8 +457,8 @@ kmb::Matching::matchNodeToNodeOnEdges
 	return static_cast<int>(nodeSet.size() - nodeMapper.size());
 }
 
-
-
+// mesh1 の bodyId1 で与えられる Body 上の節点に対して
+// mesh0 の 同じ次元の Body との nodeMatching を行う
 int
 kmb::Matching::matchNodeToNodeOnBody
 (kmb::MeshDB* mesh0, kmb::MeshDB* mesh1, kmb::bodyIdType bodyId1,
@@ -470,7 +469,7 @@ kmb::Matching::matchNodeToNodeOnBody
 	}
 	kmb::ElementContainer* body1 = mesh1->getBodyPtr(bodyId1);
 
-
+	// get all nodes
 	std::set< kmb::nodeIdType > nodeSet;
 	if( body1==NULL ){
 		return 0;
@@ -485,7 +484,7 @@ kmb::Matching::matchNodeToNodeOnBody
 		const kmb::nodeIdType nodeId = (*nIter);
 		if( mesh1->getNode( nodeId, node ) )
 		{
-
+			// mesh0 の body1 と同じ次元の Body についてすべて調べる
 			kmb::bodyIdType bodyCount = mesh0->getBodyCount();
 			for(kmb::bodyIdType bodyId0 = 0; bodyId0 < bodyCount; ++bodyId0){
 				kmb::ElementContainer* body0 = mesh0->getBodyPtr( bodyId0 );
@@ -559,7 +558,7 @@ kmb::Matching::nodeMatchingBetweenBodies(kmb::MeshDB* mesh0, kmb::bodyIdType bod
 	}
 
 	kmb::Node node;
-
+	// mesh0 の body0 上の節点を mesh1 の body1 から探す
 	kmb::ElementContainer::iterator eIter = body0->begin();
 	while( !eIter.isFinished() ){
 		const int len = eIter.getNodeCount();
@@ -615,7 +614,7 @@ kmb::Matching::nodeMatchingOnBody(kmb::MeshDB* mesh0, kmb::bodyIdType bodyId0, k
 	}
 
 	kmb::Node node;
-
+	// mesh0 の body0 上の節点を mesh1 の節点全体から探す
 	kmb::ElementContainer::iterator eIter = body0->begin();
 	while( !eIter.isFinished() ){
 		const int len = eIter.getNodeCount();

@@ -36,9 +36,9 @@
 /********************************************************************************
 =begin
 
-=== 2���l�ʑ̗v�f (TETRAHEDRON2)
+=== 2次四面体要素 (TETRAHEDRON2)
 
-�ڑ��s��
+接続行列
 
 	{ 0, 1, 1, 1, 0, 2, 2, 2, 0, 0},
 	{ 1, 0, 1, 1, 2, 0, 2, 0, 2, 0},
@@ -51,14 +51,14 @@
 	{ 0, 2, 0, 2, 0, 0, 0, 0, 0, 0},
 	{ 0, 0, 2, 2, 0, 0, 0, 0, 0, 0}
 
-�ʏ��
+面情報
 
 	{ 1, 2, 3, 9, 8, 4},
 	{ 0, 3, 2, 9, 5, 7},
 	{ 0, 1, 3, 8, 7, 6},
 	{ 0, 2, 1, 4, 6, 5}
 
-��
+辺
 
 	{ 1, 2, 4},
 	{ 0, 2, 5},
@@ -69,7 +69,7 @@
 
 =end
 
-�`��֐� ( 0<= s <= 1, 0 <= t <= 1, 0 <= u <= 1, 0 <= s+t+u <= 1 )
+形状関数 ( 0<= s <= 1, 0 <= t <= 1, 0 <= u <= 1, 0 <= s+t+u <= 1 )
 0 : (1-s-t-u)*(1-2*s-2*t-2*u)  => (s,t,u) = (  0,   0,   0)
 1 : s*(2*s-1)                  => (s,t,u) = (  1,   0,   0)
 2 : t*(2*t-1)                  => (s,t,u) = (  0,   1,   0)
@@ -90,21 +90,21 @@ const int kmb::Tetrahedron2::connectionTable[10][10] =
 	{ 1, 0, 1, 1, 2, 0, 2, 0, 2, 0},
 	{ 1, 1, 0, 1, 2, 2, 0, 0, 0, 2},
 	{ 1, 1, 1, 0, 0, 0, 0, 2, 2, 2},
-	{ 0, 2, 2, 0, 0, 0, 0, 0, 0, 0},
-	{ 2, 0, 2, 0, 0, 0, 0, 0, 0, 0},
-	{ 2, 2, 0, 0, 0, 0, 0, 0, 0, 0},
-	{ 2, 0, 0, 2, 0, 0, 0, 0, 0, 0},
-	{ 0, 2, 0, 2, 0, 0, 0, 0, 0, 0},
-	{ 0, 0, 2, 2, 0, 0, 0, 0, 0, 0}
+	{ 0, 2, 2, 0, 0, 0, 0, 0, 0, 0}, // 4 = [1,2]
+	{ 2, 0, 2, 0, 0, 0, 0, 0, 0, 0}, // 5 = [0,2]
+	{ 2, 2, 0, 0, 0, 0, 0, 0, 0, 0}, // 6 = [0,1]
+	{ 2, 0, 0, 2, 0, 0, 0, 0, 0, 0}, // 7 = [0,3]
+	{ 0, 2, 0, 2, 0, 0, 0, 0, 0, 0}, // 8 = [1,3]
+	{ 0, 0, 2, 2, 0, 0, 0, 0, 0, 0}  // 9 = [2,3]
 };
 
-
-
-
-
-
-
-
+// 面を構成する三角形の添え字番号
+// 外側から見て左回りが正
+// Triangle2 形式で並べる
+//   1 2 3
+// 0   3 2
+// 0 1   3
+// 0 2 1
 
 const int kmb::Tetrahedron2::faceTable[4][6] =
 {
@@ -218,7 +218,7 @@ kmb::Tetrahedron2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::P
 		return false;
 	}
 	/*
-	 * 4�ʑ�2���̗v�f���W�����߂邽�߂Ƀj���[�g���@���s��
+	 * 4面体2次の要素座標を求めるためにニュートン法を行う
 	 */
 	class nr_local : public kmb::OptTargetVV {
 	public:
@@ -243,7 +243,7 @@ kmb::Tetrahedron2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::P
 		bool df(const kmb::ColumnVector &t,kmb::Matrix &jac){
 			double coeff[10];
 			double v = 0.0;
-
+			// s で微分
 			kmb::Tetrahedron2::shapeFunction_ds(t[0],t[1],t[2],coeff);
 			for(int i=0;i<3;++i){
 				v = 0.0;
@@ -252,7 +252,7 @@ kmb::Tetrahedron2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::P
 				}
 				jac.set(i,0,v);
 			}
-
+			// t で微分
 			kmb::Tetrahedron2::shapeFunction_dt(t[0],t[1],t[2],coeff);
 			for(int i=0;i<3;++i){
 				v = 0.0;
@@ -262,7 +262,7 @@ kmb::Tetrahedron2::getNaturalCoordinates(const kmb::Point3D &target,const kmb::P
 				jac.set(i,1,v);
 			}
 
-
+			// u で微分
 			kmb::Tetrahedron2::shapeFunction_du(t[0],t[1],t[2],coeff);
 			for(int i=0;i<3;++i){
 				v = 0.0;

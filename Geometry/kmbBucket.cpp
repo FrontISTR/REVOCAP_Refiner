@@ -17,7 +17,7 @@
 #include "Common/kmbCalculator.h"
 #include <cmath>
 
-
+//////////////////////// Bucket3DGrid /////////////////////////////
 
 kmb::Bucket3DGrid::Bucket3DGrid(void)
 : kmb::Bucket<kmb::nodeIdType>()
@@ -110,7 +110,7 @@ kmb::Bucket3DGrid::getNearPoints(kmb::nodeIdType nodeId,double thresh,std::vecto
 	double y = pt.y();
 	double z = pt.z();
 
-
+	// 自分自身とその隣接バケットだけ探す
 	int i0,j0,k0;
 	getSubIndices(x,y,z,i0,j0,k0);
 	int i1=i0, j1=j0, k1=k0;
@@ -165,7 +165,7 @@ kmb::Bucket3DGrid::getNearest(const double x,const double y,const double z,kmb::
 	kmb::nodeIdType n0 = kmb::nullNodeId;
 
 /*
-
+	// 含まれるバケットの中で最小を探す
 	int i0=0,j0=0,k0=0;
 
 	if( getSubIndices(x,y,z,i0,j0,k0) && this->getCount(i0,j0,k0) > 0){
@@ -173,10 +173,10 @@ kmb::Bucket3DGrid::getNearest(const double x,const double y,const double z,kmb::
 			nearestId = n0;
 		}
 	}
-
+	// 隣を探すべきかの判定
 	int i1=0,j1=0,k1=0,i2=0,j2=0,k2=0;
 	if( nearestId == kmb::nullNodeId ){
-
+		// 今の実装は見つからなかったら全部探す
 		i2 = xnum-1;
 		j2 = ynum-1;
 		k2 = znum-1;
@@ -186,7 +186,7 @@ kmb::Bucket3DGrid::getNearest(const double x,const double y,const double z,kmb::
 		getSubIndices(x+d,y+d,z+d,i2,j2,k2);
 	}
 
-
+	// (i0,j0,k0) 以外を探す
 	for(int i=i1;i<=i2;++i){
 		for(int j=j1;j<=j2;++j){
 			for(int k=k1;k<=k2;++k){
@@ -201,13 +201,13 @@ kmb::Bucket3DGrid::getNearest(const double x,const double y,const double z,kmb::
 	return minimizer.getMin();
 */
 
-
+	// これから探す範囲 imin <= i < imax
 	int imax=0,jmax=0,kmax=0,imin=0,jmin=0,kmin=0;
-
-
+	// 既に探した範囲は除外
+	// min > max の時はまだ探していない
 	int imax_ex=-1,jmax_ex=-1,kmax_ex=-1,imin_ex=xnum,jmin_ex=ynum,kmin_ex=znum;
 
-
+	// 自分の含まれるバケットから始めてなければ少しずつ広げていく
 	getSubIndices(x,y,z,imin,jmin,kmin);
 	imax = imin+1; jmax = jmin+1; kmax = kmin+1;
 	while( nearestId == kmb::nullNodeId ){
@@ -225,13 +225,13 @@ kmb::Bucket3DGrid::getNearest(const double x,const double y,const double z,kmb::
 		if( jmax < ynum-1 ){ ++jmax; breakFlag = false; }
 		if( kmax < znum-1 ){ ++kmax; breakFlag = false; }
 		if( breakFlag ){
-
+			// もう広がらない
 			break;
 		}
 	}
 
 	if( nearestId == kmb::nullNodeId ){
-
+		// 点がなかった
 		return minimizer.getMin();
 	}else{
 		double d = minimizer.getMin();

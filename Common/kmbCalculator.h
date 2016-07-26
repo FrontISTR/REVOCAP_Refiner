@@ -50,7 +50,7 @@ public:
 	virtual ~Minimizer(void);
 	double getMin(void) const{ return minValue; }
 	void initialize(void);
-
+	/// 最小値が更新された時に true を返す
 	bool update(double value);
 	static double getMin(double x,double y);
 	static double getMin(double x,double y,double z);
@@ -65,7 +65,7 @@ public:
 	virtual ~Maximizer(void);
 	double getMax(void) const{ return maxValue; }
 	void initialize(void);
-
+	/// 最大値が更新された時に true を返す
 	bool update(double value);
 	static double getMax(double x,double y);
 	static double getMax(double x,double y,double z);
@@ -73,7 +73,7 @@ protected:
 	double maxValue;
 };
 
-
+// 型 T で与えられる Id と一緒に保存
 template<typename T>
 class MinMaxWithId
 {
@@ -92,12 +92,19 @@ public:
 	double getMax(void) const{ return maxValue; }
 	T getMinId(void) const{ return minId; }
 	T getMaxId(void) const{ return maxId; }
+	MinMaxWithId<T>& operator=(const MinMaxWithId<T> &other){
+		this->minId = other.minId;
+		this->maxId = other.maxId;
+		this->minValue = other.minValue;
+		this->maxValue = other.maxValue;
+		return *this;
+	}
 	void initialize(void)
 	{
 		minValue = DBL_MAX;
 		maxValue = -DBL_MAX;
 	}
-
+	// 更新された時に true を返す
 	bool update(double value,T id)
 	{
 		bool flag = false;
@@ -131,7 +138,7 @@ public:
 	double getMaxAbs(void) const;
 	double getSum(void) const;
 	void initialize(void);
-
+	/// 最大値が更新された時に true を返す
 	bool update(double value);
 };
 
@@ -149,8 +156,8 @@ public:
 	long getMin(void) const{ return minValue; }
 	long getAverage(void) const;
 	void initialize(void);
-
-	bool	update(long value);
+	/// 最大値が更新された時に true を返す
+	bool update(long value);
 	static long getMax(long x,long y);
 	static long getMax(long x,long y,long z);
 	static long getMin(long x,long y);

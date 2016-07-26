@@ -310,7 +310,7 @@ kmb::ElementContainerMap::find(kmb::elementIdType id) const
 	}
 }
 
-
+//-------------- iterator -----------------
 
 kmb::ElementContainerMap::_iteratorMap::_iteratorMap(void)
 {

@@ -12,7 +12,7 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
+// メッシュの評価値で節点に格納するものを扱う
 
 #pragma once
 
@@ -30,9 +30,9 @@ public:
 	NodeEvaluator(void);
 	virtual ~NodeEvaluator(void);
 	void setMesh(kmb::MeshData* mesh);
-
-
-
+	// 面の情報を与えて curvature を data に代入する
+	// data は 2\pi で初期化
+	// data の個数を返す
 	int calcCurvature(const char* name,const char* stype=NULL);
 };
 

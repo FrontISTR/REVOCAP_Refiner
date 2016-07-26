@@ -29,12 +29,12 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 const char* kmb::Point3DContainerVect::CONTAINER_TYPE = "stl::vector<Point3D*>";
@@ -88,7 +88,7 @@ kmb::Point3DContainerVect::addPoint(const double x,const double y,const double z
 	if( id < 0 ){
 		return -1;
 	}else if( 0 <= id && id < static_cast<int>(this->points.size()) ){
-
+		// 既に登録済みなら -1 を返す
 		kmb::Point3D* pt = this->points[id];
 		if( pt != NULL )
 		{
@@ -117,7 +117,7 @@ kmb::Point3DContainerVect::addPoint(const kmb::Point3D& point,const nodeIdType i
 	if( id < 0 ){
 		return -1;
 	}else if( 0 <= id && id < static_cast<int>(this->points.size()) ){
-
+		// 既に登録済みなら -1 を返す
 		kmb::Point3D* pt = this->points[id];
 		if( pt != NULL )
 		{
@@ -182,7 +182,7 @@ kmb::Point3DContainerVect::getCount(void) const
 	return this->points.size();
 }
 
-void
+void 
 kmb::Point3DContainerVect::clear(void)
 {
 	std::vector< kmb::Point3D* >::iterator pIter = this->points.begin();
@@ -274,7 +274,7 @@ kmb::Point3DContainerVect::find(kmb::nodeIdType nodeId) const
 	return kmb::Point3DContainer::const_iterator(_it);
 }
 
-
+//---------------- _iterator -----------------
 
 kmb::nodeIdType
 kmb::Point3DContainerVect::_iteratorVect::getId
@@ -346,15 +346,15 @@ kmb::Point3DContainerVect::_iteratorVect::setPoint(kmb::Point3D &point) const
 	return false;
 }
 
-kmb::Point3DContainerVect::_iterator*
+kmb::Point3DContainerVect::_iterator* 
 kmb::Point3DContainerVect::_iteratorVect::operator++(void)
 {
 	++(this->index);
 	if( this->index < static_cast<int>( this->vect->points.size() ) ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }
@@ -366,8 +366,8 @@ kmb::Point3DContainerVect::_iteratorVect::operator++(int n)
 	if( this->index < static_cast<int>( this->vect->points.size() ) ){
 		return this;
 	}else{
-
-
+		// delete this はしない。
+		// delete するのは wrapper iterator
 		return NULL;
 	}
 }

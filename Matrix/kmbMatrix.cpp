@@ -35,15 +35,15 @@ kmb::Matrix::zero(void)
 	return true;
 }
 
-
+// 掛け算 this * a = x
 bool
 kmb::Matrix::multiply_left( const kmb::Matrix &a, kmb::Matrix &x ) const
 {
 	int rSize = x.getRowSize();
 	int cSize = x.getColSize();
 	int nSize = this->getColSize();
-	if( nSize != a.getRowSize() ||
-		cSize != a.getColSize() ||
+	if( nSize != a.getRowSize() || 
+		cSize != a.getColSize() || 
 		rSize != this->getRowSize() )
 	{
 		return false;
@@ -62,15 +62,15 @@ kmb::Matrix::multiply_left( const kmb::Matrix &a, kmb::Matrix &x ) const
 
 #include <cstdio>
 
-
+// マスクつき
 bool
 kmb::Matrix::multiply_left_mask( const kmb::Matrix &a, kmb::Matrix &x, kmb::Matrix::MASK m ) const
 {
 	int rSize = x.getRowSize();
 	int cSize = x.getColSize();
 	int nSize = this->getColSize();
-	if( nSize != a.getRowSize() ||
-		cSize != a.getColSize() ||
+	if( nSize != a.getRowSize() || 
+		cSize != a.getColSize() || 
 		rSize != this->getRowSize() )
 	{
 		return false;
@@ -125,15 +125,15 @@ kmb::Matrix::multiply_vect_left_mask(const double* a, double* x, kmb::Matrix::MA
 	return true;
 }
 
-
+// 掛け算 a * this  = x
 bool
 kmb::Matrix::multiply_right( const kmb::Matrix &a, kmb::Matrix &x ) const
 {
 	int rSize = x.getRowSize();
 	int cSize = x.getColSize();
 	int nSize = this->getRowSize();
-	if( nSize != a.getColSize() ||
-		cSize != this->getColSize() ||
+	if( nSize != a.getColSize() || 
+		cSize != this->getColSize() || 
 		rSize != a.getRowSize() )
 	{
 		return false;
@@ -172,7 +172,7 @@ kmb::Matrix::substitute( const kmb::Matrix &a )
 {
 	int rSize = a.getRowSize();
 	int cSize = a.getColSize();
-	if( cSize != this->getColSize() ||
+	if( cSize != this->getColSize() || 
 		rSize != this->getRowSize() )
 	{
 		return false;
@@ -185,12 +185,12 @@ kmb::Matrix::substitute( const kmb::Matrix &a )
 	return true;
 }
 
-
+// 掛け算代入 this = a * b
 bool
 kmb::Matrix::product( const kmb::Matrix &a, const kmb::Matrix &b )
 {
-	if( a.getColSize() != b.getRowSize() ||
-		b.getColSize() != this->getColSize() ||
+	if( a.getColSize() != b.getRowSize() || 
+		b.getColSize() != this->getColSize() || 
 		a.getRowSize() != this->getRowSize() )
 	{
 		return false;
@@ -210,7 +210,7 @@ kmb::Matrix::product( const kmb::Matrix &a, const kmb::Matrix &b )
 	return true;
 }
 
-
+// i 行と列ベクトルの内積
 double
 kmb::Matrix::rowProduct(int i, const kmb::ColumnVector &vec) const
 {
@@ -243,7 +243,7 @@ kmb::Matrix::rowProduct_mask(int i, const kmb::ColumnVector &vec, kmb::Matrix::M
 	}
 }
 
-
+// i 列と行ベクトルの内積
 double
 kmb::Matrix::colProduct(int i, const kmb::RowVector &vec) const
 {
@@ -299,7 +299,7 @@ kmb::Matrix::setColumnVector(int j,const kmb::ColumnVector& col)
 	return true;
 }
 
-
+// 列ごとに成分の絶対値の和を計算したうちでその最大のもの
 double
 kmb::Matrix::norm_1(void) const
 {
@@ -316,7 +316,7 @@ kmb::Matrix::norm_1(void) const
 	return maxVal.getMax();
 }
 
-
+// 行ごとに成分の絶対値の和を計算したうちでその最大のもの
 double
 kmb::Matrix::norm_inf(void) const
 {
@@ -333,7 +333,7 @@ kmb::Matrix::norm_inf(void) const
 	return maxVal.getMax();
 }
 
-
+// Frobenius norm
 double
 kmb::Matrix::norm_f(void) const
 {
@@ -412,7 +412,7 @@ kmb::Matrix::countNonZeroBlock(int unitBSize) const
 	bool nonZeroFlag = false;
 	for(int i=0;i<rowBSize;++i){
 		for(int j=0;j<colBSize;++j){
-
+			// non zero block を探す
 			nonZeroFlag = false;
 			for(int i0=0;i0<unitBSize;++i0){
 				for(int j0=0;j0<unitBSize;++j0){
@@ -567,7 +567,7 @@ kmb::SquareMatrix::multiply_vect_right(const double* a, double* x) const
 	return true;
 }
 
-
+// ガウス消去法
 bool
 kmb::SquareMatrix::solve(const kmb::ColumnVector &b, kmb::ColumnVector &x) const
 {
@@ -590,7 +590,7 @@ kmb::SquareMatrix::solve(const kmb::ColumnVector &b, kmb::ColumnVector &x) const
 			return false;
 		}
 	}else{
-
+		// 消去法
 		kmb::Matrix_DoubleArray mat(size,size+1);
 		for(int j=0;j<size;++j){
 			for(int i=0;i<size;++i){
@@ -602,7 +602,7 @@ kmb::SquareMatrix::solve(const kmb::ColumnVector &b, kmb::ColumnVector &x) const
 		}
 
 		for(int j=0;j<size;++j){
-
+			// j から size-1 で絶対値最大を探す
 			int ind = -1;
 			double m = 0.0;
 			for(int i=j;i<size;++i){
@@ -653,7 +653,7 @@ kmb::SquareMatrix::solve(const double* b, double* x) const
 			return false;
 		}
 	}else{
-
+		// 消去法
 		kmb::Matrix_DoubleArray mat(size,size+1);
 		for(int j=0;j<size;++j){
 			for(int i=0;i<size;++i){
@@ -665,7 +665,7 @@ kmb::SquareMatrix::solve(const double* b, double* x) const
 		}
 
 		for(int j=0;j<size;++j){
-
+			// j から size-1 で絶対値最大を探す
 			int ind = -1;
 			double m = 0.0;
 			for(int i=j;i<size;++i){
@@ -700,11 +700,11 @@ kmb::SquareMatrix::minorDeterminant(int msize,int rIndices[],int cIndices[]) con
 	if( msize == 1 ){
 		return get( rIndices[0], cIndices[0] );
 	}else if( msize == 2 ){
-		return
+		return 
 			+ get( rIndices[0], cIndices[0] ) * get( rIndices[1], cIndices[1] )
 			- get( rIndices[0], cIndices[1] ) * get( rIndices[1], cIndices[0] );
 	}else if( msize == 3 ){
-		return
+		return 
 			+ get( rIndices[0], cIndices[0] ) * get( rIndices[1], cIndices[1] ) * get( rIndices[2], cIndices[2] )
 			+ get( rIndices[0], cIndices[1] ) * get( rIndices[1], cIndices[2] ) * get( rIndices[2], cIndices[0] )
 			+ get( rIndices[0], cIndices[2] ) * get( rIndices[1], cIndices[0] ) * get( rIndices[2], cIndices[1] )

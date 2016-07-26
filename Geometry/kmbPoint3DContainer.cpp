@@ -34,12 +34,12 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 bool
@@ -219,21 +219,21 @@ kmb::Point3DContainer::updateCoordinate( kmb::nodeIdType nodeId, double x, doubl
 	return false;
 }
 
-void
+void 
 kmb::Point3DContainer::getBoundingBox(kmb::BoundingBox& bound) const
 {
 	bound.update( boundBox.getMax() );
 	bound.update( boundBox.getMin() );
 }
 
-double
+double 
 kmb::Point3DContainer::getNearest
 (const kmb::Point3D* target,kmb::Point3D& result,nodeIdType &nearestId) const
 {
 	return getNearest( target->x(), target->y(), target->z(), result, nearestId );
 }
 
-double
+double 
 kmb::Point3DContainer::getNearest
 (const double x,const double y,const double z,kmb::Point3D& result,nodeIdType &nearestId) const
 {
@@ -253,7 +253,7 @@ kmb::Point3DContainer::getNearest
 	return sqrt( min.getMin() );
 }
 
-double
+double 
 kmb::Point3DContainer::getNearestToSegment
 (const kmb::Point3D& t0,const kmb::Point3D& t1,kmb::Point3D& result,nodeIdType &nearestId,double &param,double d) const
 {
@@ -293,7 +293,7 @@ kmb::Point3DContainer::calcNormalVector( kmb::nodeIdType n0, kmb::nodeIdType n1,
 		x2 -= x0;
 		y2 -= y0;
 		z2 -= z0;
-
+		// 変数再利用
 		x0 = y1*z2 - y2*z1;
 		y0 = z1*x2 - z2*x1;
 		z0 = x1*y2 - x2*y1;
@@ -323,7 +323,7 @@ kmb::Point3DContainer::calcNormalVector( kmb::nodeIdType n0, kmb::nodeIdType n1,
 		x3 -= x0;
 		y3 -= y0;
 		z3 -= z0;
-
+		// 変数再利用
 		kmb::Vector3D n012(y1*z2 - y2*z1,z1*x2 - z2*x1,x1*y2 - x2*y1);
 		kmb::Vector3D n013(y1*z3 - y3*z1,z1*x3 - z3*x1,x1*y3 - x3*y1);
 		kmb::Vector3D normal = n012 + n013;
@@ -347,7 +347,7 @@ kmb::Point3DContainer::calcVerticalVector( kmb::nodeIdType n0, kmb::nodeIdType n
 		x2 -= x0;
 		y2 -= y0;
 		z2 -= z0;
-
+		// 変数再利用
 		x0 = y1*z2 - y2*z1;
 		y0 = z1*x2 - z2*x1;
 		z0 = x1*y2 - x2*y1;
@@ -374,7 +374,7 @@ kmb::Point3DContainer::calcVerticalVector( kmb::nodeIdType n0, kmb::nodeIdType n
 		x3 -= x0;
 		y3 -= y0;
 		z3 -= z0;
-
+		// 変数再利用
 		kmb::Vector3D n012(y1*z2 - y2*z1,z1*x2 - z2*x1,x1*y2 - x2*y1);
 		kmb::Vector3D n013(y1*z3 - y3*z1,z1*x3 - z3*x1,x1*y3 - x3*y1);
 		kmb::Vector3D normal = n012 + n013;
@@ -388,11 +388,11 @@ double
 kmb::Point3DContainer::distanceSq( kmb::nodeIdType n0, kmb::nodeIdType n1 ) const
 {
 	kmb::Point3D p0, p1;
-	if( this->getPoint(n0,p0) && this->getPoint(n1,p1) )
+	if( this->getPoint(n0,p0) && this->getPoint(n1,p1) ) 
 	{
 		return p0.distanceSq(p1);
 	}
-	return -1.0;
+	return DBL_MAX;
 }
 
 double
@@ -407,7 +407,7 @@ kmb::Point3DContainer::cos( kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdT
 
 
 
-
+//------------- iterator ---------------//
 
 kmb::Point3DContainer::iterator::iterator(const kmb::Point3DContainer::iterator &other)
 : _it(NULL)
@@ -446,7 +446,7 @@ kmb::Point3DContainer::iterator::getPoint(kmb::Point3D &point) const
 	}
 }
 
-
+// warning! no check
 double
 kmb::Point3DContainer::iterator::x(void) const
 {
@@ -475,6 +475,16 @@ kmb::Point3DContainer::iterator::setPoint(kmb::Point3D &point) const
 	}
 }
 
+bool
+kmb::Point3DContainer::iterator::setXYZ(double x,double y,double z) const
+{
+	if( _it != NULL ){
+		return _it->setXYZ(x,y,z);
+	}else{
+		return false;
+	}
+}
+
 kmb::Point3DContainer::iterator&
 kmb::Point3DContainer::iterator::operator=(const kmb::Point3DContainer::iterator& other)
 {
@@ -483,15 +493,15 @@ kmb::Point3DContainer::iterator::operator=(const kmb::Point3DContainer::iterator
 		delete _it;
 		_it = NULL;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._it ){
 		_it = other._it->clone();
 	}
 	return *this;
 }
 
-
+// 前置
 kmb::Point3DContainer::iterator&
 kmb::Point3DContainer::iterator::operator++(void)
 {
@@ -505,7 +515,7 @@ kmb::Point3DContainer::iterator::operator++(void)
 	return *this;
 }
 
-
+// 後置
 kmb::Point3DContainer::iterator
 kmb::Point3DContainer::iterator::operator++(int n)
 {
@@ -534,7 +544,7 @@ kmb::Point3DContainer::iterator::operator!=(const iterator &other) const
 	return ( _it != other._it );
 }
 
-
+//-------- const iterator ----------//
 
 kmb::Point3DContainer::const_iterator::const_iterator(const kmb::Point3DContainer::const_iterator &other)
 : _it(NULL)
@@ -581,7 +591,7 @@ kmb::Point3DContainer::const_iterator::getPoint(kmb::Point3D &point) const
 	}
 }
 
-
+// warning! no check
 double
 kmb::Point3DContainer::const_iterator::x(void) const
 {
@@ -608,8 +618,8 @@ kmb::Point3DContainer::const_iterator::operator=(const kmb::Point3DContainer::co
 		delete _it;
 		_it = NULL;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._it ){
 		_it = other._it->clone();
 	}
@@ -624,15 +634,15 @@ kmb::Point3DContainer::const_iterator::operator=(const kmb::Point3DContainer::it
 		delete _it;
 		_it = NULL;
 	}
-
-
+	// To copy pointer simply is not good.
+	// Reason : if copyed iteretor is deleted, the pointer of original iterator is destructed !!
 	if( other._it ){
 		_it = other._it->clone();
 	}
 	return *this;
 }
 
-
+// 前置
 kmb::Point3DContainer::const_iterator&
 kmb::Point3DContainer::const_iterator::operator++(void)
 {
@@ -646,7 +656,7 @@ kmb::Point3DContainer::const_iterator::operator++(void)
 	return *this;
 }
 
-
+// 後置
 kmb::Point3DContainer::const_iterator
 kmb::Point3DContainer::const_iterator::operator++(int n)
 {

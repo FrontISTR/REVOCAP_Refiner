@@ -40,10 +40,6 @@ public:
 
 	bool getNearest(double x,double y,double z,double &dist,kmb::elementIdType &tri) const;
 protected:
-
-
-
-
 	bool getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,double &dist,kmb::elementIdType &tri) const;
 };
 

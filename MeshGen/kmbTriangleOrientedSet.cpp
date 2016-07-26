@@ -111,7 +111,7 @@ kmb::TriangleOrientedSet::clear(void)
 	while( tIter != triangles.end() ){
 		kmb::nodeIdType nodeId = tIter->first;
 		kmb::Triangle* triangle = tIter->second;
-
+		// 節点番号の一番大きい時に delete する
 		if( triangle && triangle->getCellId(0) <= nodeId && triangle->getCellId(1) <= nodeId && triangle->getCellId(2) <= nodeId ){
 			delete triangle;
 			triangle = NULL;
@@ -150,13 +150,13 @@ kmb::TriangleOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb
 			switch( kmb::Triangle::isCoincident( n0, n1, n2, other->getCellId(0), other->getCellId(1), other->getCellId(2) ) )
 			{
 			case 1:
-
+				// 重複して登録はしない
 				return NULL;
 			case -1:
 			{
-
+				// 逆向きがあったら削除
 				triangles.erase( tIter );
-
+				// n1
 				NodeTriMap::iterator tIter1 = triangles.lower_bound(n1);
 				NodeTriMap::iterator endIter1 = triangles.upper_bound(n1);
 				while( tIter1 != endIter1 )
@@ -169,7 +169,7 @@ kmb::TriangleOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb
 					}
 					++tIter1;
 				}
-
+				// n2
 				NodeTriMap::iterator tIter2 = triangles.lower_bound(n2);
 				NodeTriMap::iterator endIter2 = triangles.upper_bound(n2);
 				while( tIter2 != endIter2 )
@@ -231,24 +231,24 @@ kmb::TriangleOrientedSet::getElementNeighbor( const kmb::Triangle* tri, kmb::Tri
 
 	int count = 0;
 
-
-
-
-
+	// coboundaries から計算する
+	// 自分自身の頂点配列から
+	// 周辺要素を取り出して、
+	// それとの要素間関係を計算する
 
 	int index = -1;
 	int otherIndex = -1;
 	for(int i=0;i<3;++i){
 		neighbors[i] = NULL;
-
+		// Face の最初の頂点で探す
 		kmb::nodeIdType nodeId = tri->getBoundaryCellId(i,0);
-
+		// 頂点ごとの周辺要素との関係を調べる
 		std::pair< NodeTriMap::const_iterator, NodeTriMap::const_iterator >
 			eIterPair = triangles.equal_range( nodeId );
 		NodeTriMap::const_iterator eIter = eIterPair.first;
 		while( eIter != eIterPair.second && neighbors[i] == NULL )
 		{
-
+			// 異なる要素が接していたら登録する
 			kmb::Triangle* other = eIter->second;
 			if( other && tri != other ){
 				kmb::ElementRelation::relationType rel =
@@ -283,8 +283,8 @@ kmb::TriangleOrientedSet::getAllEdges( std::set< std::pair< kmb::Triangle*, kmb:
 	{
 		kmb::nodeIdType nodeId = nIter->first;
 		kmb::Triangle* tri = nIter->second;
-
-
+		// 三角形の各頂点ごとに共有している三角形を調べる
+		// 0 番目の節点とキーが等しいときに実行する
 		if( tri != NULL && (*tri)[0] == nodeId ){
 			int len = tri->getNodeCount();
 			for(int i=0;i<len;++i){
@@ -322,8 +322,8 @@ kmb::TriangleOrientedSet::getAllEdges( std::set< std::pair< kmb::nodeIdType, kmb
 	{
 		nodeId0 = nIter->first;
 		kmb::Triangle* tri = nIter->second;
-
-
+		// 三角形の各頂点ごとに共有している三角形を調べる
+		// 0 番目の節点とキーが等しいときに実行する
 		if( tri != NULL && (*tri)[0] == nodeId0 ){
 			nodeId1 = (*tri)[1];
 			nodeId2 = (*tri)[2];
@@ -375,7 +375,7 @@ kmb::TriangleOrientedSet::getTrianglePair
 	return count;
 }
 
-
+//---------------------- node iterator -----------------------------------//
 
 kmb::TriangleOrientedSet::NodeTriMap::iterator
 kmb::TriangleOrientedSet::beginNodeIterator(void)
@@ -426,7 +426,7 @@ kmb::TriangleOrientedSet::getNodeCount(void) const
 	return nCount;
 }
 
-
+//---------------------- element iterator -----------------------------------//
 
 kmb::ElementContainer::iterator
 kmb::TriangleOrientedSet::begin(void)
@@ -555,8 +555,8 @@ kmb::TriangleOrientedSet::_iterator::operator[](const int cellIndex) const
 kmb::ElementContainer::_iterator*
 kmb::TriangleOrientedSet::_iterator::operator++(void)
 {
-
-
+	// 同じ要素は３回登録されているので
+	// tIter->second の節点番号の最小値がキーになっているものを探す
 	tIter++;
 	while( tIter != endIter ){
 		kmb::nodeIdType nodeId = tIter->first;

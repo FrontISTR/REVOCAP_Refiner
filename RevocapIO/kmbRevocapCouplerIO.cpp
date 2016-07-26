@@ -101,9 +101,9 @@ kmb::RevocapCouplerIO::loadFromPartitionFile(const char* filename,kmb::MeshData*
 	return 0;
 }
 
-
-
-
+// 節点のみを読み込む
+// Id はlocalIdで格納する
+// globalIdは Data として name = "GlobalId" で参照
 int
 kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb::MeshData* mesh)
 {
@@ -142,21 +142,7 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 			}
 		}
 		else if( line.find("Element_Type") == 0 ){
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+			// 要素読み込みはダミー
 		}
 		else if( line.find("Number_of_Elemen_Ids") == 0 ){
 			std::istringstream tokenizer(line);
@@ -174,7 +160,7 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 			tokenizer >> dummy;
 			size_t nodeCount = 0;
 			tokenizer >> nodeCount;
-
+			// loadlocalNode メソッドの中で GlobalId を読み込む
 			loadLocalNode( input, nodeCount, mesh );
 		}
 	}
@@ -182,9 +168,9 @@ kmb::RevocapCouplerIO::loadLocalNodesFromPartitionFile(const char* filename,kmb:
 	return 0;
 }
 
-
-
-
+// 要素ごとに Coupler の節点の並べ方と
+// RevocapMesh の節点の並べ方は違うかもしれないので注意
+// まだチェックしていない
 kmb::bodyIdType
 kmb::RevocapCouplerIO::loadElement( std::ifstream &input, kmb::elementType etype, size_t elementCount, kmb::MeshData* mesh )
 {
@@ -202,7 +188,7 @@ kmb::RevocapCouplerIO::loadElement( std::ifstream &input, kmb::elementType etype
 		for(size_t j=0;j<nodeCount;++j){
 			input >> nodes[j];
 		}
-		std::getline( input, line );
+		std::getline( input, line ); // 改行
 		mesh->addElementWithId( etype, nodes, elementId );
 	}
 	mesh->endElement();
@@ -223,15 +209,15 @@ kmb::RevocapCouplerIO::loadNode( std::ifstream &input, size_t nodeCount, kmb::Me
 	for(size_t i =0;i<nodeCount;++i){
 		input >> nodeId;
 		input >> x >> y >> z;
-		std::getline( input, line );
+		std::getline( input, line ); // 改行
 		mesh->addNodeWithId( x, y, z, nodeId );
 	}
 	mesh->endNode();
 	return mesh->getNodeCount();
 }
 
-
-
+// GlobalId データに
+// localId => globalId の対応を格納する
 size_t
 kmb::RevocapCouplerIO::loadLocalNode( std::ifstream &input, size_t nodeCount, kmb::MeshData* mesh )
 {
@@ -241,7 +227,7 @@ kmb::RevocapCouplerIO::loadLocalNode( std::ifstream &input, size_t nodeCount, km
 	}
 	if( mesh == NULL ){
 		for(size_t i =0;i<nodeCount;++i){
-			std::getline( input, line );
+			std::getline( input, line ); // 改行
 		}
 		return 0;
 	}
@@ -252,7 +238,7 @@ kmb::RevocapCouplerIO::loadLocalNode( std::ifstream &input, size_t nodeCount, km
 		}
 		data = NULL;
 		for(size_t i =0;i<nodeCount;++i){
-			std::getline( input, line );
+			std::getline( input, line ); // 改行
 		}
 		return 0;
 	}
@@ -263,7 +249,7 @@ kmb::RevocapCouplerIO::loadLocalNode( std::ifstream &input, size_t nodeCount, km
 	for(size_t i =0;i<nodeCount;++i){
 		input >> globalId;
 		input >> x >> y >> z;
-		std::getline( input, line );
+		std::getline( input, line ); // 改行
 		localId = mesh->addNode( x, y, z );
 		data->setPhysicalValue( localId, &globalId );
 	}

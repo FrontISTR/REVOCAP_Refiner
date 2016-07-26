@@ -28,18 +28,19 @@ private:
 	double incremental;
 	double tolerance;
 	double modelDiameter;
+	bool relative;
 public:
 	PatchGenerator(void);
 	virtual ~PatchGenerator(void);
 	/*
-	 * mesh ‚É‚Í¶¬‚µ‚½ CAD –Ê‚Ì HashCode ‚ğ BodyVariable ‚Ì Data –¼ FaceHashCode ‚Å—^‚¦‚é
+	 * mesh ã«ã¯ç”Ÿæˆã—ãŸ CAD é¢ã® HashCode ã‚’ BodyVariable ã® Data å FaceHashCode ã§ä¸ãˆã‚‹
 	 */
 	bool execute(kmb::ShapeData& shape,kmb::MeshData& mesh);
 	/*
-	 * OŠpŒ`‰»‚·‚é‚Ì•Ó‚Ì’·‚³‚ÌÅ¬’l‚ğ—^‚¦‚é
+	 * ä¸‰è§’å½¢åŒ–ã™ã‚‹æ™‚ã®è¾ºã®é•·ã•ã®æœ€å°å€¤ã‚’ä¸ãˆã‚‹
 	 * BRepTools::Triangulation
 	 *
-	 * Å‰‚É“Ç‚İ‚ñ‚¾ shape ‚Ì‘å‚«‚³‚Ì‘Š‘Î’l‚Æ‚·‚é‚±‚Æ‚É’ˆÓ
+	 * æœ€åˆã«èª­ã¿è¾¼ã‚“ã  shape ã®å¤§ãã•ã®ç›¸å¯¾å€¤ã¨ã™ã‚‹ã“ã¨ã«æ³¨æ„
 	 *
 	 */
 	void setDeflection(double d);
@@ -50,10 +51,13 @@ public:
 	void setIncremental(double d);
 	double getIncremental(void) const;
 	/*
-	 * ’¸“_‚ğ“¯ˆê‹‚·‚éè‡’l
+	 * é ‚ç‚¹ã‚’åŒä¸€è¦–ã™ã‚‹é–¾å€¤
 	 */
 	void setTolerance(double d);
 	double getTolerance(void) const;
+
+	void setRelative(bool f);
+	bool getRelative(void) const;
 };
 
 }

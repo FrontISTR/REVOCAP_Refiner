@@ -158,7 +158,7 @@ kmb::ElementContainerOpenGLDraw::calcNormals(kmb::Point3DContainer* points)
 		return res;
 	}
 	if( (triSize > 0 && triNormals) || (quadSize > 0 && quadNormals) ){
-
+		// 生成済み
 		res = 0;
 		return res;
 	}
@@ -176,7 +176,7 @@ kmb::ElementContainerOpenGLDraw::calcNormals(kmb::Point3DContainer* points)
 	}
 	if( quadSize > 0 ){
 		if( quadNormals == NULL ){
-
+			// 3 は次元
 			quadNormals = new float[3*quadSize];
 		}
 		for(size_t i=0;i<quadSize;++i){
@@ -225,7 +225,7 @@ kmb::ElementContainerOpenGLDraw::addElement(kmb::elementType etype, const kmb::n
 			return elemId;
 		}
 	}else if( etype == kmb::TRIANGLE2 && triNodes != NULL ){
-
+		// 2次要素の場合
 		if( tri2Nodes == NULL ){
 			initSecondTri();
 		}
@@ -244,7 +244,7 @@ kmb::ElementContainerOpenGLDraw::addElement(kmb::elementType etype, const kmb::n
 			return elemId;
 		}
 	}else if( etype == kmb::QUAD2 && quadNodes != NULL ){
-
+		// 2次要素の場合
 		if( quad2Nodes == NULL ){
 			initSecondQuad();
 		}
@@ -273,7 +273,7 @@ kmb::ElementContainerOpenGLDraw::addElement(kmb::elementType etype, const kmb::n
 		return kmb::Element::nullElementId;
 	}
 	if( elementIdMap.find(id) != elementIdMap.end() ){
-
+		// 既に id が使われている場合
 		return kmb::Element::nullElementId;
 	}
 	if( etype == kmb::TRIANGLE && triNodes != NULL ){
@@ -303,7 +303,7 @@ kmb::ElementContainerOpenGLDraw::addElement(kmb::elementType etype, const kmb::n
 			return id;
 		}
 	}else if( etype == kmb::TRIANGLE2 && triNodes != NULL ){
-
+		// 2次要素の場合
 		if( tri2Nodes == NULL ){
 			initSecondTri();
 		}
@@ -321,7 +321,7 @@ kmb::ElementContainerOpenGLDraw::addElement(kmb::elementType etype, const kmb::n
 			return id;
 		}
 	}else if( etype == kmb::QUAD2 && quadNodes != NULL ){
-
+		// 2次要素の場合
 		if( quad2Nodes == NULL ){
 			initSecondQuad();
 		}
@@ -436,7 +436,7 @@ kmb::ElementContainerOpenGLDraw::includeElement(const kmb::elementIdType id) con
 	return ( eiter != elementIdMap.end() );
 }
 
-
+// stl::map には順番に格納されていることを仮定
 kmb::elementIdType
 kmb::ElementContainerOpenGLDraw::getMaxId(void) const
 {
@@ -453,7 +453,7 @@ kmb::ElementContainerOpenGLDraw::getMinId(void) const
 {
 	kmb::elementIdType minId = kmb::Element::nullElementId;
 	std::map< kmb::elementIdType, size_t >::const_iterator eiter = elementIdMap.begin();
-
+	// 最初のid
 	if( eiter != elementIdMap.end() ){
 		minId = eiter->first + offsetId;
 	}
@@ -571,7 +571,7 @@ kmb::ElementContainerOpenGLDraw::find(kmb::elementIdType id) const
 	}
 }
 
-
+//-------------- iterator -----------------
 
 kmb::ElementContainerOpenGLDraw::_iteratorOG::_iteratorOG(void)
 : elementContainer(NULL)

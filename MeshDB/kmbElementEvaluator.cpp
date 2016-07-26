@@ -68,7 +68,7 @@ kmb::ElementEvaluator::getAspectRatio(const kmb::ElementBase &eIter) const
 		{
 		case kmb::TETRAHEDRON:
 		case kmb::TETRAHEDRON2:
-
+			// 外接球の半径 / 内接球の半径*3
 			{
 				kmb::Node n0,n1,n2,n3;
 				if( points->getPoint( eIter[0], n0 )
@@ -104,7 +104,7 @@ kmb::ElementEvaluator::getAspectRatio(const kmb::ElementBase &eIter) const
 			break;
 		case HEXAHEDRON:
 		case HEXAHEDRON2:
-
+			// [01] [03] [04] の長さの最大値/最小値
 			{
 				kmb::Node n0,n1,n3,n4;
 				if( points->getPoint( eIter[0], n0 )
@@ -126,7 +126,7 @@ kmb::ElementEvaluator::getAspectRatio(const kmb::ElementBase &eIter) const
 			break;
 		case QUAD:
 		case QUAD2:
-
+			// [01] [03] の長さの最大値/最小値
 			{
 				kmb::Node n0,n1,n3;
 				if( points->getPoint( eIter[0], n0 )
@@ -2011,7 +2011,7 @@ kmb::ElementEvaluator::getPhysicalCoordinates(const kmb::ElementBase &element,co
 	return false;
 }
 
-
+// 今の実装では積分点と頂点での評価値の最大最小
 bool
 kmb::ElementEvaluator::getMinMaxJacobian(const kmb::ElementBase &element, double &min, double &max) const
 {

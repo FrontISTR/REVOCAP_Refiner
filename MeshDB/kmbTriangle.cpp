@@ -36,15 +36,15 @@
 /********************************************************************************
 =begin
 
-=== 1ŸOŠpŒ`—v‘f (TRIANGLE)
+=== 1æ¬¡ä¸‰è§’å½¢è¦ç´  (TRIANGLE)
 
-Ú‘±s—ñ
+æ¥ç¶šè¡Œåˆ—
 
 	{  0, 1,-1},
 	{ -1, 0, 1},
 	{  1,-1, 0}
 
-•Ó
+è¾º
 
 	{ 1, 2},
 	{ 2, 0},
@@ -52,12 +52,12 @@
 
 =end
 
-Ú‘±s—ñ‚Ì (i,j) ¬•ª‚Í
- [i,j] ‚ª•Ó‚Ì‚Æ‚«‚É 1
- [j,i] ‚ª•Ó‚Ì‚Æ‚«‚É -1
-‚Æ‚·‚é
+æ¥ç¶šè¡Œåˆ—ã® (i,j) æˆåˆ†ã¯
+ [i,j] ãŒè¾ºã®ã¨ãã« 1
+ [j,i] ãŒè¾ºã®ã¨ãã« -1
+ã¨ã™ã‚‹
 
-Œ`óŠÖ”
+å½¢çŠ¶é–¢æ•°
 0 : 1-s-t => (s,t) = ( 0, 0)
 1 : s     => (s,t) = ( 1, 0)
 2 : t     => (s,t) = ( 0, 1)
@@ -165,7 +165,7 @@ kmb::Triangle::edgeSwap(kmb::ElementBase &triangle0,kmb::ElementBase &triangle1)
 	bool swapped = false;
 	if( triangle0.getType() == kmb::TRIANGLE && triangle1.getType() == kmb::TRIANGLE )
 	{
-
+		// å¢ƒç•Œã®4ç‚¹ã‚’é †ç•ªã«ä¸¦ã¹ã‚‹
 		kmb::nodeIdType nodes[4]
 			= {kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId,kmb::nullNodeId};
 		int count = 0;
@@ -176,7 +176,7 @@ kmb::Triangle::edgeSwap(kmb::ElementBase &triangle0,kmb::ElementBase &triangle1)
 				++count;
 			}
 		}
-
+		// å…±æœ‰ã™ã‚‹ 2 ç‚¹ã‚’æ¢ã—ã¦ã€nodes[1] ã¨ nodes[3] ã«å…¥ã‚Œã‚‹
 		if( count == 2 )
 		{
 			if( indices[0] == -1 )
@@ -229,12 +229,12 @@ kmb::Triangle::isCoincident(kmb::nodeIdType t00,kmb::nodeIdType t01,kmb::nodeIdT
 	if( t02 == t11 )	rel |= 0x002;
 	if( t02 == t12 )	rel |= 0x004;
 	switch( rel ){
-
+		// åŒã˜å‘ãã«3ç‚¹å…±æœ‰
 	case 0x124:
 	case 0x241:
 	case 0x412:
 		return 1;
-
+		// é€†å‘ãã«3ç‚¹å…±æœ‰
 	case 0x421:
 	case 0x214:
 	case 0x142:

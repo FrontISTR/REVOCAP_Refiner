@@ -19,9 +19,9 @@
 
 namespace kmb{
 
-
-
-
+// 配列によるリファレンス実装
+// i 行 j 列成分が m[i+j*rowSize] に格納される
+// いわゆる Column-major 形式
 class Matrix_DoubleArray : public Matrix{
 private:
 	double *m;
@@ -29,7 +29,7 @@ private:
 	int colSize;
 public:
 	Matrix_DoubleArray(int rowSize, int colSize);
-
+	// コピーしてから使う
 	Matrix_DoubleArray(int rowSize, int colSize,double* ary);
 	Matrix_DoubleArray(const kmb::Matrix& mat);
 	virtual ~Matrix_DoubleArray(void);
@@ -47,7 +47,7 @@ public:
 		return m[i+j*rowSize];
 	}
 	virtual bool row_exchange(int i0,int i1);
-
+	// i1行にi0行のr倍を加える
 	virtual bool row_transf(int i0,int i1,double r);
 	virtual bool row_multi(int i0,double r);
 protected:
@@ -59,7 +59,7 @@ private:
 	double *m;
 public:
 	SquareMatrix_DoubleArray(int size);
-
+	// コピーしてから使う
 	SquareMatrix_DoubleArray(int size,double* ary);
 	SquareMatrix_DoubleArray(const kmb::SquareMatrix& mat);
 	virtual ~SquareMatrix_DoubleArray(void);
@@ -84,7 +84,7 @@ private:
 	int size;
 public:
 	ColumnVector_DoubleArray(int size);
-
+	// コピーしてから使う
 	ColumnVector_DoubleArray(int size,double* ary);
 	ColumnVector_DoubleArray(const kmb::ColumnVector &vec);
 	virtual ~ColumnVector_DoubleArray(void);
@@ -100,6 +100,8 @@ public:
 	virtual double& operator()(int i,int j);
 	virtual const double& operator()(int i,int j) const;
 	virtual ColumnVector_DoubleArray& operator=(const ColumnVector_DoubleArray& other);
+	double* getPtr(void);
+	const double* getPtr(void) const;
 protected:
 	void clear(void);
 };
@@ -110,7 +112,7 @@ private:
 	int size;
 public:
 	RowVector_DoubleArray(int size);
-
+	// コピーしてから使う
 	RowVector_DoubleArray(int size,double* ary);
 	RowVector_DoubleArray(const kmb::RowVector &vec);
 	virtual ~RowVector_DoubleArray(void);
@@ -125,6 +127,8 @@ public:
 	virtual double& operator()(int i,int j);
 	virtual const double& operator()(int i,int j) const;
 	virtual RowVector_DoubleArray& operator=(const RowVector_DoubleArray& other);
+	double* getPtr(void);
+	const double* getPtr(void) const;
 protected:
 	void clear(void);
 };

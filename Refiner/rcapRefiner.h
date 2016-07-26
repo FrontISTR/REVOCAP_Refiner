@@ -15,7 +15,7 @@
 #ifndef REVOCAP_REFINER_HEADER
 #define REVOCAP_REFINER_HEADER
 
-/* �v���|�X�g�ł���`���Ă��邽�߁A�d�����Ȃ��悤�� */
+/* プリポストでも定義しているため、重複しないように */
 #ifndef REVOCAP_SIZE_DEF
 #define REVOCAP_SIZE_DEF
 
@@ -75,7 +75,7 @@
   #endif
  #endif
 #else
-/* C99 ���瓱������Ă��� */
+/* C99 から導入されている */
 #include <stdint.h>
 #endif
 
@@ -84,7 +84,7 @@ typedef double float64_t; /* REAL*8 */
 
 #endif
 
-/* �v�f�̌^��� int8_t */
+/* 要素の型情報 int8_t */
 #define RCAP_UNKNOWNTYPE  -1
 #define RCAP_SEGMENT      0
 #define RCAP_SEGMENT2     1
@@ -100,43 +100,43 @@ typedef double float64_t; /* REAL*8 */
 #define RCAP_PYRAMID2     11
 #define RCAP_HEXAHEDRON   12
 #define RCAP_HEXAHEDRON2  13
-/* 14 �͗v�f�Ɠ_�̋��E�Ƃ��ē����ŗ\�� */
+/* 14 は要素と点の境界として内部で予約 */
 #define RCAP_VERTEX       15
 
 const int RCAP_TETRAFACES[12] =
 {
-	1, 2, 3,  /* 0 �Ԗڂ̖� */
-	0, 3, 2,  /* 1 �Ԗڂ̖� */
-	0, 1, 3,  /* 2 �Ԗڂ̖� */
-	0, 2, 1   /* 3 �Ԗڂ̖� */
+	1, 2, 3,  /* 0 番目の面 */
+	0, 3, 2,  /* 1 番目の面 */
+	0, 1, 3,  /* 2 番目の面 */
+	0, 2, 1   /* 3 番目の面 */
 };
 
 const int RCAP_HEXAFACES[24] =
 {
-	3, 2, 1, 0,  /* 0 �Ԗڂ̖� */
-	4, 5, 6, 7,  /* 1 �Ԗڂ̖� */
-	1, 5, 4, 0,  /* 2 �Ԗڂ̖� */
-	1, 2, 6, 5,  /* 3 �Ԗڂ̖� */
-	3, 7, 6, 2,  /* 4 �Ԗڂ̖� */
-	4, 7, 3, 0   /* 5 �Ԗڂ̖� */
+	3, 2, 1, 0,  /* 0 番目の面 */
+	4, 5, 6, 7,  /* 1 番目の面 */
+	1, 5, 4, 0,  /* 2 番目の面 */
+	1, 2, 6, 5,  /* 3 番目の面 */
+	3, 7, 6, 2,  /* 4 番目の面 */
+	4, 7, 3, 0   /* 5 番目の面 */
 };
 
 const int RCAP_PYRAFACES[20] =
 {
-	0, 1, 2,-1,  /* 0 �Ԗڂ̖� */
-	0, 2, 3,-1,  /* 1 �Ԗڂ̖� */
-	0, 3, 4,-1,  /* 2 �Ԗڂ̖� */
-	0, 4, 1,-1,  /* 3 �Ԗڂ̖� */
-	4, 3, 2, 1   /* 4 �Ԗڂ̖� */
+	0, 1, 2,-1,  /* 0 番目の面 */
+	0, 2, 3,-1,  /* 1 番目の面 */
+	0, 3, 4,-1,  /* 2 番目の面 */
+	0, 4, 1,-1,  /* 3 番目の面 */
+	4, 3, 2, 1   /* 4 番目の面 */
 };
 
 const int RCAP_WEDGEFACES[20] =
 {
-	0, 2, 1,-1,  /* 0 �Ԗڂ̖� */
-	3, 4, 5,-1,  /* 1 �Ԗڂ̖� */
-	0, 1, 4, 3,  /* 2 �Ԗڂ̖� */
-	1, 2, 5, 4,  /* 3 �Ԗڂ̖� */
-	2, 0, 3, 5   /* 4 �Ԗڂ̖� */
+	0, 2, 1,-1,  /* 0 番目の面 */
+	3, 4, 5,-1,  /* 1 番目の面 */
+	0, 1, 4, 3,  /* 2 番目の面 */
+	1, 2, 5, 4,  /* 3 番目の面 */
+	2, 0, 3, 5   /* 4 番目の面 */
 };
 
 
@@ -145,180 +145,180 @@ extern "C" {
 #endif
 
 /**
- * @brief Version �������W���o�͂ɏo�͂���B
+ * @brief Version 文字列を標準出力に出力する。
  */
 void rcapGetVersion( void );
 
 /**
- * @brief Refiner �����������A�ߓ_�ԍ��Ɨv�f�ԍ��̃I�t�Z�b�g�l��^����B
- * @param[in] nodeOffset �Ăяo�����̐ߓ_�ԍ��̏����l�iC����Ȃ�0�AFortran����Ȃ�1�Ȃǁj
- * @param[in] elementOffset �Ăяo�����̐ߓ_�ԍ��̏����l�iC����Ȃ�0�AFortran����Ȃ�1�Ȃǁj
- * @note �����̃I�t�Z�b�g�l�����������l��ߓ_�ԍ���v�f�ԍ��ŗ^�����ꍇ�͖����ƂȂ�B
+ * @brief Refiner を初期化し、節点番号と要素番号のオフセット値を与える。
+ * @param[in] nodeOffset 呼び出し側の節点番号の初期値（C言語なら0、Fortran言語なら1など）
+ * @param[in] elementOffset 呼び出し側の節点番号の初期値（C言語なら0、Fortran言語なら1など）
+ * @note これらのオフセット値よりも小さい値を節点番号や要素番号で与えた場合は無効となる。
  */
 void rcapInitRefiner( int32_t nodeOffset, int32_t elementOffset );
 
 /**
- * @brief Refiner �������ŕێ����Ă��钆�Ԑߓ_�f�[�^�̃L���b�V�����N���A����B
- * @note �ו��𕡐���s���ꍇ�ɁA��U�����ŕێ����Ă���f�[�^���N���A���邽�߂Ɏg���B
- * �Ⴆ�Α�P�i�K�̍ו����I����āA��Q�i�K�̍ו����n�߂�O�ɌĂԁB
- * �����ŃN���A�����f�[�^�͒��Ԑߓ_�̃f�[�^�݂̂ł���A�ߓ_�̍��W�l�A
- * �ו����ɍX�V����ߓ_�O���[�v�̏�񓙂̓N���A����Ȃ��̂Œ��ӂ���B
+ * @brief Refiner が内部で保持している中間節点データのキャッシュをクリアする。
+ * @note 細分を複数回行う場合に、一旦内部で保持しているデータをクリアするために使う。
+ * 例えば第１段階の細分が終わって、第２段階の細分を始める前に呼ぶ。
+ * ここでクリアされるデータは中間節点のデータのみであり、節点の座標値、
+ * 細分時に更新する節点グループの情報等はクリアされないので注意する。
  */
 void rcapClearRefiner( void );
 
 /**
- * @brief Refiner �̏I���������s���B������Ăяo������͂��ׂĂ̏����������ɂȂ�B
- * @note Refiner �ɓo�^�����ߓ_�A�v�f�A���E�����Ȃǂ̃��������������O��
- * Refiner �̏I���������s���Ă��������BRefiner �̏I���������s���O��
- * ���������������ƁA�s���ȃA�h���X�ɃA�N�Z�X����\��������܂��B
+ * @brief Refiner の終了処理を行う。これを呼び出した後はすべての処理が無効になる。
+ * @note Refiner に登録した節点、要素、境界条件などのメモリを解放する前に
+ * Refiner の終了処理を行ってください。Refiner の終了処理を行う前に
+ * メモリを解放すると、不正なアドレスにアクセスする可能性があります。
  */
 void rcapTermRefiner( void );
 
 /**
- * @brief �`��␳�ɗp���� CAD �t�@�C�����w�肷��B\n
- * �ו��O�̃��b�V���͂��� CAD �t�@�C�����琶������Ă�����̂Ƃ���B
- * ���̊֐����Ă�� CAD �t�@�C�����w�肵�Ȃ������ꍇ�́A�`��␳�͍s��Ȃ��B
- * ���b�V���������̐ߓ_�� globalID �� CAD �̌`��f�[�^�̑Ή����^�����Ă���Ƃ���B
- * �̈敪����̃��b�V���ɑ΂��čו����s���ꍇ�́AsetPartitionFilename �Ȃǂ�
- * globalID �� localID �̑Ή��t����^����K�v������B
+ * @brief 形状補正に用いる CAD ファイルを指定する。\n
+ * 細分前のメッシュはこの CAD ファイルから生成されているものとする。
+ * この関数を呼んで CAD ファイルを指定しなかった場合は、形状補正は行わない。
+ * メッシュ生成時の節点の globalID と CAD の形状データの対応が与えられているとする。
+ * 領域分割後のメッシュに対して細分を行う場合は、setPartitionFilename などで
+ * globalID と localID の対応付けを与える必要がある。
  *
- * @remark ���̊֐��ŗ^���� CAD �t�@�C���ɂ́A�`��f�[�^�����ł͂Ȃ��A
- * �������b�V���̐ߓ_�� CAD �̖ʂ̊Ԃ̑Ή��֌W���L�q����Ă��邽�߁A
- * �������b�V�����قȂ�ꍇ�ɂ́ACAD �t�@�C�����u�������Ȃ���΂Ȃ�Ȃ��B
- * CAD �t�@�C���̐ߓ_�ԍ��� 0 �n�܂�̔ԍ���p���Ă���B
- * rcapSetNode32 rcapSetNode64 �܂��� rcapSetPartitionFilename �ŗ^����ꍇ�ɂ�
- * rcapInitRefiner �ŗ^���� nodeOffset ���������̂Œ��ӂ���B
+ * @remark この関数で与える CAD ファイルには、形状データだけではなく、
+ * 初期メッシュの節点と CAD の面の間の対応関係も記述されているため、
+ * 初期メッシュが異なる場合には、CAD ファイルも置き換えなければならない。
+ * CAD ファイルの節点番号は 0 始まりの番号を用いている。
+ * rcapSetNode32 rcapSetNode64 または rcapSetPartitionFilename で与える場合には
+ * rcapInitRefiner で与える nodeOffset だけずれるので注意する。
  *
- * @remark �ו��O�̎��O�␳���s���ꍇ�� rcapSetNode32/64 �Őߓ_���W��^����O��
- * ���̊֐����ĂԕK�v������܂��B
- * ���̊֐����ɌĂ񂾏ꍇ���ו����̌`��K���͍s���܂����A�ו��O�̎��O�␳�����܂���B
+ * @remark 細分前の事前補正を行う場合は rcapSetNode32/64 で節点座標を与える前に
+ * この関数を呼ぶ必要があります。
+ * この関数を先に呼んだ場合も細分時の形状適合は行いますが、細分前の事前補正をしません。
  *
- * @param[in] filename �t�@�C����
+ * @param[in] filename ファイル名
  */
 void rcapSetCADFilename( const char* filename );
 /**
- * @brief �`��␳�ɗp���� CAD �t�@�C���Ǝ��O�␳�����o�͂���B
- * globalID �� localID ��^������ŏo�͂���␳���́AlocalID �ƋȖʂƂ̑Ή��ɂȂ�B
+ * @brief 形状補正に用いる CAD ファイルと事前補正情報を出力する。
+ * globalID と localID を与えた後で出力する補正情報は、localID と曲面との対応になる。
  *
- * @remark ���̃t�@�C���ŏo�͂����ߓ_�ԍ��� 0 �n�܂�ł���B
+ * @remark このファイルで出力される節点番号は 0 始まりである。
  *
- * @remark ���̊֐��̓f�o�b�O�p�r�܂��́A�̈敪��������ɋǏ��I�ȍו����s���ꍇ�ɗp����B
+ * @remark この関数はデバッグ用途または、領域分割した後に局所的な細分を行う場合に用いる。
  *
- * @param[in] filename �t�@�C����
+ * @param[in] filename ファイル名
  */
 void rcapWriteFittingFile( const char* filename );
 
 /**
- * @brief ���Ԑߓ_�̐�����2���v�f�̌`��֐����g�����ǂ�����ݒ肷��B
- * @param[in] flag ���̎��ɗL���ɂ��A��̎��ɖ����ɂ��܂�
+ * @brief 中間節点の生成に2次要素の形状関数を使うかどうかを設定する。
+ * @param[in] flag 非零の時に有効にし、零の時に無効にします
  *
  */
 void rcapSetSecondFitting( int32_t flag );
 
 /**
- * @brief ���Ԑߓ_�� Laplacian Smoothing ���邩�ǂ�����ݒ肷��B
- * @param[in] flag ���̎��ɗL���ɂ��A��̎��ɖ����ɂ��܂�
+ * @brief 中間節点を Laplacian Smoothing するかどうかを設定する。
+ * @param[in] flag 非零の時に有効にし、零の時に無効にします
  *
  */
 void rcapSetSmoothing( int32_t flag );
 
 /**
- * @brief �ߓ_�� globalID �� localID �̑Ή��֌W���L�q�����t�@�C�����w�肷��B\n
- * �w�肵�Ȃ��ꍇ�́AglobalID �� localID �͋�ʂ��Ȃ��B
- * �t�@�C���ł͂Ȃ��A�ߓ_���W��o�^����Ƃ��� globalID �� localID �̊֌W��^���邱�Ƃ��ł���B
- * @param[in] filename �t�@�C����
- * @note �t�@�C���t�H�[�}�b�g�͊v�V�v���W�F�N�g�Ń\���o�ƃJ�v���̊Ԃŗp�������̂ɏ�����B
+ * @brief 節点の globalID と localID の対応関係を記述したファイルを指定する。\n
+ * 指定しない場合は、globalID と localID は区別しない。
+ * ファイルではなく、節点座標を登録するときに globalID と localID の関係を与えることもできる。
+ * @param[in] filename ファイル名
+ * @note ファイルフォーマットは革新プロジェクトでソルバとカプラの間で用いたものに準ずる。
  */
 void rcapSetPartitionFilename( const char* filename );
 
 /**
- * @brief �ߓ_���W�� Refiner �ɗ^����
- * @param[in] num �^����ߓ_�̌�
- * @param[in] coords �ߓ_�̍��W�Adouble �^�̔z��� (x,y,z) �̏��Ԃ� 3*num ���ׂ�����
- * @param[in] localIds �̈敪�������̈���̋Ǐ��ߓ_ID �̔z��
- * @param[in] globalIds ���ߓ_ID �̔z��
+ * @brief 節点座標を Refiner に与える
+ * @param[in] num 与える節点の個数
+ * @param[in] coords 節点の座標、double 型の配列で (x,y,z) の順番に 3*num 個並べたもの
+ * @param[in] localIds 領域分割した領域内の局所節点ID の配列
+ * @param[in] globalIds 大域節点ID の配列
  *
- * @note �����l���珇�� num ����ł���ꍇ�� localIds = NULL �ł悢�B
- * Global ID ���t�@�C������^����ꍇ�� globalIds = NULL �ɂ���B
- * setPartitionFilename �ŗ̈敪���̑��ߓ_�ƋǏ��ߓ_�̑Ή����^�����Ă��鎞�ɂ́A
- * globalIds ��^���Ȃ��Ă��悢�B���̊֐��ŗ^�����ꍇ�ɂ́AsetPartitionFilename �ŗ^�����Ή����㏑������B
- * setPartitionFilename �ŗ^���Ȃ��ꍇ�ɁA���̊֐��ł� globalIds ��^���Ȃ��ꍇ�́AlocalId �����̂܂܎g���B
+ * @note 初期値から順に num 個並んでいる場合は localIds = NULL でよい。
+ * Global ID をファイルから与える場合は globalIds = NULL にする。
+ * setPartitionFilename で領域分割の大域節点と局所節点の対応が与えられている時には、
+ * globalIds を与えなくてもよい。この関数で与えた場合には、setPartitionFilename で与えた対応を上書きする。
+ * setPartitionFilename で与えない場合に、この関数でも globalIds を与えない場合は、localId をそのまま使う。
  *
- * @li setNode64( num, coords, NULL, NULL ) => global �� local �͓����� nodeOffset ���珇�� num ��
- * @li setNode64( num, coords, globalIds, NULL ) => local �� nodeOffset ���珇�� num �Aglobal �͈����ŗ^����
- * @li setNode64( num, coords, NULL, localIds ) => global �� local �͓����� local �͗^����
- * @li setNode64( num, coords, globalIds, localIds ) => global �� local �����ꂼ��^����
+ * @li setNode64( num, coords, NULL, NULL ) => global と local は同じで nodeOffset から順に num 個
+ * @li setNode64( num, coords, globalIds, NULL ) => local は nodeOffset から順に num 個、global は引数で与える
+ * @li setNode64( num, coords, NULL, localIds ) => global と local は同じで local は与える
+ * @li setNode64( num, coords, globalIds, localIds ) => global と local をそれぞれ与える
  *
- * @note CAD�t�@�C����^�����Ɍ`��␳�����Ȃ��ꍇ�́A�Ǐ��ߓ_�ԍ��Ƒ��ߓ_�ԍ��̑Ή��͕K�v�Ȃ��B
- * @note Fortran ����Ăԏꍇ�ɂ� NULL �A�h���X�̑���ɍŏ��̒l�� nodeOffset �����������z���^����B
+ * @note CADファイルを与えずに形状補正をしない場合は、局所節点番号と大域節点番号の対応は必要ない。
+ * @note Fortran から呼ぶ場合には NULL アドレスの代わりに最初の値が nodeOffset よりも小さい配列を与える。
  */
 void rcapSetNode64( size_t num, float64_t* coords, int32_t* globalIds, int32_t* localIds );
 
 /**
- * @brief �ߓ_���W�� Refiner �ɗ^����
- * @param[in] num �^����ߓ_�̌�
- * @param[in] coords �ߓ_�̍��W�Afloat �^�̔z��� (x,y,z) �̏��Ԃ� 3*num ���ׂ�����
- * @param[in] localIds �̈敪�������̈���̋Ǐ��ߓ_ID �̔z��
- * @param[in] globalIds ���ߓ_ID �̔z��
+ * @brief 節点座標を Refiner に与える
+ * @param[in] num 与える節点の個数
+ * @param[in] coords 節点の座標、float 型の配列で (x,y,z) の順番に 3*num 個並べたもの
+ * @param[in] localIds 領域分割した領域内の局所節点ID の配列
+ * @param[in] globalIds 大域節点ID の配列
  *
- * @note �ڍׂ� rcapSetNode64 �ɏ�����
+ * @note 詳細は rcapSetNode64 に準ずる
  */
 void rcapSetNode32( size_t num, float32_t* coords, int32_t* globalIds, int32_t* localIds );
 
 /**
- * @brief ���� Refiner ���ێ����Ă���ߓ_�̌���Ԃ��B�ו������瑝����B
- * @return �ߓ_�̌�
+ * @brief 現在 Refiner が保持している節点の個数を返す。細分したら増える。
+ * @return 節点の個数
  */
 size_t rcapGetNodeCount( void );
 
 /**
- * @brief Refiner ���Ǘ����Ă���ߓ_���W���擾����
- * @param[in] num �ߓ_�̌�
- * @param[in] localIds �̈敪�������̈���̋Ǐ��ߓ_ID �̔z��
- * @param[out] coords �ߓ_�̍��W�A(x,y,z) �̏��Ԃ� 3*num ���ׂ�����
+ * @brief Refiner が管理している節点座標を取得する
+ * @param[in] num 節点の個数
+ * @param[in] localIds 領域分割した領域内の局所節点ID の配列
+ * @param[out] coords 節点の座標、(x,y,z) の順番に 3*num 個並べたもの
  *
- * @note RefineElement �̖߂�l�� num �Ƃ��āAresultNodeArray �� localIds �ɓ�����
- * coords �ō��W�l���擾�ł���B\n
- * localIds = {1,5,8} �̏ꍇ
- * coords = {x1,y1,z1,x5,y5,z5,x8,y8,z8} �ƂȂ�B\n
- * localIds �̐ߓ_�ԍ��͎����I�� nodeOffset �ł��炵�� Refiner �ɖ₢���킹��
+ * @note RefineElement の戻り値を num として、resultNodeArray を localIds に入れると
+ * coords で座標値を取得できる。\n
+ * localIds = {1,5,8} の場合
+ * coords = {x1,y1,z1,x5,y5,z5,x8,y8,z8} となる。\n
+ * localIds の節点番号は自動的に nodeOffset でずらして Refiner に問い合わせる
  */
 void rcapGetNode64( size_t num, int32_t* localIds, float64_t* coords );
 /**
- * @brief Refiner ���Ǘ����Ă���ߓ_���W���擾����
- * @param[in] num �ߓ_�̌�
- * @param[in] localIds �̈敪�������̈���̋Ǐ��ߓ_ID �̔z��
- * @param[out] coords �ߓ_�̍��W�A(x,y,z) �̏��Ԃ� 3*num ���ׂ�����
+ * @brief Refiner が管理している節点座標を取得する
+ * @param[in] num 節点の個数
+ * @param[in] localIds 領域分割した領域内の局所節点ID の配列
+ * @param[out] coords 節点の座標、(x,y,z) の順番に 3*num 個並べたもの
  *
- * @note rcapGetNode64 �� 32bit ��
+ * @note rcapGetNode64 の 32bit 版
  */
 void rcapGetNode32( size_t num, int32_t* localIds, float32_t* coords );
 
 /**
- * @brief initId ����A������ num �̐ߓ_���W���擾����
- * @param[in] num �ߓ_�̌�
- * @param[in] initId �擾����擪�̐ߓ_�ԍ�
- * @param[out] coords �ߓ_�̍��W�A(x,y,z) �̏��Ԃ� 3*num ���ׂ�����
- * @note coords �� initId �Ԗڂ���������
+ * @brief initId から連続して num 個の節点座標を取得する
+ * @param[in] num 節点の個数
+ * @param[in] initId 取得する先頭の節点番号
+ * @param[out] coords 節点の座標、(x,y,z) の順番に 3*num 個並べたもの
+ * @note coords の initId 番目から代入する
  */
 void rcapGetNodeSeq64( size_t num, size_t initId, float64_t* coords );
 /**
- * @brief rcapGetNodeSeq64 �� 32bit ��
+ * @brief rcapGetNodeSeq64 の 32bit 版
  */
 void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords );
 
 /**
- * @brief �v�f�����ꂼ��ӂ̂Q�������čו�����
- * @param[in] num �v�f�̌�
- * @param[in] etype ���͗v�f�̌^
- * @param[in] nodeArray ���͗v�f�̐ߓ_�z��ietype�^�̗v�f��num���ׂ����́j
- * @param[out] resultNodeArray �ו����ʂ̗v�f�̐ߓ_�z��
- * @return �ו��������ʂ̗v�f�̌�
+ * @brief 要素をそれぞれ辺の２分割して細分する
+ * @param[in] num 要素の個数
+ * @param[in] etype 入力要素の型
+ * @param[in] nodeArray 入力要素の節点配列（etype型の要素をnum個並べたもの）
+ * @param[out] resultNodeArray 細分結果の要素の節点配列
+ * @return 細分した結果の要素の個数
  *
- * @note nodeArray �̓��[�J���ߓ_ID�ŋL�q�������̂�^���Ă��������B
+ * @note nodeArray はローカル節点IDで記述したものを与えてください。
  *
- * @note resultNodeArray �� NULL �܂��� -1 �Ƃ��ČĂяo���ƁA�ו������ꍇ�̌��������v�Z���ĕԂ��B
- * �Ⴆ�΂S�ʑ̂Ȃ�Γ��͗v�f�̌��̂W�{��Ԃ��B\n
+ * @note resultNodeArray を NULL または -1 として呼び出すと、細分した場合の個数だけを計算して返す。
+ * 例えば４面体ならば入力要素の個数の８倍を返す。\n
  *
  * @code
  * etype = TETRAHEDRON;
@@ -329,8 +329,8 @@ void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords );
  * refineElement( &num, &etype, nodeArray, resultNodeArray )
  * @endcode
  *
- * @note �����̗v�f�̌^���������Ă���ꍇ�́A�����^�̗v�f���܂Ƃ߂Ă��̊֐���v�f�̌^���Ƃɕ�����ĂԂ��A
- * �ߓ_�z��ɂǂ̌^�̗v�f�����Ԃɓ����Ă��邩�̔z����쐬���� refineElementMulti �֐����ĂԁB\n
+ * @note 複数の要素の型が混じっている場合は、同じ型の要素をまとめてこの関数を要素の型ごとに複数回呼ぶか、
+ * 節点配列にどの型の要素が順番に入っているかの配列を作成して refineElementMulti 関数を呼ぶ。\n
  *
  * @code
  * etype = TETRAHEDRON;
@@ -347,164 +347,164 @@ void rcapGetNodeSeq32( size_t num, size_t initId, float32_t* coords );
  * refineElement( &num, &etype, nodeArrayHex, resultNodeArrayHex )
  * @endcode
  *
- * @note �v�f���ו�������ɁA���̗v�f�̖ʂ�ӂ��O�p�`�v�f������v�f�Ƃ݂Ȃ��Ă��̊֐����Ăяo���ƁA
- * �v�f���ו��������ʂ�ʂ�ӂɐ����������ʂ�Ԃ��B�t�ɗv�f�̖ʂ�ӂ̍ו����Ăяo������ŁA
- * �v�f�̍ו����s���ƁA��ɍו������ʂ�ӂɂ��Ă͂��̐ߓ_�ԍ����g���B
+ * @note 要素を細分した後に、その要素の面や辺を三角形要素や線分要素とみなしてこの関数を呼び出すと、
+ * 要素を細分した結果を面や辺に制限した結果を返す。逆に要素の面や辺の細分を呼び出した後で、
+ * 要素の細分を行うと、先に細分した面や辺についてはその節点番号を使う。
  *
- * @note rcapClearRefiner ���ĂԂ܂ł� nodeArray resultNodeArray ��������Ȃ��ł��������B
+ * @note rcapClearRefiner を呼ぶまでは nodeArray resultNodeArray を解放しないでください。
  *
- * @note �l�ʑ̗v�f�̍ו���̂W�̗v�f�̌���鏇��
+ * @note 四面体要素の細分後の８個の要素の現れる順番
  *
- *  - (1)�l�ʑ̂�1�Ԗڂ̐ߓ_��������v�f
- *  - (2)�l�ʑ̂�2�Ԗڂ̐ߓ_��������v�f
- *  - (3)�l�ʑ̂�3�Ԗڂ̐ߓ_��������v�f
- *  - (4)�l�ʑ̂�4�Ԗڂ̐ߓ_��������v�f
- *  - (5)�l�ʑ̂�1�Ԗڂ̖ʂ�������v�f
- *  - (6)�l�ʑ̂�2�Ԗڂ̖ʂ�������v�f
- *  - (7)�l�ʑ̂�3�Ԗڂ̖ʂ�������v�f
- *  - (8)�l�ʑ̂�4�Ԗڂ̖ʂ�������v�f
+ *  - (1)四面体の1番目の節点が属する要素
+ *  - (2)四面体の2番目の節点が属する要素
+ *  - (3)四面体の3番目の節点が属する要素
+ *  - (4)四面体の4番目の節点が属する要素
+ *  - (5)四面体の1番目の面が属する要素
+ *  - (6)四面体の2番目の面が属する要素
+ *  - (7)四面体の3番目の面が属する要素
+ *  - (8)四面体の4番目の面が属する要素
  *
- * �O����4�̖ʔԍ��͍ו��O�̗v�f�Ɠ�������
- * �㔼��4�̖ʔԍ���0�Ԗڂ��ו��O�̗v�f�̊O���̌���
+ * 前半の4つの面番号は細分前の要素と同じ向き
+ * 後半の4つの面番号は0番目が細分前の要素の外側の向き
  *
- * @note �Z�ʑ̗v�f�̍ו���̂W�̗v�f�̌���鏇��
- *  - (1)�Z�ʑ̂�1�Ԗڂ̐ߓ_��������v�f
- *  - (2)�Z�ʑ̂�2�Ԗڂ̐ߓ_��������v�f
- *  - (3)�Z�ʑ̂�3�Ԗڂ̐ߓ_��������v�f
- *  - (4)�Z�ʑ̂�4�Ԗڂ̐ߓ_��������v�f
- *  - (5)�Z�ʑ̂�5�Ԗڂ̐ߓ_��������v�f
- *  - (6)�Z�ʑ̂�6�Ԗڂ̐ߓ_��������v�f
- *  - (7)�Z�ʑ̂�7�Ԗڂ̐ߓ_��������v�f
- *  - (8)�Z�ʑ̂�8�Ԗڂ̐ߓ_��������v�f
+ * @note 六面体要素の細分後の８個の要素の現れる順番
+ *  - (1)六面体の1番目の節点が属する要素
+ *  - (2)六面体の2番目の節点が属する要素
+ *  - (3)六面体の3番目の節点が属する要素
+ *  - (4)六面体の4番目の節点が属する要素
+ *  - (5)六面体の5番目の節点が属する要素
+ *  - (6)六面体の6番目の節点が属する要素
+ *  - (7)六面体の7番目の節点が属する要素
+ *  - (8)六面体の8番目の節点が属する要素
  *
- * �ʔԍ��͍ו��O�̗v�f�Ɠ�������
+ * 面番号は細分前の要素と同じ向き
  *
- * @note �O�p���v�f�̍ו����8�̗v�f�̌���鏇��
+ * @note 三角柱要素の細分後の8個の要素の現れる順番
  *
- *  - (1)�O�p����1�Ԗڂ̐ߓ_��������v�f
- *  - (2)�O�p����2�Ԗڂ̐ߓ_��������v�f
- *  - (3)�O�p����3�Ԗڂ̐ߓ_��������v�f
- *  - (4)�O�p����4�Ԗڂ̐ߓ_��������v�f
- *  - (5)�O�p����5�Ԗڂ̐ߓ_��������v�f
- *  - (6)�O�p����6�Ԗڂ̐ߓ_��������v�f
- *  - (7)�O�p����0,1,2�Ԗڂ̐ߓ_�ɂ��O�p�`�ɐڂ���v�f
- *  - (8)�O�p����3,4,5�Ԗڂ̐ߓ_�ɂ��O�p�`�ɐڂ���v�f
+ *  - (1)三角柱の1番目の節点が属する要素
+ *  - (2)三角柱の2番目の節点が属する要素
+ *  - (3)三角柱の3番目の節点が属する要素
+ *  - (4)三角柱の4番目の節点が属する要素
+ *  - (5)三角柱の5番目の節点が属する要素
+ *  - (6)三角柱の6番目の節点が属する要素
+ *  - (7)三角柱の0,1,2番目の節点による三角形に接する要素
+ *  - (8)三角柱の3,4,5番目の節点による三角形に接する要素
  *
- * �͂��߂�6�̖ʔԍ��͍ו��O�̗v�f�Ɠ�������
- * �Ō��2�̖ʔԍ���0�Ԗڂ��ו��O�̗v�f�̊O���̌���
+ * はじめの6個の面番号は細分前の要素と同じ向き
+ * 最後の2個の面番号は0番目が細分前の要素の外側の向き
  *
- * @note �l�p���v�f�̍ו����10�̗v�f�̌���鏇��
+ * @note 四角錐要素の細分後の10個の要素の現れる順番
  *
- *  - (1)�l�p����1�Ԗڂ̐ߓ_��������v�f
- *  - (2)�l�p����2�Ԗڂ̐ߓ_��������v�f
- *  - (3)�l�p����3�Ԗڂ̐ߓ_��������v�f
- *  - (4)�l�p����4�Ԗڂ̐ߓ_��������v�f
- *  - (5)�l�p����5�Ԗڂ̐ߓ_��������v�f
- *  - (6)�l�p����0,1,2�Ԗڂ̐ߓ_�ɂ��O�p�`�ɐڂ���l�ʑ̗v�f
- *  - (7)�l�p����0,2,3�Ԗڂ̐ߓ_�ɂ��O�p�`�ɐڂ���l�ʑ̗v�f
- *  - (8)�l�p����0,3,4�Ԗڂ̐ߓ_�ɂ��O�p�`�ɐڂ���l�ʑ̗v�f
- *  - (9)�l�p����0,4,1�Ԗڂ̐ߓ_�ɂ��O�p�`�ɐڂ���l�ʑ̗v�f
- *  - (10)�l�p���̒��ɖ��ߍ��܂�Ă���v�f
+ *  - (1)四角錐の1番目の節点が属する要素
+ *  - (2)四角錐の2番目の節点が属する要素
+ *  - (3)四角錐の3番目の節点が属する要素
+ *  - (4)四角錐の4番目の節点が属する要素
+ *  - (5)四角錐の5番目の節点が属する要素
+ *  - (6)四角錐の0,1,2番目の節点による三角形に接する四面体要素
+ *  - (7)四角錐の0,2,3番目の節点による三角形に接する四面体要素
+ *  - (8)四角錐の0,3,4番目の節点による三角形に接する四面体要素
+ *  - (9)四角錐の0,4,1番目の節点による三角形に接する四面体要素
+ *  - (10)四角錐の中に埋め込まれている要素
  *
- * �͂��߂�5�̖ʔԍ��͍ו��O�̗v�f�Ɠ�������
- * ����4�̖ʔԍ��͍ו��O�̎l�p���̖ʔԍ��ƁA�l�ʑ̗v�f�̊O�Ɍ����Ă���ʔԍ�����v�������
- * �Ō��1�͑S�Ă̖ʂ����ߍ��܂�Ă���
+ * はじめの5個の面番号は細分前の要素と同じ向き
+ * 次の4個の面番号は細分前の四角錐の面番号と、四面体要素の外に向いている面番号が一致する向き
+ * 最後の1個は全ての面が埋め込まれている
  */
 size_t rcapRefineElement( size_t num, int8_t etype, int32_t* nodeArray, int32_t* resultNodeArray );
 /**
- * @brief �ו������v�f�̌����v�Z����i���ۂɂ͍ו��͂��Ȃ��j
- * @param[in] num �v�f�̌�
- * @param[in] etype ���͗v�f�̌^
- * @return �ו��������ʂ̗v�f�̌�
+ * @brief 細分した要素の個数を計算する（実際には細分はしない）
+ * @param[in] num 要素の個数
+ * @param[in] etype 入力要素の型
+ * @return 細分した結果の要素の個数
  */
 size_t rcapGetRefineElementCount( size_t num, int8_t etype );
 
 /**
- * @brief �����̎�ނ̌^�����݂��Ă��郂�f������x�ɍו�����
- * @param[in] num �v�f�̌�
- * @param[in] etypeArray ���͗v�f�̌^�̔z��
- * @param[in] nodeArray ���͗v�f�̐ߓ_�z��
- * @param[in,out] refinedNum �ו����ʂ̗v�f�̌�
- * @param[out] resultEtypeArray �ו����ʂ̗v�f�̌^�̔z��
- * @param[out] resultNodeArray �ו����ʂ̗v�f�̐ߓ_�z��
- * @return �ו��������ʂ��i�[����̂�[�K�v��/�g�p����]�ߓ_�z��̑傫��
+ * @brief 複数の種類の型が混在しているモデルを一度に細分する
+ * @param[in] num 要素の個数
+ * @param[in] etypeArray 入力要素の型の配列
+ * @param[in] nodeArray 入力要素の節点配列
+ * @param[in,out] refinedNum 細分結果の要素の個数
+ * @param[out] resultEtypeArray 細分結果の要素の型の配列
+ * @param[out] resultNodeArray 細分結果の要素の節点配列
+ * @return 細分した結果を格納するのに[必要な/使用した]節点配列の大きさ
  *
- * @note nodeArray �̓��[�J���ߓ_ID�ŋL�q�������̂�^���Ă��������B
- * @note rcapClearRefiner ���ĂԂ܂ł� etypeArray, nodeArray, resultETypeArray, resultNodeArray ��������Ȃ��ł��������B
+ * @note nodeArray はローカル節点IDで記述したものを与えてください。
+ * @note rcapClearRefiner を呼ぶまでは etypeArray, nodeArray, resultETypeArray, resultNodeArray を解放しないでください。
  *
- * @note ���̊֐��͎��ۂɍו�����@�\�ƁA�ߓ_�z��̑傫���𒲂ׂ邾���̋@�\�Ƃ����˂Ă��܂��B
- * resultNodeArray �� NULL �܂��� -1 �Ƃ��ČĂяo���ƁA
- * �ו��������ʂ��i�[����̂ɕK�v�Ȑߓ_�z��̑傫����Ԃ��A
- * refinedNum �ɍו���̗v�f�̌��������܂��B
- * resultEtypeArray �͎��ۂɍו�����@�\�ƁA�ߓ_�z��̑傫���𒲂ׂ邾���̋@�\��
- * �؂�ւ��̂��߂̏��Ƃ��Ă͗��p���܂���B
- * ���̃��W���[���𗘗p����ꍇ�ɂ͂��̖߂�l�̑傫����
- * �z�� resultNodeArray ���Ăяo��������������Ɋm�ۂ��A
- * �ו����邽�߂ɂ��̊֐����ēx�Ăяo���K�v������܂��B
+ * @note この関数は実際に細分する機能と、節点配列の大きさを調べるだけの機能とを兼ねています。
+ * resultNodeArray を NULL または -1 として呼び出すと、
+ * 細分した結果を格納するのに必要な節点配列の大きさを返し、
+ * refinedNum に細分後の要素の個数を代入します。
+ * resultEtypeArray は実際に細分する機能と、節点配列の大きさを調べるだけの機能の
+ * 切り替えのための情報としては利用しません。
+ * このモジュールを利用する場合にはこの戻り値の大きさの
+ * 配列 resultNodeArray を呼び出し側がメモリ上に確保し、
+ * 細分するためにこの関数を再度呼び出す必要があります。
  *
- * @note ���ۂɍו����s���Ƃ��ɂ́A�z�� resultEtypeArray �� resultNodeArray ����������Ɋm�ۂ��A
- * ���ꂼ�ꏉ�������Ă��炱�̊֐����Ăяo���܂��B
- * ���̂Ƃ��ArefinedNum �� resultEtypeArray / resultNodeArray ��
- * �i�[�\�ȗv�f�̌���^���܂��B�^����ꂽ refinedNum ����
- * �ו����ꂽ�v�f�̌����傫���ꍇ�́A�����������͊i�[���܂���B
- * �߂�l�͍ו��̌��ʂ��i�[����̂Ɏg�p�����ߓ_�z��̑傫����Ԃ��܂��B
+ * @note 実際に細分を行うときには、配列 resultEtypeArray と resultNodeArray をメモリ上に確保し、
+ * それぞれ初期化してからこの関数を呼び出します。
+ * このとき、refinedNum は resultEtypeArray / resultNodeArray で
+ * 格納可能な要素の個数を与えます。与えられた refinedNum よりも
+ * 細分された要素の個数が大きい場合は、超えた部分は格納しません。
+ * 戻り値は細分の結果を格納するのに使用した節点配列の大きさを返します。
  *
- * @note �ו���̗v�f�̌^�������̏ꍇ�́AresultNodeArray ����������Ɋm�ۂ��āA
- * resultEtypeArray �� NULL ��^���Ă��ו��̎��s�͉\�ł��B
+ * @note 細分後の要素の型が自明の場合は、resultNodeArray をメモリ上に確保して、
+ * resultEtypeArray に NULL を与えても細分の実行は可能です。
  *
  * @note
  * result = rcapRefineElementMulti(num,etypeArray,nodeArray,[refinedNum],NULL,NULL)
  * result = rcapRefineElementMulti(num,etypeArray,nodeArray,[refinedNum],[-1],[-1])
- * refinedNum �ɍו��œ�����v�f�̌��������Aresult �ɍו����ʂ��i�[����̂ɕK�v�Ȑߓ_�z��̑傫����Ԃ�
- * ���ۂɂ͍ו��͍s��Ȃ��B
+ * refinedNum に細分で得られる要素の個数を代入し、result に細分結果を格納するのに必要な節点配列の大きさを返す
+ * 実際には細分は行わない。
  *
  * @note
  * result = rcapRefineElementMulti(num,etypeArray,nodeArray,[refinedNum],resultEtypeArray,resultNodeArray)
- * ���ۂɍו����s���A�ו����ʂ� resultEtypeArray �� resultNodeArray �Ɋi�[����B
- * refinedNum �ŗ^����ꂽ�傫���̗v�f���i�[����z�񂪊m�ۂ���Ă��邱�Ƃ����肵�Ă���B
+ * 実際に細分を行い、細分結果を resultEtypeArray と resultNodeArray に格納する。
+ * refinedNum で与えられた大きさの要素を格納する配列が確保されていることを仮定している。
  *
- * @note �v�f�̌^���Ƃɐߓ_�z����܂Ƃ߂�� rcapRefineElement �œ����̂��Ƃ����s�ł��܂��B
+ * @note 要素の型ごとに節点配列をまとめれば rcapRefineElement で同等のことを実行できます。
  *
- * @remark *** �߂�l�̎d�l�� 2010/2/9 �o�[�W��������ύX���Ă��܂� ***
+ * @remark *** 戻り値の仕様が 2010/2/9 バージョンから変更しています ***
  */
 size_t rcapRefineElementMulti( size_t num, int8_t* etypeArray, int32_t* nodeArray, size_t* refinedNum, int8_t* resultEtypeArray, int32_t* resultNodeArray );
 /**
- * @brief �����̎�ނ̌^�����݂��Ă��郂�f�����ו������Ƃ��̗v�f�̌����v�Z����i���ۂɂ͍ו����Ȃ��j
- * @param[in] num �v�f�̌�
- * @param[in] etypeArray ���͗v�f�̌^�̔z��
- * @param[out] refinedNum �ו����ʂ̗v�f�̌�
- * @return �ו��������ʂ��i�[����̂ɕK�v�Ȑߓ_�z��̑傫��
+ * @brief 複数の種類の型が混在しているモデルを細分したときの要素の個数を計算する（実際には細分しない）
+ * @param[in] num 要素の個数
+ * @param[in] etypeArray 入力要素の型の配列
+ * @param[out] refinedNum 細分結果の要素の個数
+ * @return 細分した結果を格納するのに必要な節点配列の大きさ
  */
 size_t rcapGetRefineElementMultiCount( size_t num, int8_t* etypeArray, size_t* refinedNum );
 
 /**
  * @brief
- * rcapRefineElement �ɂ��ו����ꂽ�f�[�^�i�ߓ_�O���[�v�A�v�f�O���[�v�A�ʃO���[�v�j���R�~�b�g����B
- * ���Ȃ킿�A�ȉ��� rcapGet[Node|Element|Face]Group[Count] ���\�b�h�̑Ώۂ��ו��O�̃f�[�^����
- * �ו���̃f�[�^�ɕς���B�ו��O�̃f�[�^�͍폜�����B
- * ���̊֐������s��� rcapRefineElement ���ēx���s�����ꍇ�A�X�V�����f�[�^��
- * �ו���̃f�[�^�ɂȂ�B
- * �܂��ArcapRefineElement �ōו���̗v�f�ɕt�^�����v�f�ԍ��� elementOffset �l�Ƀ��Z�b�g�����B
+ * rcapRefineElement により細分されたデータ（節点グループ、要素グループ、面グループ）をコミットする。
+ * すなわち、以下の rcapGet[Node|Element|Face]Group[Count] メソッドの対象を細分前のデータから
+ * 細分後のデータに変える。細分前のデータは削除される。
+ * この関数を実行後に rcapRefineElement を再度実行した場合、更新されるデータは
+ * 細分後のデータになる。
+ * また、rcapRefineElement で細分後の要素に付与される要素番号も elementOffset 値にリセットされる。
  * @remark
- * rcapRefineElement �𕡐���Ăԏꍇ�́A������Ă񂾌�Ɉ�x���� rcapCommit �����s����B
- * �Q�i�K�̍ו����s���ꍇ�́A�P�i�K�ڂ̍ו� rcapRefineElement ���Ă񂾌�A
- * �Q�i�K�ڂ� rcapRefineElement ���ĂԑO�Ɏ��s����B
+ * rcapRefineElement を複数回呼ぶ場合は、複数回呼んだ後に一度だけ rcapCommit を実行する。
+ * ２段階の細分を行う場合は、１段階目の細分 rcapRefineElement を呼んだ後、
+ * ２段階目の rcapRefineElement を呼ぶ前に実行する。
  * @remark
- * rcapAppendBoundaryNodeGroup�ArcapAppendBoundaryNodeVariableXXX �Œǉ����ꂽ���E�����ɂ��Ă�
- * ���̊֐����Ă΂ꂽ���_�œo�^����Ă���v�f�̋��E�ʂ𒊏o���āA���̖ʂŋ��E�������X�V����B
- * ��K�͕��G���f���̂����̏������X�V����ꍇ�́A���E�ʂ̒��o�Ɏ��Ԃƃ�������v����ꍇ������B
+ * rcapAppendBoundaryNodeGroup、rcapAppendBoundaryNodeVariableXXX で追加された境界条件については
+ * この関数が呼ばれた時点で登録されている要素の境界面を抽出して、その面で境界条件を更新する。
+ * 大規模複雑モデルのこれらの条件を更新する場合は、境界面の抽出に時間とメモリを要する場合がある。
  */
 void rcapCommit(void);
 
 /**
- * @brief �ו��Ɠ����ɍX�V����ߓ_�O���[�v��o�^
- * @param[in] dataname �ߓ_�O���[�v�̎��ʎq
- * @param[in] num �ߓ_�O���[�v�̐ߓ_��
- * @param[in] nodeArray �ߓ_�O���[�v�̐ߓ_
- * @note refineElement ���Ăяo���O�ɂ��̊֐��Őߓ_�O���[�v��o�^���Ă����ƁArefineElement ���Ăяo�������ɁA
- * �ו�����v�f�̕ӂ̗��[���ߓ_�O���[�v�Ɋ܂܂��Ȃ�΁A�ו��ɂ���Đ������ꂽ�ӂ̒��_�̐ߓ_��
- * �ߓ_�O���[�v�ɒǉ�����B
- * ���ʎq�͕�����ł��BFortran ����Ăяo���ꍇ�́A������̍Ō�Ƀk��������ǉ����Ă��������B
+ * @brief 細分と同時に更新する節点グループを登録
+ * @param[in] dataname 節点グループの識別子
+ * @param[in] num 節点グループの節点数
+ * @param[in] nodeArray 節点グループの節点
+ * @note refineElement を呼び出す前にこの関数で節点グループを登録しておくと、refineElement を呼び出した時に、
+ * 細分する要素の辺の両端が節点グループに含まれるならば、細分によって生成された辺の中点の節点を
+ * 節点グループに追加する。
+ * 識別子は文字列です。Fortran から呼び出す場合は、文字列の最後にヌル文字を追加してください。
  * @code
  * int32_t cl[2] = {1,2};
  * appendNodeGroup("CL",2,cl);
@@ -518,252 +518,252 @@ void rcapCommit(void);
 void rcapAppendNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
 
 /**
- * @brief Refiner �ɓo�^����Ă���ߓ_�O���[�v�̐ߓ_�̌���Ԃ�
- * @param[in] dataname �ߓ_�O���[�v�̎��ʎq
- * @return �ߓ_�O���[�v�̐ߓ_�̌�
- * @note refineElement ���ĂԑO�́AappendNodeGroup �œo�^���������̂��̂�Ԃ��B
+ * @brief Refiner に登録されている節点グループの節点の個数を返す
+ * @param[in] dataname 節点グループの識別子
+ * @return 節点グループの節点の個数
+ * @note refineElement を呼ぶ前は、appendNodeGroup で登録した個数そのものを返す。
  */
 size_t rcapGetNodeGroupCount( const char dataname[80] );
 
 /**
- * @brief Refiner �ɓo�^����Ă���ߓ_�O���[�v��Ԃ�
- * @param[in] dataname �ߓ_�O���[�v�̎��ʎq
- * @param[in] num �擾����ߓ_�O���[�v�̌�
- * @param[out] nodeArray �ߓ_�O���[�v�̐ߓ_
- * @note ���� num �� getNodeGroupCount �Ŏ擾�����l��^���āAnodeArray �͂��炩���� num ��
- * �傫���̔z��ł��炩���� allocate ���Ă�����̂Ƃ���B
+ * @brief Refiner に登録されている節点グループを返す
+ * @param[in] dataname 節点グループの識別子
+ * @param[in] num 取得する節点グループの個数
+ * @param[out] nodeArray 節点グループの節点
+ * @note 引数 num は getNodeGroupCount で取得した値を与えて、nodeArray はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
  */
 void rcapGetNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
 
 /**
- * @brief BoundaryNodeGroup �Ƃ́A���E�ʏ�ɂ݂̂���ߓ_�O���[�v�̂��ƁB���̊֐��œo�^����B
- * @param[in] dataname ���E�ߓ_�O���[�v�̎��ʎq
- * @param[in] num �擾���鋫�E�ߓ_�O���[�v�̌�
- * @param[out] nodeArray ���E�ߓ_�O���[�v�̐ߓ_
- * @note rcapGetBoundaryNodeGroup ����Ƃ��́A���炩���� nodeArray �� allocate ���Ă������ƁB
- * @note refineElement ������Ƃ��ɁA���̃^�C�v�̋��E���������鎞�́A�\�ʒ��o���s���A�\�ʂ̎O�p�`�܂��͎l�p�`��
- * �g���ċ��E�������X�V����B
+ * @brief BoundaryNodeGroup とは、境界面上にのみある節点グループのこと。この関数で登録する。
+ * @param[in] dataname 境界節点グループの識別子
+ * @param[in] num 取得する境界節点グループの個数
+ * @param[out] nodeArray 境界節点グループの節点
+ * @note rcapGetBoundaryNodeGroup するときは、あらかじめ nodeArray を allocate しておくこと。
+ * @note refineElement をするときに、このタイプの境界条件がある時は、表面抽出を行い、表面の三角形または四角形を
+ * 使って境界条件を更新する。
  */
 void rcapAppendBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
 
 /**
- * @brief Refiner �ɓo�^����Ă��鋫�E�ߓ_�O���[�v�̐ߓ_�̌���Ԃ�
- * @param[in] dataname �ߓ_�O���[�v�̎��ʎq
- * @return �ߓ_�O���[�v�̐ߓ_�̌�
- * @note refineElement ���ĂԑO�́AappendBNodeGroup �œo�^���������̂��̂�Ԃ��B
+ * @brief Refiner に登録されている境界節点グループの節点の個数を返す
+ * @param[in] dataname 節点グループの識別子
+ * @return 節点グループの節点の個数
+ * @note refineElement を呼ぶ前は、appendBNodeGroup で登録した個数そのものを返す。
  */
 size_t rcapGetBNodeGroupCount( const char dataname[80] );
 
 /**
- * @brief Refiner �ɓo�^����Ă��鋫�E�ߓ_�O���[�v��Ԃ�
- * @param[in] dataname ���E�ߓ_�O���[�v�̎��ʎq
- * @param[in] num �擾���鋫�E�ߓ_�O���[�v�̌�
- * @param[out] nodeArray ���E�ߓ_�O���[�v�̐ߓ_
- * @note ���� num �� getBNodeGroupCount �Ŏ擾�����l��^���āAnodeArray �͂��炩���� num ��
- * �傫���̔z��ł��炩���� allocate ���Ă�����̂Ƃ���B
+ * @brief Refiner に登録されている境界節点グループを返す
+ * @param[in] dataname 境界節点グループの識別子
+ * @param[in] num 取得する境界節点グループの個数
+ * @param[out] nodeArray 境界節点グループの節点
+ * @note 引数 num は getBNodeGroupCount で取得した値を与えて、nodeArray はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
  */
 void rcapGetBNodeGroup( const char dataname[80], size_t num, int32_t* nodeArray );
 
 /**
- * @brief BoundaryNodeVariableInt �Ƃ́A���E�ʏ�ɂ݂̂���ߓ_��̐����l�ϐ��̂���
- * @param[in] dataname ���E�ߓ_�ϐ��̎��ʎq
- * @param[in] num �擾���鋫�E�ߓ_�ϐ��́i�ߓ_�́j��
- * @param[out] nodeArray ���E�ߓ_�ϐ��̐ߓ_
- * @param[out] nodeVars ���E�ߓ_�ϐ��̒l�inodeArray�Ɠ����傫���j
- * @note rcapGetBoundaryNodeVariableInt ����Ƃ��́A���炩���� nodeArray �� nodeVars �� allocate ���Ă������ƁB
- * @note refineElement ������Ƃ��ɁA���̃^�C�v�̋��E���������鎞�́A�\�ʒ��o���s���A�\�ʂ̎O�p�`�܂��͎l�p�`��
- * �g���ċ��E�������X�V����B
- * @note �ו��Ő����钆�Ԑߓ_�ɂ��āA
- * ���Ƃ̐ߓ_�̂Ȃ��ŕϐ����^�����Ă��Ȃ��ߓ_������΁A���Ԑߓ_�ɂ͕ϐ��͗^���Ȃ��B
- * ���Ƃ̐ߓ_�ɕϐ����^�����Ă��āA�ϐ��̒l�����ׂē��������́A���Ԑߓ_�ɂ��̓������l��^����B
- * ���Ƃ̐ߓ_�ɕϐ����^�����Ă��āA�ϐ��̒l���قȂ鎞�́A���Ԑߓ_�ɍł��������l��^����B
+ * @brief BoundaryNodeVariableInt とは、境界面上にのみある節点上の整数値変数のこと
+ * @param[in] dataname 境界節点変数の識別子
+ * @param[in] num 取得する境界節点変数の（節点の）個数
+ * @param[out] nodeArray 境界節点変数の節点
+ * @param[out] nodeVars 境界節点変数の値（nodeArrayと同じ大きさ）
+ * @note rcapGetBoundaryNodeVariableInt するときは、あらかじめ nodeArray と nodeVars を allocate しておくこと。
+ * @note refineElement をするときに、このタイプの境界条件がある時は、表面抽出を行い、表面の三角形または四角形を
+ * 使って境界条件を更新する。
+ * @note 細分で生じる中間節点について、
+ * もとの節点のなかで変数が与えられていない節点があれば、中間節点には変数は与えない。
+ * もとの節点に変数が与えられていて、変数の値がすべて等しい時は、中間節点にその等しい値を与える。
+ * もとの節点に変数が与えられていて、変数の値が異なる時は、中間節点に最も小さい値を与える。
  */
 void rcapAppendBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray, int32_t* nodeVars );
 
 /**
- * @brief Refiner �ɓo�^����Ă��鐮���l���E�ߓ_�ϐ��̐ߓ_�̌���Ԃ�
- * @param[in] dataname ���E�ߓ_�ϐ��̎��ʎq
- * @return ���E�ߓ_�ϐ��̐ߓ_�̌�
- * @note refineElement ���ĂԑO�́AappendBNodeVarInt �œo�^���������̂��̂�Ԃ��B
+ * @brief Refiner に登録されている整数値境界節点変数の節点の個数を返す
+ * @param[in] dataname 境界節点変数の識別子
+ * @return 境界節点変数の節点の個数
+ * @note refineElement を呼ぶ前は、appendBNodeVarInt で登録した個数そのものを返す。
  */
 size_t rcapGetBNodeVarIntCount( const char dataname[80] );
 
 /**
- * @brief Refiner �ɓo�^����Ă��鐮���l���E�ߓ_�ϐ���Ԃ�
- * @param[in] dataname ���E�ߓ_�ϐ��̎��ʎq
- * @param[in] num �擾���鋫�E�ߓ_�ϐ��̌�
- * @param[out] nodeArray ���E�ߓ_�ϐ��̐ߓ_
- * @param[out] nodeVars ���E�ߓ_�ϐ��̒l
- * @note ���� num �� getBNodeVarIntCount �Ŏ擾�����l��^���āAnodeArray, nodeVars �͂��炩���� num ��
- * �傫���̔z��ł��炩���� allocate ���Ă�����̂Ƃ���B
+ * @brief Refiner に登録されている整数値境界節点変数を返す
+ * @param[in] dataname 境界節点変数の識別子
+ * @param[in] num 取得する境界節点変数の個数
+ * @param[out] nodeArray 境界節点変数の節点
+ * @param[out] nodeVars 境界節点変数の値
+ * @note 引数 num は getBNodeVarIntCount で取得した値を与えて、nodeArray, nodeVars はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
  */
 void rcapGetBNodeVarInt( const char dataname[80], size_t num, int32_t* nodeArray, int32_t* nodeVars );
 
 /**
- * @brief ElementGroup �Ƃ́A�v�f�ԍ��̏W���̂��ƁB
- * @param[in] dataname �v�f�O���[�v�̎��ʎq
- * @param[in] num �擾����v�f�O���[�v�̌�
- * @param[out] elementArray �v�f�O���[�v�̔z��
- * @note rcapGetElementGroup ����Ƃ��́A���炩���� elementArray �� allocate ���Ă������ƁB
+ * @brief ElementGroup とは、要素番号の集合のこと。
+ * @param[in] dataname 要素グループの識別子
+ * @param[in] num 取得する要素グループの個数
+ * @param[out] elementArray 要素グループの配列
+ * @note rcapGetElementGroup するときは、あらかじめ elementArray を allocate しておくこと。
  */
 void rcapAppendElementGroup( const char dataname[80], size_t num, int32_t* elementArray );
 
 /**
- * @brief Refiner �ɓo�^����Ă���v�f�O���[�v�̗v�f�̌���Ԃ�
- * @param[in] dataname �v�f�O���[�v�̎��ʎq
- * @return �v�f�O���[�v�̗v�f�̌�
- * @note refineElement ���ĂԑO�́AappendElementGroup �œo�^���������̂��̂�Ԃ��B
+ * @brief Refiner に登録されている要素グループの要素の個数を返す
+ * @param[in] dataname 要素グループの識別子
+ * @return 要素グループの要素の個数
+ * @note refineElement を呼ぶ前は、appendElementGroup で登録した個数そのものを返す。
  */
 size_t rcapGetElementGroupCount( const char dataname[80] );
 
 /**
- * @brief Refiner �ɓo�^����Ă���v�f�O���[�v��Ԃ�
- * @param[in] dataname �v�f�O���[�v�̎��ʎq
- * @param[in] num �擾����v�f�O���[�v�̌�
- * @param[out] elementArray �v�f�O���[�v�̐ߓ_
- * @note ���� num �� getElementGroupCount �Ŏ擾�����l��^���āAelementArray �͂��炩���� num ��
- * �傫���̔z��ł��炩���� allocate ���Ă�����̂Ƃ���B
+ * @brief Refiner に登録されている要素グループを返す
+ * @param[in] dataname 要素グループの識別子
+ * @param[in] num 取得する要素グループの個数
+ * @param[out] elementArray 要素グループの節点
+ * @note 引数 num は getElementGroupCount で取得した値を与えて、elementArray はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
  */
 void rcapGetElementGroup( const char dataname[80], size_t num, int32_t* elementArray );
 
 /**
- * @brief FaceGroup �Ƃ́A�v�f�ԍ��A�v�f���ʔԍ��̑g�̂��ƁB�A���ʂ��ו�����ꍇ�Ȃǂɗp����B
- * @param[in] dataname �ʃO���[�v�̎��ʎq
- * @param[in] num �擾����ʃO���[�v�̌��i�v�f�ԍ��Ɩʔԍ��̑g�̌��j
- * @param[out] faceArray �ʃO���[�v�̗v�f�ԍ��A�ʔԍ��̑g�̔z��B
- * @note faceArray �͗v�f�ԍ��Ɩʔԍ������݂ɕ��ׂ� 2*num �̔z��ɂȂ�B
+ * @brief FaceGroup とは、要素番号、要素内面番号の組のこと。連成面を細分する場合などに用いる。
+ * @param[in] dataname 面グループの識別子
+ * @param[in] num 取得する面グループの個数（要素番号と面番号の組の個数）
+ * @param[out] faceArray 面グループの要素番号、面番号の組の配列。
+ * @note faceArray は要素番号と面番号を交互に並べた 2*num 個の配列になる。
  */
 void rcapAppendFaceGroup( const char dataname[80], size_t num, int32_t* faceArray );
 
 /**
- * @brief Refiner �ɓo�^����Ă���ʃO���[�v�̌���Ԃ�
- * @param[in] dataname �ʃO���[�v�̎��ʎq
- * @return �ʃO���[�v�̖ʂ̌�
- * @note refineElement ���ĂԑO�́AappendFaceGroup �œo�^���������̂��̂�Ԃ��B
+ * @brief Refiner に登録されている面グループの個数を返す
+ * @param[in] dataname 面グループの識別子
+ * @return 面グループの面の個数
+ * @note refineElement を呼ぶ前は、appendFaceGroup で登録した個数そのものを返す。
  */
 size_t rcapGetFaceGroupCount( const char dataname[80] );
 
 /**
- * @brief Refiner �ɓo�^����Ă���ʃO���[�v��Ԃ�
- * @param[in] dataname �ʃO���[�v�̎��ʎq
- * @param[in] num �擾����ʃO���[�v�̌�
- * @param[out] faceArray �ʃO���[�v�̖�
- * @note ���� num �� getFaceGroupCount �Ŏ擾�����l��^���āAfaceArray �͂��炩���� num ��
- * �傫���̔z��ł��炩���� allocate ���Ă�����̂Ƃ���B
+ * @brief Refiner に登録されている面グループを返す
+ * @param[in] dataname 面グループの識別子
+ * @param[in] num 取得する面グループの個数
+ * @param[out] faceArray 面グループの面
+ * @note 引数 num は getFaceGroupCount で取得した値を与えて、faceArray はあらかじめ num 個の
+ * 大きさの配列であらかじめ allocate しているものとする。
  */
 void rcapGetFaceGroup( const char dataname[80], size_t num, int32_t* faceArray );
 
 /**
- * @brief NodeVariable ��o�^�����Ƃ��ɁA���Ԑߓ_�ɗ^����l�̌��ߕ���I�����܂��B
- * ���݂� "MIN" "MAX" "MIDDLE" ��3��ނɑΉ����Ă��܂��B
- * MIN �͒��Ԑߓ_�𐶐�����̂ɗp�����ߓ_��̒l�̍ŏ��l��^���܂��B
- * MAX �͒��Ԑߓ_�𐶐�����̂ɗp�����ߓ_��̒l�̍ő�l��^���܂��B
- * MIDDLE �͒��Ԑߓ_�𐶐�����̂ɗp�����ߓ_��̒l�̕��ϒl��^���܂��B
+ * @brief NodeVariable を登録したときに、中間節点に与える値の決め方を選択します。
+ * 現在は "MIN" "MAX" "MIDDLE" の3種類に対応しています。
+ * MIN は中間節点を生成するのに用いた節点上の値の最小値を与えます。
+ * MAX は中間節点を生成するのに用いた節点上の値の最大値を与えます。
+ * MIDDLE は中間節点を生成するのに用いた節点上の値の平均値を与えます。
  */
 void rcapSetInterpolateMode( const char mode[32] );
 
 /**
- * @brief NodeVariable ��o�^�����Ƃ��ɁA���Ԑߓ_�ɗ^����l�̌��ߕ���Ԃ��܂��B
- * �߂�l�� "MIN" "MAX" "MIDDLE" �Ƃ���������̂����ꂩ�ł��B
+ * @brief NodeVariable を登録したときに、中間節点に与える値の決め方を返します。
+ * 戻り値は "MIN" "MAX" "MIDDLE" という文字列のいずれかです。
  */
 void rcapGetInterpolateMode( char mode[32] );
 
 /**
- * @brief ���Ԑߓ_����A����𐶐�����̂Ɏg�����ӁA�ʁA�v�f�̐ߓ_�z���Ԃ�
- * @param[in] localNodeId �ו����ꂽ���Ԑߓ_�̋Ǐ��ߓ_�ԍ�
- * @param[out] originalNodeArray localNodeId �𐶐�����̂Ɏg�����v�f�̐ߓ_�z���Ԃ��܂�
- * @return �߂�l�͗v�f�̌^
- * @note ��F�ӂ̒��_�̏ꍇ�͐ߓ_�z��ɂQ�l�������� RCAP_SEGMENT ��Ԃ��BlocalNodeId �ɍו��Ő������ꂽ�_
- * �łȂ��_��^�����ꍇ�́A���������� -1 = RCAP_UNKNOWNTYPE ��Ԃ��܂��B
- *       ��F�l�p�`�̒��S�̏ꍇ�́A�ߓ_�z��ɂS�l�������� RCAP_QUAD ��Ԃ��B
+ * @brief 中間節点から、それを生成するのに使った辺、面、要素の節点配列を返す
+ * @param[in] localNodeId 細分された中間節点の局所節点番号
+ * @param[out] originalNodeArray localNodeId を生成するのに使った要素の節点配列を返します
+ * @return 戻り値は要素の型
+ * @note 例：辺の中点の場合は節点配列に２つ値を代入して RCAP_SEGMENT を返す。localNodeId に細分で生成された点
+ * でない点を与えた場合は、何もせずに -1 = RCAP_UNKNOWNTYPE を返します。
+ *       例：四角形の中心の場合は、節点配列に４つ値を代入して RCAP_QUAD を返す。
  *
- * @note ���̊֐����Ăԏꍇ�� rcapRefineElement �ŗ^�����ו��O�̗v�f�̐ߓ_�z�� nodeArray
- * ����� rcapRefineElementMulti �ŗ^�����ו��O�̗v�f�̗v�f�^�C�v�z�� etypeArray �� �ߓ_�z�� nodeArray
- * �̃�������������Ȃ��ł��������B�ʂ̒l�ŏ㏑�����邱�Ƃ���߂Ă��������B
- * �i���̊֐��̓����ł��̐ߓ_�z����Q�Ƃ��Ă��邽�߁j
+ * @note この関数を呼ぶ場合は rcapRefineElement で与えた細分前の要素の節点配列 nodeArray
+ * および rcapRefineElementMulti で与えた細分前の要素の要素タイプ配列 etypeArray と 節点配列 nodeArray
+ * のメモリを解放しないでください。別の値で上書きすることもやめてください。
+ * （この関数の内部でその節点配列を参照しているため）
  *
  */
 int8_t rcapGetOriginal( int32_t localNodeId, int32_t* originalNodeArray );
 
 /**
- * @brief �ӁA�ʁA�v�f��^���āA���ꂩ����ꂽ���Ԑߓ_��߂�l�ŕԂ�
- * @return ���Ԑߓ_�̐ߓ_�ԍ�
+ * @brief 辺、面、要素を与えて、それから作られた中間節点を戻り値で返す
+ * @return 中間節点の節点番号
  *
- * ���ɍו����s��ꂽ��ł�
+ * 既に細分が行われた後での
  *
  * \code
  * middle = rcapGetMiddle( RCAP_SEGMENT, nodeArray );
  * \endcode
  *
- * ��
+ * と
  *
  * \code
  * rcapRefineElement( 1, RCAP_SEGMENT, nodeArray, resultArray );
  * middle = resultArray[2];
  * \endcode
  *
- * �͓����ł��B�������A�ו����s���Ă��Ȃ��ꍇ�i���Ԑߓ_�����݂��Ȃ��ꍇ�j��
- * rcapGetMiddle �͖����Ȑߓ_�ԍ�(-1)��Ԃ��܂����A
- * rcapRefineElement �͍ו������Ă��炻�̌��ʂ�Ԃ��܂��B
+ * は等価です。ただし、細分が行われていない場合（中間節点が存在しない場合）は
+ * rcapGetMiddle は無効な節点番号(-1)を返しますが、
+ * rcapRefineElement は細分をしてからその結果を返します。
  */
 int32_t rcapGetMiddle( int8_t etype, int32_t* originalNodeArray );
 
 /**
- * @brief �v�f�̕i���Ɋւ�������o�͂��܂��B
- * @param[in] name �i���𑪒肷��w�W
- * @param[in] filename �t�@�C�����i�w�肵�Ȃ��ꍇ�͕W���G���[�ɏo�͂��܂��j
+ * @brief 要素の品質に関する情報を出力します。
+ * @param[in] name 品質を測定する指標
+ * @param[in] filename ファイル名（指定しない場合は標準エラーに出力します）
  */
 void rcapQualityReport( const char name[80], const char* filename );
 
 /**
- * @brief �ו���̎��R���W�̕ϊ�
- * ������
+ * @brief 細分後の自然座標の変換
+ * 未実装
  */
 
 
 /**
- * @brief �f�o�b�O�p�t�@�C�����o�̓��[�`��
- * @return �ǂݍ��񂾁A�܂��͏������񂾗v�f�̌�
+ * @brief デバッグ用ファイル入出力ルーチン
+ * @return 読み込んだ、または書き込んだ要素の個数
  *
- * File ���� File �ւ̍ו���
+ * File から File への細分例
  * rcapInitRefiner(0,0);
  * rcapLoadGFFile( "MESH", "BOUN" );
  * rcapRefineFFbModel();
  * rcapSaveGFFile( "REFINEMESH", "REFINEBOUN" );
  * rcapTermRefiner();
  *
- * @remark �����ŏo�͂���f�[�^�� rcapRefinerDoc.mesh �Ɋi�[���ꂽ����
- * �Ȃ̂ŁA�ו���̃��b�V�����o�͂ł���킯�ł͂Ȃ��B
+ * @remark ここで出力するデータは rcapRefinerDoc.mesh に格納されたもの
+ * なので、細分後のメッシュを出力できるわけではない。
  */
 int32_t rcapLoadGFFile( const char* gffile, const char* bounfile );
 
 /**
- * @brief FFbModel�ו��i�f�o�b�O�p�j
+ * @brief FFbModel細分（デバッグ用）
  */
 void rcapRefineFFbModel();
 
 /**
- * @brief GF�t�@�C���֏������݁i�f�o�b�O�p�j
+ * @brief GFファイルへ書き込み（デバッグ用）
  */
 int32_t rcapSaveGFFile( const char* gffile, const char* bounfile );
 
 /**
- * @brief HEC�t�@�C���̓ǂݍ��݁i�f�o�b�O�p�j
+ * @brief HECファイルの読み込み（デバッグ用）
  */
 int32_t rcapLoadHECFile( const char* hecfile );
 
 /**
- * @brief HEC�t�@�C���֏������݁i�f�o�b�O�p�j
+ * @brief HECファイルへ書き込み（デバッグ用）
  */
 int32_t rcapSaveHECFile( const char* hecfile );
 
 /**
- * @brief RNF�t�@�C���֏������݁i�f�o�b�O�p�j
+ * @brief RNFファイルへ書き込み（デバッグ用）
  */
 int32_t rcapSaveRNFFile( const char* rnffile );
 
-/* rcapxxx_  ���ׂď����� */
-/* gfortran, intel fortran, pgi fortran �͂���ł悢 */
+/* rcapxxx_  すべて小文字 */
+/* gfortran, intel fortran, pgi fortran はこれでよい */
 #if defined FORTRAN90 || defined FORTRAN_CALL_C_DOWNCASE_
 void rcapgetversion_( void );
 void rcapinitrefiner_( int32_t* nodeOffset, int32_t* elementOffset );

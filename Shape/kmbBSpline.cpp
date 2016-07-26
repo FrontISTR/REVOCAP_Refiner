@@ -52,7 +52,7 @@ kmb::BSpline::getKnot(int index) const
 	return knots[index];
 }
 
-
+// 単調増加をチェックする
 void
 kmb::BSpline::setKnots(int num,double* k)
 {
@@ -105,9 +105,9 @@ kmb::BSpline::getDomainOnFrame( double origin, double unit, double &min_t,double
 	}
 }
 
-
-
-
+// knots が 0,0,1,1
+// のときに 1 に対してどう与えればよいか？？
+// 今の実装は 1 => 1 を与える
 int
 kmb::BSpline::getInterval(double t) const
 {
@@ -148,14 +148,14 @@ kmb::BSpline::getValue(int index,int degree,double u) const
 		}
 	}else{
 		double retVal =  0.0;
-
+		// n[d] = index+d 番目の B-Spline 基底関数
 		double* n = new double[degree+1];
-
-
+		// 低い degree から順番に計算する
+		// 0 次が初期値
 		for(int d=0;d<degree+1;++d){
 			n[d] = (index+d==i)? 1.0 : 0.0;
 		}
-
+		// 1 次から degree 次まで
 		for(int d=1;d<degree+1;++d){
 			for(int j=0;j<degree+1-d;++j){
 				double left = knots[index+j+d] - knots[index+j];
@@ -190,14 +190,14 @@ kmb::BSpline::getDerivative(int index,int degree,double u) const
 		return 0.0;
 	}else{
 		double retVal =  0.0;
-
+		// n[d] = index+d 番目の B-Spline 基底関数
 		double* n = new double[degree+1];
-
-
+		// 低い degree から順番に計算する
+		// 0 次が初期値
 		for(int d=0;d<degree+1;++d){
 			n[d] = (index+d==i)? 1.0 : 0.0;
 		}
-
+		// 1 次から degree-1 次まで
 		for(int d=1;d<degree;++d){
 			for(int j=0;j<degree+1-d;++j){
 				double left = knots[index+j+d] - knots[index+j];
@@ -241,14 +241,14 @@ kmb::BSpline::getSecondDerivative(int index,int degree,double u) const
 		return 0.0;
 	}else{
 		double retVal =  0.0;
-
+		// n[d] = index+d 番目の B-Spline 基底関数
 		double* n = new double[degree+1];
-
-
+		// 低い degree から順番に計算する
+		// 0 次が初期値
 		for(int d=0;d<degree+1;++d){
 			n[d] = (index+d==i)? 1.0 : 0.0;
 		}
-
+		// 1 次から degree-2 次まで
 		for(int d=1;d<degree;++d){
 			for(int j=0;j<degree+1-d;++j){
 				double left = knots[index+j+d] - knots[index+j];

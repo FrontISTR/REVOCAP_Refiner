@@ -14,10 +14,10 @@
 ----------------------------------------------------------------------*/
 /*
  *
- * Œ`ó•â³‹@”\ƒeƒXƒg—pƒvƒƒOƒ‰ƒ€ƒTƒ“ƒvƒ‹
- * ˜Z–Ê‘Ì‚Q‚Â‚©‚ç‚È‚éŠiq‚ğ‰~’Œ‚ÅŒ`ó•â³‚·‚é
- * Œ`ó•â³Œã‚É•i¿•â³‚·‚é
- * •W€o—Í‚ğ‰ÁH‚·‚ê‚Î Revocap Neutral Format Œ`®‚Ìƒtƒ@ƒCƒ‹‚É‚È‚é
+ * å½¢çŠ¶è£œæ­£æ©Ÿèƒ½ãƒ†ã‚¹ãƒˆç”¨ãƒ—ãƒ­ã‚°ãƒ©ãƒ ã‚µãƒ³ãƒ—ãƒ«
+ * å…­é¢ä½“ï¼’ã¤ã‹ã‚‰ãªã‚‹æ ¼å­ã‚’å††æŸ±ã§å½¢çŠ¶è£œæ­£ã™ã‚‹
+ * å½¢çŠ¶è£œæ­£å¾Œã«å“è³ªè£œæ­£ã™ã‚‹
+ * æ¨™æº–å‡ºåŠ›ã‚’åŠ å·¥ã™ã‚Œã° Revocap Neutral Format å½¢å¼ã®ãƒ•ã‚¡ã‚¤ãƒ«ã«ãªã‚‹
  *
  * Sample Program for refinement with fitting to CAD surfaces.
  * This model consists two hexahedra with a column.
@@ -79,26 +79,26 @@ int main(void)
 		12, 13, 14, 15, 16, 17, 18, 19,
 		16, 17, 18, 19, 20, 21, 22, 23
 	};
-	/* ×•ªŒã‚Ì—v‘f‚Ìß“_”z—ñ */
+	/* ç´°åˆ†å¾Œã®è¦ç´ ã®ç¯€ç‚¹é…åˆ— */
 	int32_t* refineHexas = NULL;
 	int32_t* refine2Hexas = NULL;
 	int8_t etype = RCAP_HEXAHEDRON;
-	/* ‰Šúß“_‚ÌŒÂ” */
+	/* åˆæœŸç¯€ç‚¹ã®å€‹æ•° */
 	size_t nodeCount = 24;
-	/* ‰Šú—v‘f‚ÌŒÂ” */
+	/* åˆæœŸè¦ç´ ã®å€‹æ•° */
 	size_t elementCount = 10;
-	/* ×•ªŒã‚Ì—v‘f‚ÌŒÂ” */
+	/* ç´°åˆ†å¾Œã®è¦ç´ ã®å€‹æ•° */
 	size_t refineElementCount = 0;
 
-	/* ‹«ŠEğŒiß“_ƒOƒ‹[ƒvj */
+	/* å¢ƒç•Œæ¡ä»¶ï¼ˆç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ï¼‰ */
 	int32_t ng0[4] = {0,3,4,7};
 	int32_t* result_ng0 = NULL;
 	size_t ng0Count = 4;
 
-	/* ƒJƒEƒ“ƒ^ */
+	/* ã‚«ã‚¦ãƒ³ã‚¿ */
 	int32_t i;
 
-	/* ß“_”Ô†‚ÌƒIƒtƒZƒbƒg’l‚ğ—^‚¦‚é */
+	/* ç¯€ç‚¹ç•ªå·ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆå€¤ã‚’ä¸ãˆã‚‹ */
 	rcapInitRefiner( nodeOffset, elementOffset );
 	rcapSetCADFilename( "data/column2/column2.rnf" );
 	rcapSetSmoothing(1);
@@ -106,10 +106,10 @@ int main(void)
 	printf("REVOCAP_Refiner sample program : Fitting Smoothing Refine\n");
 	printf("----- Original Model -----\n");
 	printf("---\n");
-	/* À•W’l‚ğ Refiner ‚É—^‚¦‚é */
-	/* ß“_”z—ñ‚Å—^‚¦‚é‹ÇŠß“_”Ô†‚ÆACAD ƒtƒ@ƒCƒ‹‚É‹Lq‚µ‚Ä‚ ‚é‘åˆæß“_”Ô†‚Æ‚Ì‘Î‰‚à—^‚¦‚é */
+	/* åº§æ¨™å€¤ã‚’ Refiner ã«ä¸ãˆã‚‹ */
+	/* ç¯€ç‚¹é…åˆ—ã§ä¸ãˆã‚‹å±€æ‰€ç¯€ç‚¹ç•ªå·ã¨ã€CAD ãƒ•ã‚¡ã‚¤ãƒ«ã«è¨˜è¿°ã—ã¦ã‚ã‚‹å¤§åŸŸç¯€ç‚¹ç•ªå·ã¨ã®å¯¾å¿œã‚‚ä¸ãˆã‚‹ */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
-	/* ×•ª‘O‚Ìß“_” */
+	/* ç´°åˆ†å‰ã®ç¯€ç‚¹æ•° */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 24 );
 	printf("node:\n");
@@ -118,7 +118,7 @@ int main(void)
 	for(i=0;(size_t)i<nodeCount;++i){
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
-	/* ×•ª‘O‚Ì—v‘f” */
+	/* ç´°åˆ†å‰ã®è¦ç´ æ•° */
 	assert( elementCount == 10 );
 	printf("element:\n");
 	printf("  - size: %zu\n", elementCount );
@@ -128,7 +128,7 @@ int main(void)
 			hexas[8*i], hexas[8*i+1], hexas[8*i+2], hexas[8*i+3],
 			hexas[8*i+4], hexas[8*i+5], hexas[8*i+6], hexas[8*i+7]);
 	}
-	/* ß“_ƒOƒ‹[ƒv‚Ì“o˜^ */
+	/* ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®ç™»éŒ² */
 	printf("data:\n");
 	printf("  - name: ng0\n");
 	printf("    mode: NODEGROUP\n");
@@ -146,13 +146,13 @@ int main(void)
 	printf("----- Refined Model -----\n");
 	printf("---\n");
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	refineElementCount = rcapRefineElement( elementCount, etype, hexas, NULL );
 	refineHexas = (int32_t*)calloc( 8*refineElementCount, sizeof(int32_t) );
 	elementCount = rcapRefineElement( elementCount, etype, hexas, refineHexas);
 	rcapCommit();
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	printf("node:\n");
 	printf("  size: %zu\n", refineNodeCount );
@@ -165,7 +165,7 @@ int main(void)
 	free( resultCoords );
 	resultCoords = NULL;
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -175,7 +175,7 @@ int main(void)
 			refineHexas[8*i+4], refineHexas[8*i+5], refineHexas[8*i+6], refineHexas[8*i+7] );
 	}
 
-	/* ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
 	printf("data:\n");
@@ -191,12 +191,12 @@ int main(void)
 	free( result_ng0 );
 	result_ng0 = NULL;
 
-	/* ‘æ‚Q’i‚Ì×•ª‚Ì‘O‚ÉƒLƒƒƒbƒVƒ…‚ğƒNƒŠƒA */
+	/* ç¬¬ï¼’æ®µã®ç´°åˆ†ã®å‰ã«ã‚­ãƒ£ãƒƒã‚·ãƒ¥ã‚’ã‚¯ãƒªã‚¢ */
 	rcapClearRefiner();
 
 	/*---------------------- REFINE STEP 2 -----------------------------------------*/
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	elementCount = refineElementCount;
 	refineElementCount = rcapRefineElement( elementCount, etype, refineHexas, NULL );
 	refine2Hexas = (int32_t*)calloc( 8*refineElementCount, sizeof(int32_t) );
@@ -206,7 +206,7 @@ int main(void)
 	printf("----- Refined Model -----\n");
 	printf("---\n");
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	printf("node:\n");
 	printf("  size: %zu\n", refineNodeCount );
@@ -219,7 +219,7 @@ int main(void)
 	free( resultCoords );
 	resultCoords = NULL;
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");
@@ -229,7 +229,7 @@ int main(void)
 			refine2Hexas[8*i+4], refine2Hexas[8*i+5], refine2Hexas[8*i+6], refine2Hexas[8*i+7] );
 	}
 
-	/* ×•ªŒã‚Ìß“_ƒOƒ‹[ƒv‚ÌXV */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ã‚°ãƒ«ãƒ¼ãƒ—ã®æ›´æ–° */
 	ng0Count = rcapGetNodeGroupCount("ng0");
 	result_ng0 = (int32_t*)calloc( ng0Count, sizeof(int32_t) );
 	printf("data:\n");

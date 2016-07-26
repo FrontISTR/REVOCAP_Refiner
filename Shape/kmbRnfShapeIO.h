@@ -12,7 +12,7 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
+// OpenCASCADE によらずに RNF 形式の形状データファイルを読み込む
 #pragma once
 
 #include <vector>

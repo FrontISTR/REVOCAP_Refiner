@@ -17,18 +17,18 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 const char* kmb::Point3DContainerMArray::CONTAINER_TYPE = "double_marray";
 
 kmb::Point3DContainerMArray::Point3DContainerMArray(void)
-: kmb::Point3DContainer()
+: kmb::Point3DContainerDirectAccessable()
 , pointArray(DBL_MAX)
 , aIndex()
 , count(0)
@@ -167,6 +167,19 @@ kmb::Point3DContainerMArray::deletePoint(nodeIdType id)
 	return false;
 }
 
+void kmb::Point3DContainerMArray::commit(kmb::nodeIdType nodeId)
+{
+	kmb::BLArrayIndex ind = pointArray.getBLArrayIndex( static_cast<size_t>(nodeId) );
+	aIndex = ind;
+	++aIndex;
+	count = nodeId+1;
+	double pt[3];
+	for(BLArrayIndex i =pointArray.getBLArrayIndex(0);i<aIndex;++i){
+		pointArray.get(i,pt);
+		boundBox.update( pt[0], pt[1], pt[2] );
+	}
+}
+
 kmb::Point3DContainer::iterator
 kmb::Point3DContainerMArray::begin(void)
 {
@@ -178,7 +191,7 @@ kmb::Point3DContainerMArray::begin(void)
 	if( _it ){
 		_it->points = this;
 		this->pointArray.first( _it->aIndex );
-
+//		_it->aIndex = this->pointArray.getBLArrayIndex(0);
 	}
 	return kmb::Point3DContainer::iterator(_it);
 }
@@ -194,7 +207,7 @@ kmb::Point3DContainerMArray::begin(void) const
 	if( _it ){
 		_it->points = const_cast<kmb::Point3DContainerMArray*>(this);
 		this->pointArray.first( _it->aIndex );
-
+//		_it->aIndex = this->pointArray.getBLArrayIndex(0);
 	}
 	return kmb::Point3DContainer::const_iterator(_it);
 }

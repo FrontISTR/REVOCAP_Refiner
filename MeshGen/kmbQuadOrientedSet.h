@@ -12,18 +12,18 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
-
-
-
-
-
-
-
-
+//
+// Whisker Weaving 法で用いるための向き付きの四角形のコンテナ
+// 逆向きの四角形を登録すると四角形の削除を意味する
+//
+// 四角形のすべての節点番号をキーにしてポインタを multimap に登録する
+// 例：[10,20,30,40] => キー 10, 20, 30, 40 それぞれに四角形のポインタを登録する（合計４回）
+//
+// それによって近傍情報もこのコンテナで管理することができる
+// 3つの4角形が集まっている頂点を探すことも容易
+//
+// 通常の ElementContainer の Iterator でまわすとちょっと遅い
+//
 
 #pragma once
 #include "MeshDB/kmbElementContainer.h"
@@ -56,26 +56,26 @@ public:
 		return CONTAINER_TYPE;
 	};
 
-
+	// container
 	kmb::Quad* appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, kmb::nodeIdType n3);
 	kmb::Quad* include(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, kmb::nodeIdType n3) const;
 	bool removeItem(kmb::Quad* quad);
-
+	// neighbor
 	int getElementNeighbor( const kmb::Quad* quad, kmb::Quad* neighbors[4] ) const;
 	size_t getElementCountAroundNode(kmb::nodeIdType nodeId) const;
-
-
+	// adjacent 
+	// 4角形の辺を与えて、その辺と接している隣の4角形を返す
 	kmb::Quad* getAdjacent( const kmb::Quad* quad, const int edgeNum, int &adjEdge ) const;
-
+	// 3頂点を与えて、それを含む4角形が存在したらそれを返し、残りの1頂点の index も返す
 	kmb::Quad* getSharedThreeNodes(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, int& restIndex) const;
 
-
+	// nodeContainer
 	NodeQuadMap::iterator beginNodeIterator(void);
 	NodeQuadMap::const_iterator beginNodeIterator(void) const;
-
+	// nodeId を指す iterator を返す
 	NodeQuadMap::iterator findNodeIterator(kmb::nodeIdType nodeId);
 	NodeQuadMap::const_iterator findNodeIterator(kmb::nodeIdType nodeId) const;
-
+	// nodeId の次の節点番号を指す iterator を返す
 	NodeQuadMap::iterator nextNodeIterator(kmb::nodeIdType nodeId);
 	NodeQuadMap::const_iterator nextNodeIterator(kmb::nodeIdType nodeId) const;
 

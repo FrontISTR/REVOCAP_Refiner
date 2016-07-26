@@ -12,10 +12,10 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
-
+//
+// 空間を格子状に分割した領域ごとに三角形と干渉している面積を保存する
+// 格納されている面積をすべて足せば、元の三角形の面積になる（数値誤差の範囲で）
+//
 #pragma once
 
 #include "MeshDB/kmbTypes.h"
@@ -29,6 +29,7 @@ namespace kmb{
 class ElementContainer;
 class Point3DContainer;
 class Matrix4x4;
+class DataBindings;
 
 class TriangleBucketArea : public Bucket< std::pair<kmb::elementIdType,double> >
 {
@@ -36,6 +37,7 @@ private:
 	const kmb::Point3DContainer* points;
 	const kmb::ElementContainer* elements;
 	const kmb::Matrix4x4* coordMatrix;
+	kmb::DataBindings* elemArea;
 public:
 	TriangleBucketArea(void);
 	TriangleBucketArea(const kmb::BoxRegion &box,int xnum,int ynum,int znum);
@@ -47,9 +49,10 @@ public:
 	int appendAll(void);
 
 	bool getNearest(double x,double y,double z,double &dist,kmb::elementIdType &tri) const;
+	double getArea(kmb::elementIdType elemId) const;
 protected:
-
-
+	// (i,j,k) の bucket の中での最小値
+	// 距離は２乗で返す
 	bool getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,double &dist,kmb::elementIdType &tri) const;
 };
 

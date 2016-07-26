@@ -18,12 +18,12 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
 namespace kmb{
@@ -37,24 +37,24 @@ public:
 	virtual ~UpperTriangularMatrix(void){};
 	virtual bool solve(const kmb::ColumnVector &b, kmb::ColumnVector &x) const;
 	virtual double determinant(void) const;
-
+	// 何もしないようにする（UpperTriangularでなくなってしまうため）
 	virtual bool transpose(void);
 	virtual bool row_exchange(int i0,int i1);
 	virtual bool row_transf(int i0,int i1,double r);
-
+	// 上三角成分との内積（対角成分を無視）
 	virtual double rowProduct_upper(int i, const kmb::ColumnVector &vec) const;
-
+	// 対角成分
 	virtual double getDiagonal(int i) const;
 };
 
-
+// 対角成分が 1.0 であることを保証されている上三角行列
 class UpperTriangularDiagonalUnitMatrix : public UpperTriangularMatrix
 {
 public:
 	UpperTriangularDiagonalUnitMatrix(int size) : UpperTriangularMatrix(size){};
 	virtual ~UpperTriangularDiagonalUnitMatrix(void){};
 	virtual bool solve(const kmb::ColumnVector &b, kmb::ColumnVector &x) const;
-
+	// 対角成分
 	virtual double getDiagonal(int i) const;
 };
 
@@ -93,13 +93,13 @@ public:
 	virtual ~LowerTriangularMatrix(void){};
 	virtual bool solve(const kmb::ColumnVector &b, kmb::ColumnVector &x) const;
 	virtual double determinant(void) const;
-
+	// 何もしないようにする（LowerTriangularでなくなってしまうため）
 	virtual bool transpose(void);
 	virtual bool row_exchange(int i0,int i1);
 	virtual bool row_transf(int i0,int i1,double r);
-
+	// 下三角成分との内積（対角成分を無視）
 	virtual double rowProduct_lower(int i, const kmb::ColumnVector &vec) const;
-
+	// 対角成分
 	virtual double getDiagonal(int i) const;
 };
 

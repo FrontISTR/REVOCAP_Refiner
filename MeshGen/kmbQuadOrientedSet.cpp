@@ -101,7 +101,7 @@ kmb::QuadOrientedSet::clear(void)
 	while( tIter != quads.end() ){
 		kmb::nodeIdType nodeId = tIter->first;
 		kmb::Quad* quad = tIter->second;
-
+		// 節点番号の一番大きい時に delete する
 		if( quad && quad->getCellId(0) <= nodeId && quad->getCellId(1) <= nodeId && quad->getCellId(2) <= nodeId && quad->getCellId(3) <= nodeId ){
 			delete quad;
 			quad = NULL;
@@ -123,7 +123,7 @@ kmb::QuadOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::no
 {
 	NodeQuadMap::iterator tIter = quads.lower_bound(n0);
 	NodeQuadMap::iterator endIter = quads.upper_bound(n0);
-
+	// まだ登録されていない
 	if( tIter == quads.end() ){
 		kmb::Quad* quad = new kmb::Quad(n0,n1,n2,n3);
 		quads.insert( NodeQuadPair(n0,quad) );
@@ -143,13 +143,13 @@ kmb::QuadOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::no
 				other->getCellId(0), other->getCellId(1), other->getCellId(2), other->getCellId(3) ) )
 			{
 			case 1:
-
+				// 重複して登録はしない
 				return NULL;
 			case -1:
 			{
-
+				// 逆向きがあったら削除
 				quads.erase( tIter );
-
+				// n1
 				NodeQuadMap::iterator tIter1 = quads.lower_bound(n1);
 				NodeQuadMap::iterator endIter1 = quads.upper_bound(n1);
 				while( tIter1 != endIter1 )
@@ -163,7 +163,7 @@ kmb::QuadOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::no
 					}
 					++tIter1;
 				}
-
+				// n2
 				NodeQuadMap::iterator tIter2 = quads.lower_bound(n2);
 				NodeQuadMap::iterator endIter2 = quads.upper_bound(n2);
 				while( tIter2 != endIter2 )
@@ -177,7 +177,7 @@ kmb::QuadOrientedSet::appendItem(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::no
 					}
 					++tIter2;
 				}
-
+				// n3
 				NodeQuadMap::iterator tIter3 = quads.lower_bound(n3);
 				NodeQuadMap::iterator endIter3 = quads.upper_bound(n3);
 				while( tIter3 != endIter3 )
@@ -256,9 +256,9 @@ kmb::QuadOrientedSet::removeItem(kmb::Quad* quad)
 			other->getCellId(0), other->getCellId(1), other->getCellId(2), other->getCellId(3) ) )
 		{
 		case 1:{
-
+			// 一致するものがあれば削除
 			quads.erase( tIter );
-
+			// n1
 			NodeQuadMap::iterator tIter1 = quads.lower_bound(n1);
 			NodeQuadMap::iterator endIter1 = quads.upper_bound(n1);
 			while( tIter1 != endIter1 )
@@ -272,7 +272,7 @@ kmb::QuadOrientedSet::removeItem(kmb::Quad* quad)
 				}
 				++tIter1;
 			}
-
+			// n2
 			NodeQuadMap::iterator tIter2 = quads.lower_bound(n2);
 			NodeQuadMap::iterator endIter2 = quads.upper_bound(n2);
 			while( tIter2 != endIter2 )
@@ -286,7 +286,7 @@ kmb::QuadOrientedSet::removeItem(kmb::Quad* quad)
 				}
 				++tIter2;
 			}
-
+			// n3
 			NodeQuadMap::iterator tIter3 = quads.lower_bound(n3);
 			NodeQuadMap::iterator endIter3 = quads.upper_bound(n3);
 			while( tIter3 != endIter3 )
@@ -320,26 +320,26 @@ kmb::QuadOrientedSet::getElementNeighbor( const kmb::Quad* quad, kmb::Quad* neig
 
 	int count = 0;
 
-
-
-
-
+	// coboundaries から計算する
+	// 自分自身の頂点配列から
+	// 周辺要素を取り出して、
+	// それとの要素間関係を計算する
 
 	int index = -1;
 	int otherIndex = -1;
 	for(int i=0;i<4;++i){
 		neighbors[i] = NULL;
-
+		// Face の最初の頂点で探す
 		kmb::nodeIdType nodeId = quad->getBoundaryCellId(i,0);
-
+		// 頂点ごとの周辺要素との関係を調べる
 		std::pair< NodeQuadMap::const_iterator, NodeQuadMap::const_iterator >
 			eIterPair = quads.equal_range( nodeId );
 		NodeQuadMap::const_iterator eIter = eIterPair.first;
 		while( eIter != eIterPair.second && neighbors[i] == NULL )
 		{
-
+			// 異なる要素が接していたら登録する
 			kmb::Quad* other = eIter->second;
-
+			// ポインタで比較
 			if( other && quad != other ){
 				kmb::ElementRelation::relationType rel =
 					kmb::ElementRelation::getRelation( *quad, index, *other, otherIndex );
@@ -357,7 +357,7 @@ kmb::QuadOrientedSet::getElementNeighbor( const kmb::Quad* quad, kmb::Quad* neig
 }
 
 
-
+// doublet を許す
 kmb::Quad*
 kmb::QuadOrientedSet::getAdjacent( const kmb::Quad* quad, const int edgeNum, int &adjEdge ) const
 {
@@ -365,23 +365,20 @@ kmb::QuadOrientedSet::getAdjacent( const kmb::Quad* quad, const int edgeNum, int
 
 	kmb::nodeIdType nodeId0 = quad->getBoundaryCellId(edgeNum,0);
 	kmb::nodeIdType nodeId1 = quad->getBoundaryCellId(edgeNum,1);
-
+	// nodeId0 と nodeId1 を両方含み quad と異なるものを探す
 	std::pair< NodeQuadMap::const_iterator, NodeQuadMap::const_iterator > eIterPair = quads.equal_range( nodeId0 );
 	NodeQuadMap::const_iterator eIter = eIterPair.first;
 	while( eIter != eIterPair.second )
 	{
-
+		// 異なる要素が接していたら番号チェックして返す
 		kmb::Quad* other = eIter->second;
-
+		// ポインタで比較
 		if( other && quad != other ){
-
-
-
 			int index0 = other->indexOf( nodeId0 );
-
+			// ひとつ前の節点
 			int index1 = (index0+3)%4;
 			if( other->getCellId( index1 ) == nodeId1 ){
-
+				// face の index は節点の index の小さい方
 				adjEdge = index1;
 				return other;
 			}
@@ -399,7 +396,7 @@ kmb::QuadOrientedSet::getSharedThreeNodes(kmb::nodeIdType n0, kmb::nodeIdType n1
 	NodeQuadMap::const_iterator endIter = quads.upper_bound(n0);
 	while( tIter != endIter ){
 		kmb::Quad* other = tIter->second;
-
+		// other の nodeTable 
 		int indexes[4] = {-1,-1,-1,-1};
 		int i1 = -1;
 		int i2 = -1;
@@ -613,7 +610,7 @@ kmb::QuadOrientedSet::_iterator::operator[](const int cellIndex) const
 kmb::ElementContainer::_iterator*
 kmb::QuadOrientedSet::_iterator::operator++(void)
 {
-
+	// tIter->second の節点番号の最小値がキーになっているものを探す
 	tIter++;
 	while( tIter != endIter ){
 		kmb::nodeIdType nodeId = tIter->first;

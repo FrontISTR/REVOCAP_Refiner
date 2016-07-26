@@ -12,8 +12,8 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
+// BLArray を使ったコンテナ
+// Element のポインタを格納しておく
 #pragma once
 
 #include "MeshDB/kmbElementContainer.h"
@@ -71,7 +71,7 @@ public:
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
 protected:
-
+	// ポインタはこのクラスでメモリ管理をすること
 	BLArrayPtr<kmb::Element> elementArray;
 	BLArrayIndex aIndex;
 	size_t count;

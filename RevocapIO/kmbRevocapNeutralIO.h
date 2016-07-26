@@ -13,24 +13,24 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /*
- * ‚±‚±‚Å‚Í YAML Œ`®‚Å‘‚©‚ê‚½ REVOCAP Neutral Yaml Mesh Format ‚ğ
- * YAML ƒ‰ƒCƒuƒ‰ƒŠ‚ğg‚í‚¸‚É“Ç‚İ‚Şƒƒ\ƒbƒh‚ğÀ‘•‚·‚é
+ * ã“ã“ã§ã¯ YAML å½¢å¼ã§æ›¸ã‹ã‚ŒãŸ REVOCAP Neutral Yaml Mesh Format ã‚’
+ * YAML ãƒ©ã‚¤ãƒ–ãƒ©ãƒªã‚’ä½¿ã‚ãšã«èª­ã¿è¾¼ã‚€ãƒ¡ã‚½ãƒƒãƒ‰ã‚’å®Ÿè£…ã™ã‚‹
  *
- * ‚±‚Ìƒo[ƒWƒ‡ƒ“‚Å‚ÍA‹Lq‚³‚ê‚Ä‚¢‚éƒ^ƒO‚Ìo‚Ä‚­‚é‡”Ô‚ªŒˆ‚ß‘Å‚¿‚É‚È‚Á‚Ä‚¢‚é‚Ì‚Å’ˆÓ
+ * ã“ã®ãƒãƒ¼ã‚¸ãƒ§ãƒ³ã§ã¯ã€è¨˜è¿°ã•ã‚Œã¦ã„ã‚‹ã‚¿ã‚°ã®å‡ºã¦ãã‚‹é †ç•ªãŒæ±ºã‚æ‰“ã¡ã«ãªã£ã¦ã„ã‚‹ã®ã§æ³¨æ„
  */
 /**
- * REVOCAP Neutral Yaml Mesh Format d—l
- * # ‚ªæ“ª‚Ìs‚ÍƒRƒƒ“ƒg
- * node ƒ^ƒO‚Íß“_
- * node/size ‚Íß“_‚ÌŒÂ”
- * node/coordinate ‚ÍÀ•W”z—ñ
- * node/coordinate[i] ‚Í [id,x,y,z]
- * bodyCount ‚Í—v‘fƒOƒ‹[ƒv‚ÌŒÂ”
- * element ƒ^ƒO‚Í—v‘fƒOƒ‹[ƒv‚Ì”z—ñ
- * element[i] ‚Í—v‘fƒOƒ‹[ƒv
- * element[i]/size ‚Í—v‘fƒOƒ‹[ƒv‚ÉŠÜ‚Ü‚ê‚é—v‘f
- * element[i]/connectivity ‚Í—v‘fƒOƒ‹[ƒv‚ÉŠÜ‚Ü‚ê‚é—v‘f‚Ìß“_”z—ñ
- * element[i]/connectivity[j] ‚Í [id,type,node[0],node[1],..,node[k]]
+ * REVOCAP Neutral Yaml Mesh Format ä»•æ§˜
+ * # ãŒå…ˆé ­ã®è¡Œã¯ã‚³ãƒ¡ãƒ³ãƒˆ
+ * node ã‚¿ã‚°ã¯ç¯€ç‚¹
+ * node/size ã¯ç¯€ç‚¹ã®å€‹æ•°
+ * node/coordinate ã¯åº§æ¨™é…åˆ—
+ * node/coordinate[i] ã¯ [id,x,y,z]
+ * bodyCount ã¯è¦ç´ ã‚°ãƒ«ãƒ¼ãƒ—ã®å€‹æ•°
+ * element ã‚¿ã‚°ã¯è¦ç´ ã‚°ãƒ«ãƒ¼ãƒ—ã®é…åˆ—
+ * element[i] ã¯è¦ç´ ã‚°ãƒ«ãƒ¼ãƒ—
+ * element[i]/size ã¯è¦ç´ ã‚°ãƒ«ãƒ¼ãƒ—ã«å«ã¾ã‚Œã‚‹è¦ç´ 
+ * element[i]/connectivity ã¯è¦ç´ ã‚°ãƒ«ãƒ¼ãƒ—ã«å«ã¾ã‚Œã‚‹è¦ç´ ã®ç¯€ç‚¹é…åˆ—
+ * element[i]/connectivity[j] ã¯ [id,type,node[0],node[1],..,node[k]]
  */
 #pragma once
 
@@ -54,6 +54,7 @@ public:
 	int appendHeader(const char* filename);
 	int appendDataToRNFFile(const char* filename,kmb::MeshData* mesh,const char* name,const char* stype=NULL);
 
+	// éšå±¤ tags[0]/tags[1]/tags[2] ã®å€¤ã‚’å–å¾—ã™ã‚‹
 	template <typename T> int loadParameterFromRNFFile(const char* filename,int num, const char** tags,T &param)
 	{
 		if( tags == NULL || num <= 0 ){
@@ -69,6 +70,7 @@ public:
 		input.close();
 		return res;
 	}
+
 protected:
 	int writeHeader(std::ofstream &output);
 	int readNode(std::ifstream &input,kmb::MeshData* mesh);
@@ -98,6 +100,7 @@ protected:
 		}
 		return -1;
 	}
+	int writeData(std::ofstream &output,kmb::MeshData* mesh,const char* name,const char*stype=NULL);
 };
 
 }

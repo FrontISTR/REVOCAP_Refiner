@@ -24,12 +24,12 @@
 #                                                                      #
 ----------------------------------------------------------------------*/
 /**
- * Element �̃|�C���^�̔z��
+ * Element のポインタの配列
  *
- * �ߓ_�z����i�[����ꍇ��
- * �P��v�f�̏ꍇ�� ElementContainerNArray
- * �v�f���݂̏ꍇ�� ElementContainerMixedArray
- * ��p����B
+ * 節点配列を格納する場合は
+ * 単一要素の場合は ElementContainerNArray
+ * 要素混在の場合は ElementContainerMixedArray
+ * を用いる。
  */
 
 #pragma once
@@ -38,7 +38,7 @@
 
 namespace kmb{
 
-
+// 配列による実装
 class ElementContainerArray : public ElementContainer
 {
 public:
@@ -89,9 +89,9 @@ public:
 	virtual iterator find(kmb::elementIdType id);
 	virtual const_iterator find(kmb::elementIdType id) const;
 protected:
-	size_t index;
-	size_t size;
-	size_t count;
+	size_t index; // 0 から順に埋めていく場合の配列の添え字
+	size_t size;  // 配列の大きさ
+	size_t count; // 登録済みの要素の個数
 	kmb::Element** elementArray;
 	kmb::Element* getElementPtr(kmb::elementIdType id) const;
 };

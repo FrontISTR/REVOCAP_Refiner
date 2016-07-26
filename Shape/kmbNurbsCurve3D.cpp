@@ -197,7 +197,7 @@ kmb::NurbsCurve3D::getNearest( const kmb::Point3D& point, double& t ) const
 		: curve(c), target(p){}
 	};
 
-
+	// 有理式を計算せずに分子だけ計算するように変更
 	class opt_local : public kmb::OptTargetSS {
 	private:
 		const kmb::NurbsCurve3D* curve;
@@ -208,7 +208,7 @@ kmb::NurbsCurve3D::getNearest( const kmb::Point3D& point, double& t ) const
 		kmb::Point3D pt;
 		kmb::Vector3D subvec;
 		kmb::Vector3D subacc;
-
+		// pt subvec subacc weight に t での値が入っていたら true
 		bool calc(double t){
 			if( t == t0 && calculated ){
 				return true;
@@ -251,15 +251,15 @@ kmb::NurbsCurve3D::getNearest( const kmb::Point3D& point, double& t ) const
 	double min_t, max_t;
 	getDomain(min_t,max_t);
 	double t0 = 0.0;
-
+	// ニュートン法の初期値を距離関数から決める
 	opt.calcMinOnGrid( distObj, t0, min_t, max_t, 10 );
-
+	// 減速ニュートン法
 	double t1 = opt.calcZero_DN( optObj, t0 );
 	if( min_t <= t1 && t1 <= max_t ){
 		t = t1;
 		return true;
 	}else{
-
+		// 収束しない場合は黄金比法
 		t1 = opt.calcMin_GS( distObj, min_t, max_t );
 		if( min_t <= t1 && t1 <= max_t ){
 			t = t1;

@@ -39,24 +39,6 @@ kmb::Line2D::~Line2D(void)
 {
 }
 
-double
-kmb::Line2D::evaluate(const kmb::Point2D &pt) const
-{
-	return this->evaluate(pt.x(),pt.y());
-}
-
-double
-kmb::Line2D::evaluate(double x,double y) const
-{
-	return a*x+b*y+c;
-}
-
-double
-kmb::Line2D::distance(const kmb::Point2D &pt) const
-{
-	return fabs(this->evaluate(pt));
-}
-
 kmb::Line2D*
 kmb::Line2D::createFromPoints(const kmb::Point2D &p,const kmb::Point2D &q)
 {
@@ -84,6 +66,43 @@ kmb::Line2D::createFromBaseDirection(const kmb::Point2D &base,const kmb::Vector2
 	}
 	return line;
 }
+
+double
+kmb::Line2D::evaluate(const kmb::Point2D &pt) const
+{
+	return this->evaluate(pt.x(),pt.y());
+}
+
+double
+kmb::Line2D::evaluate(double x,double y) const
+{
+	return a*x+b*y+c;
+}
+
+kmb::Vector2D
+kmb::Line2D::getDirection(void) const
+{
+	return kmb::Vector2D(-b,a);
+}
+
+kmb::Point2D
+kmb::Line2D::getBase(void) const
+{
+	return kmb::Point2D(-c*a,-c*b);
+}
+
+double
+kmb::Line2D::nearest(const kmb::Point2D &pt) const
+{
+	return -pt.x() * b + pt.y() * a;
+}
+
+double
+kmb::Line2D::distance(const kmb::Point2D &pt) const
+{
+	return fabs(this->evaluate(pt));
+}
+
 
 double
 kmb::Line2D::getXIntercept(void) const
@@ -165,3 +184,26 @@ kmb::Line3D::getDirection(void) const
 	return this->direction;
 }
 
+kmb::Point3D kmb::Line3D::getBase(void) const
+{
+	return this->base;
+}
+
+double
+kmb::Line3D::nearest(const kmb::Point3D &pt) const
+{
+	kmb::Vector3D a(pt,base); // pt - base
+	return direction * a;
+}
+
+double kmb::Line3D::distanceSq(const kmb::Point3D &pt) const
+{
+	kmb::Vector3D a(pt,base); // pt - base
+	double t = direction * a;
+	return ( a - direction.scalar(t) ).lengthSq();
+}
+
+double kmb::Line3D::distance(const kmb::Point3D &pt) const
+{
+	return sqrt( distanceSq(pt) );
+}

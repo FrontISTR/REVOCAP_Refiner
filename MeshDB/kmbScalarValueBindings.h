@@ -20,14 +20,16 @@ namespace kmb{
 class ScalarValueBindings : public kmb::DataBindings
 {
 public:
+	static const char* CONTAINER_TYPE;
 	ScalarValueBindings(size_t count,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
-
+	// 他で確保済みの配列を Data として使う
 	ScalarValueBindings(size_t count,double* values,kmb::DataBindings::bindingMode bmode=kmb::DataBindings::NodeVariable);
 	virtual ~ScalarValueBindings(void);
 	virtual const char* getContainerType(void) const{
-		return "ScalarValueBindings";
+		return CONTAINER_TYPE;
 	};
 	virtual void clear(void);
+	void clear(double v);
 	virtual bool setPhysicalValue(kmb::idType id,kmb::PhysicalValue* val);
 	virtual bool setPhysicalValue(kmb::idType id,double* val);
 	virtual bool setValue(kmb::idType id, double value,int index=0);
@@ -59,10 +61,18 @@ public:
 	virtual const_iterator begin(void) const;
 	const double* getDoubleArray(void) const;
 	double* getDoubleArray(void);
+	const int* getRankArray(void) const;
+	int* getRankArray(void);
+	void createRanking(void);
+	double getMaxValue(void) const;
+	double getMinValue(void) const;
 private:
 	int size;
 	double* values;
 	bool deletable;
+	int* ranking;
+	double minValue;
+	double maxValue;
 };
 
 }

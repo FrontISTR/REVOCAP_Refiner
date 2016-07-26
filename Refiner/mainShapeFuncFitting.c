@@ -14,7 +14,7 @@
 ----------------------------------------------------------------------*/
 /*
  *
- * Œ`óŠÖ”‚É‚æ‚él–Ê‘Ì2Ÿ—v‘f‚Ì×•ªƒeƒXƒg—pƒvƒƒOƒ‰ƒ€
+ * å½¢çŠ¶é–¢æ•°ã«ã‚ˆã‚‹å››é¢ä½“2æ¬¡è¦ç´ ã®ç´°åˆ†ãƒ†ã‚¹ãƒˆç”¨ãƒ—ãƒ­ã‚°ãƒ©ãƒ 
  *
  * Sample Program for refinement by shape functions.
  * This model consists of one element of second degree tetrahedron.
@@ -33,7 +33,7 @@ int main(void)
 {
 	int32_t nodeOffset = 0;
 	int32_t elementOffset = 0;
-	/* ‰Šúß“_ */
+	/* åˆæœŸç¯€ç‚¹ */
 	size_t nodeCount = 10;
 	float64_t coords[30] = {
 		0.0, 0.0, 0.0, // 0
@@ -47,34 +47,34 @@ int main(void)
 		0.5, 0.0, 0.5, // 8
 		0.0, 0.5, 0.5  // 9
 	};
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	size_t refineNodeCount = 0;
 	float64_t* resultCoords = NULL;
-	/* ×•ª‘O‚Ì—v‘f */
+	/* ç´°åˆ†å‰ã®è¦ç´  */
 	int8_t etype = RCAP_TETRAHEDRON2;
 	size_t elementCount = 1;
 	int32_t tetras[10] = {
 		0, 1, 2, 3, 4, 5, 6, 7, 8, 9
 	};
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	size_t refineElementCount = 0;
 	int32_t* refineTetras = NULL;
 
-	/* ƒJƒEƒ“ƒ^ */
+	/* ã‚«ã‚¦ãƒ³ã‚¿ */
 	int32_t i;
 
-	/* ‰Šú‰»Fß“_”Ô†A—v‘f”Ô†‚ÌƒIƒtƒZƒbƒg’l‚ğ—^‚¦‚é */
+	/* åˆæœŸåŒ–ï¼šç¯€ç‚¹ç•ªå·ã€è¦ç´ ç•ªå·ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆå€¤ã‚’ä¸ãˆã‚‹ */
 	rcapInitRefiner( nodeOffset, elementOffset );
 
-	/* Œ`óŠÖ”‚É‚æ‚é’†ŠÔß“_‚ğ—LŒø‚É‚·‚é */
+	/* å½¢çŠ¶é–¢æ•°ã«ã‚ˆã‚‹ä¸­é–“ç¯€ç‚¹ã‚’æœ‰åŠ¹ã«ã™ã‚‹ */
 	rcapSetSecondFitting(1);
 
 	printf("REVOCAP_Refiner sample program : Shape Function Refine\n");
 	printf("----- Original Model -----\n");
 	printf("---\n");
-	/* À•W’l‚ğ Refiner ‚É—^‚¦‚é */
+	/* åº§æ¨™å€¤ã‚’ Refiner ã«ä¸ãˆã‚‹ */
 	rcapSetNode64( nodeCount, coords, NULL, NULL );
-	/* ×•ª‘O‚Ìß“_” */
+	/* ç´°åˆ†å‰ã®ç¯€ç‚¹æ•° */
 	nodeCount = rcapGetNodeCount();
 	assert( nodeCount == 10 );
 	printf("node:\n");
@@ -84,7 +84,7 @@ int main(void)
 		printf("  - [%d, %f, %f, %f]\n", i+nodeOffset, coords[3*i], coords[3*i+1], coords[3*i+2] );
 	}
 
-	/* ×•ª‘O‚Ì—v‘f” */
+	/* ç´°åˆ†å‰ã®è¦ç´ æ•° */
 	assert( elementCount == 1 );
 	printf("element:\n");
 	printf("  - size: %zu\n", elementCount );
@@ -99,13 +99,13 @@ int main(void)
 	printf("----- Refined Model -----\n");
 	printf("---\n");
 
-	/* —v‘f‚Ì×•ª */
+	/* è¦ç´ ã®ç´°åˆ† */
 	refineElementCount = rcapGetRefineElementCount( elementCount, etype );
 	refineTetras = (int32_t*)calloc( 10*refineElementCount, sizeof(int32_t) );
 	elementCount = rcapRefineElement( elementCount, etype, tetras, refineTetras);
 	rcapCommit();
 
-	/* ×•ªŒã‚Ìß“_ */
+	/* ç´°åˆ†å¾Œã®ç¯€ç‚¹ */
 	refineNodeCount = rcapGetNodeCount();
 	resultCoords = (float64_t*)calloc( 3*refineNodeCount, sizeof(float64_t) );
 	rcapGetNodeSeq64( refineNodeCount, nodeOffset, resultCoords );
@@ -117,7 +117,7 @@ int main(void)
 	}
 	free( resultCoords );
 
-	/* ×•ªŒã‚Ì—v‘f */
+	/* ç´°åˆ†å¾Œã®è¦ç´  */
 	printf("element:\n");
 	printf("  - size: %zu\n", refineElementCount );
 	printf("    connectivity:\n");

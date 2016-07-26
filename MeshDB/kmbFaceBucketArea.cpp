@@ -29,11 +29,16 @@ kmb::FaceBucketArea::FaceBucketArea(void)
 , faceGroup(NULL)
 , bodyId(kmb::Body::nullBodyId)
 , displace(NULL)
+, faceArea(NULL)
 {
 }
 
 kmb::FaceBucketArea::~FaceBucketArea(void)
 {
+	if( faceArea ){
+		delete faceArea;
+		faceArea = NULL;
+	}
 }
 
 void
@@ -47,6 +52,11 @@ kmb::FaceBucketArea::setContainer(const kmb::MeshData* mesh,const kmb::DataBindi
 	if( displace ){
 		this->displace = displace;
 	}
+	if( faceArea ){
+		delete faceArea;
+		faceArea = NULL;
+	}
+	faceArea = kmb::DataBindings::createDataBindings(kmb::DataBindings::FaceVariable,kmb::PhysicalValue::Scalar,"");
 }
 
 void
@@ -57,11 +67,11 @@ kmb::FaceBucketArea::setAutoBucketSize(void)
 	}
 	kmb::BoundingBox bbox;
 	mesh->getBoundingBoxOfData( bbox, faceGroup );
-
+	// 薄板の場合に厚みが出るようにするため
 	bbox.expandDiameter( 1.5 );
 	this->setRegion( bbox );
 
-
+	// 一番短いところを 1 としたときの bucket の個数を求める
 	double range[3] = { bbox.rangeX(), bbox.rangeY(), bbox.rangeZ() };
 	int minIndex = 0;
 	if( range[0] > range[1] ){
@@ -79,8 +89,8 @@ kmb::FaceBucketArea::setAutoBucketSize(void)
 	}
 	int num = static_cast<int>( bbox.rangeX() * bbox.rangeY() * bbox.rangeZ() / range[minIndex] );
 	int div = static_cast<int>( faceGroup->getIdCount() / num );
-
-
+	// minIndex のところを div 分割
+	// 他のところはほぼ同じ長さになるように分割
 	switch(minIndex){
 	case 0:
 		this->setGridSize( div, static_cast<int>(div * range[1] / range[0]), static_cast<int>(div * range[2] / range[0]) );
@@ -98,11 +108,14 @@ int
 kmb::FaceBucketArea::appendAll(void)
 {
 	int count = 0;
+	double totalArea = 0.0;
+	double totalFaceArea = 0.0;
 	kmb::Face f;
 	kmb::BoundingBox bbox;
 	kmb::BoxRegion box;
 	kmb::nodeIdType n0, n1, n2, n3;
 	kmb::Point3D q0, q1, q2, q3;
+	double a;
 	double v0[3], v1[3], v2[3], v3[3];
 	kmb::bodyIdType bodyId = faceGroup->getTargetBodyId();
 	kmb::DataBindings::const_iterator fIter = faceGroup->begin();
@@ -110,12 +123,13 @@ kmb::FaceBucketArea::appendAll(void)
 		if( fIter.getFace( f ) ){
 			kmb::ElementContainer::const_iterator elem = mesh->findElement( f.getElementId(), bodyId );
 			if( !elem.isFinished() ){
-				switch( elem.getBoundaryType(f.getLocalFaceId()) ){
+				kmb::idType localId = f.getLocalFaceId();
+				switch( elem.getBoundaryType(localId) ){
 				case kmb::TRIANGLE:
 				case kmb::TRIANGLE2:
-					n0 = elem.getBoundaryCellId(f.getLocalFaceId(),0);
-					n1 = elem.getBoundaryCellId(f.getLocalFaceId(),1);
-					n2 = elem.getBoundaryCellId(f.getLocalFaceId(),2);
+					n0 = elem.getBoundaryCellId(localId,0);
+					n1 = elem.getBoundaryCellId(localId,1);
+					n2 = elem.getBoundaryCellId(localId,2);
 					if(
 						mesh->getNode( n0, q0 ) &&
 						mesh->getNode( n1, q1 ) &&
@@ -146,17 +160,21 @@ kmb::FaceBucketArea::appendAll(void)
 										++count;
 										insert( i,j,k, std::pair<kmb::Face,double>(f,area) );
 									}
+									totalArea += area;
 								}
 							}
 						}
+						a = kmb::Point3D::area(q0,q1,q2);
+						faceArea->setPhysicalValue(f,&a);
+						totalFaceArea += a;
 					}
 					break;
 				case kmb::QUAD:
 				case kmb::QUAD2:
-					n0 = elem.getBoundaryCellId(f.getLocalFaceId(),0);
-					n1 = elem.getBoundaryCellId(f.getLocalFaceId(),1);
-					n2 = elem.getBoundaryCellId(f.getLocalFaceId(),2);
-					n3 = elem.getBoundaryCellId(f.getLocalFaceId(),3);
+					n0 = elem.getBoundaryCellId(localId,0);
+					n1 = elem.getBoundaryCellId(localId,1);
+					n2 = elem.getBoundaryCellId(localId,2);
+					n3 = elem.getBoundaryCellId(localId,3);
 					if(
 						mesh->getNode( n0, q0 ) &&
 						mesh->getNode( n1, q1 ) &&
@@ -191,9 +209,13 @@ kmb::FaceBucketArea::appendAll(void)
 										++count;
 										insert( i,j,k, std::pair<kmb::Face,double>(f,area) );
 									}
+									totalArea += area;
 								}
 							}
 						}
+						a = kmb::Point3D::area(q0,q1,q2) + kmb::Point3D::area(q0,q2,q3);
+						faceArea->setPhysicalValue(f,&a);
+						totalFaceArea += a;
 					}
 					break;
 				default:
@@ -203,11 +225,12 @@ kmb::FaceBucketArea::appendAll(void)
 		}
 		++fIter;
 	}
+	std::cout << "REVOCAP FaceBucketArea count = "<< count << ", total bucket area = " << totalArea << ", total face area = " << totalFaceArea << std::endl;
 	return count;
 }
 
-
-
+// これを使うと三角形に分割して複数登録されてしまうことに注意
+// すなわち、Face と Grid の交差が四角形ならば三角形に分割して2つ登録されてしまう。
 int
 kmb::FaceBucketArea::appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,const kmb::Point3D &a,const kmb::Point3D &b,const kmb::Point3D &c,const kmb::Face &f)
 {
@@ -217,22 +240,22 @@ kmb::FaceBucketArea::appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,c
 		insert( i0,j0,k0, t );
 		return 1;
 	}
-
+	// 一番大きなところで分割
 	int which = -1;
 	if( i1-i0 >= j1-j0 ){
 		if( i1-i0 >= k1-k0 ){
-
+			// i の幅が最大
 			which = 0;
 		}else{
-
+			// k の幅が最大
 			which = 2;
 		}
 	}else{
 		if( j1-j0 >= k1-k0 ){
-
+			// j の幅が最大
 			which = 1;
 		}else{
-
+			// k の幅が最大
 			which = 2;
 		}
 	}
@@ -240,9 +263,9 @@ kmb::FaceBucketArea::appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,c
 	switch( which ){
 	case 0:
 		{
-
+			// i の幅が最大
 			int i = (i0 + i1)/2;
-
+			// i と i+1 の境界の x
 			double x = getSubRegionMaxX(i,j0,k0);
 			switch( kmb::PlaneYZ::getIntersectionTriangle(x,a,b,c,p,q) ){
 			case -2:
@@ -309,9 +332,9 @@ kmb::FaceBucketArea::appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,c
 		}
 	case 1:
 		{
-
+			// j の幅が最大
 			int j = (j0 + j1)/2;
-
+			// j と j+1 の境界の y
 			double y = getSubRegionMaxY(i0,j,k0);
 			switch( kmb::PlaneZX::getIntersectionTriangle(y,a,b,c,p,q) ){
 			case -2:
@@ -378,9 +401,9 @@ kmb::FaceBucketArea::appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,c
 		}
 	case 2:
 		{
-
+			// k の幅が最大
 			int k = (k0 + k1)/2;
-
+			// k と k+1 の境界の z
 			double z = getSubRegionMaxZ(i0,j0,k);
 			switch( kmb::PlaneXY::getIntersectionTriangle(z,a,b,c,p,q) ){
 			case -2:
@@ -450,7 +473,14 @@ kmb::FaceBucketArea::appendSubBucket(int i0,int i1,int j0,int j1,int k0,int k1,c
 	}
 }
 
-
+double kmb::FaceBucketArea::getArea(kmb::Face f) const
+{
+	double area=0.0;
+	if( faceArea ){
+		faceArea->getPhysicalValue(f,&area);
+	}
+	return area;
+}
 
 bool
 kmb::FaceBucketArea::getNearestInBucket(const kmb::Point3D& pt,int i,int j,int k,double &dist,kmb::Face &f) const
@@ -519,7 +549,7 @@ kmb::FaceBucketArea::getNearest(double x,double y,double z,double &dist,kmb::Fac
 		int i1=0,j1=0,k1=0,i2=0,j2=0,k2=0;
 		getSubIndices( x-dist, y-dist, z-dist, i1, j1, k1 );
 		getSubIndices( x+dist, y+dist, z+dist, i2, j2, k2 );
-
+		// (i0,j0,k0) 以外を探す
 		for(int i=i1;i<=i2;++i){
 			for(int j=j1;j<=j2;++j){
 				for(int k=k1;k<=k2;++k){
@@ -532,8 +562,8 @@ kmb::FaceBucketArea::getNearest(double x,double y,double z,double &dist,kmb::Fac
 			}
 		}
 	}else{
-
-
+		// (i0,j0,k0) の Bucket に Face がない
+		// 全部調べる
 		kmb::BoxRegion box;
 		kmb::Bucket< std::pair<kmb::Face,double> >::const_iterator fIter = this->begin();
 		kmb::Bucket< std::pair<kmb::Face,double> >::const_iterator endIter = this->end();

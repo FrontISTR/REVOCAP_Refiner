@@ -30,15 +30,15 @@
 
 #ifdef _MSC_VER
 #pragma warning(push)
-#pragma warning(disable:4100)
+#pragma warning(disable:4100) // 使わない引数があっても警告を出さない for VC
 #endif
 
 #ifdef __INTEL_COMPILER
 #pragma warning(push)
-#pragma warning(disable:869)
+#pragma warning(disable:869) // 使わない引数があっても警告を出さない for intel
 #endif
 
-
+////////////////// Map //////////////////////
 
 const char* kmb::Point2DContainerMap::CONTAINER_TYPE = "stl::map<id,Point2D*>";
 
@@ -54,7 +54,7 @@ kmb::Point2DContainerMap::~Point2DContainerMap(void)
 	clear();
 }
 
-bool
+bool 
 kmb::Point2DContainerMap::initialize(size_t size)
 {
 	this->clear();
@@ -95,18 +95,18 @@ kmb::nodeIdType kmb::Point2DContainerMap::addPoint
 			boundBox.update( *point );
 			if( maxId == -1 )
 			{
-
+				// 最初に追加するとき
 				if( id == 1 ){
 					this->idContinuity = kmb::Point2DContainerMap::ONE_LEADING;
 				}else if( id > 1 ){
 					this->idContinuity = kmb::Point2DContainerMap::OTHER_LEADING;
 				}
 			}else if( id != this->maxId + 1 ){
-
+				// 連続している状態が終わる場合
 				this->idContinuity = kmb::Point2DContainerMap::NOT_CONTINUOUS;
 			}
 
-
+			// maxId
 			if( maxId < id ){
 				maxId = id;
 			}
@@ -251,7 +251,7 @@ kmb::Point2DContainerMap::getNearest
 	return sqrt( min.getMin() );
 }
 
-double
+double 
 kmb::Point2DContainerMap::getNearestToSegment
 (const kmb::Point2D& t0,const kmb::Point2D& t1,kmb::Point2D*& result,nodeIdType &nearestId,double &param,double d) const
 {
@@ -341,13 +341,13 @@ kmb::Point2DContainerMap::find(kmb::nodeIdType nodeId) const
 		return kmb::Point2DContainer::const_iterator(_it);
 	}
 }
-
-
+//////////////////////////////////////////////////////////
+// 毎回 Max と Min を再計算しているので、何度も呼ぶと遅いよ。
 bool
 kmb::Point2DContainerMap::replaceId(nodeIdType oldid,nodeIdType newid)
 {
 	if( oldid >= 0 && newid >= 0 &&
-		points.find(oldid) != points.end() &&
+		points.find(oldid) != points.end() && 
 		points.find(newid) == points.end() )
 	{
 		kmb::Point2D* point = points[ oldid ];
@@ -406,8 +406,8 @@ kmb::Point2DContainerMap::updateMinMaxId(void)
 void
 kmb::Point2DContainerMap::idDefragment(nodeIdType initId, std::map<kmb::nodeIdType,kmb::nodeIdType>& idmap)
 {
-
-
+	// 既に MinMax が正しく計算されているとする。
+	// 既に整列されている時には何もしない
 	if( initId == 0 && this->idContinuity == kmb::Point2DContainerMap::ZERO_LEADING){
 		return;
 	}
@@ -415,23 +415,23 @@ kmb::Point2DContainerMap::idDefragment(nodeIdType initId, std::map<kmb::nodeIdTy
 		return;
 	}
 
-
+	// 入れるべき nodeID
 	nodeIdType newId = initId;
 
-
-
+	// 現在の nodeID と挿入すべき nodeID の２つの iterator を同時に進める
+	// 入っている可能性のあるところは 0 から maxNodeID まで
 	for(nodeIdType i = 0;i <= this->maxId ;++i){
 		if( points.find(i) == points.end() ){
 			continue;
 		}
-
+		// 空き番号を探す
 		while( points.find(newId) != points.end() ){
 			++newId;
 		}
 		if( initId <= i && i < newId ){
-
-
-
+			// そのままにしておくノード
+			// key に newId が入る可能性もあるが、無害なのでほっておく
+			// idmap[i] = i;
 		}else{
 			idmap[i] = newId;
 			if( i != newId ){
@@ -454,7 +454,7 @@ kmb::Point2DContainerMap::idDefragment(nodeIdType initId, std::map<kmb::nodeIdTy
 	}
 }
 
-
+// delete しない
 kmb::Point2D*
 kmb::Point2DContainerMap::erasePoint(kmb::nodeIdType id)
 {
@@ -469,7 +469,7 @@ kmb::Point2DContainerMap::erasePoint(kmb::nodeIdType id)
 	}
 }
 
-
+//////////////////////////////////////////////////////////
 kmb::nodeIdType
 kmb::Point2DContainerMap::_iteratorMap::getId(void) const
 {
@@ -478,7 +478,7 @@ kmb::Point2DContainerMap::_iteratorMap::getId(void) const
 
 bool
 kmb::Point2DContainerMap::_iteratorMap::getXY(double &x,double &y) const
-{
+{	
 	if( pointIter->second ){
 		x = pointIter->second->x();
 		y = pointIter->second->y();

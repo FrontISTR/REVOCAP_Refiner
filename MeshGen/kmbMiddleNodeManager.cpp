@@ -42,6 +42,11 @@ kmb::MiddleNodeManager::setNodeContainer(kmb::Point3DContainer* points)
 	this->points = points;
 }
 
+size_t kmb::MiddleNodeManager::getMiddleNodeCount(void) const
+{
+	return this->middlePoints.size();
+}
+
 kmb::nodeIdType
 kmb::MiddleNodeManager::isDivided(kmb::nodeIdType a,kmb::nodeIdType b) const
 {
@@ -120,7 +125,7 @@ kmb::MiddleNodeManager::createMiddleNode4(kmb::nodeIdType n0, kmb::nodeIdType n1
 	return kmb::nullNodeId;
 }
 
-
+// 0.5 * n0 + 0.5 * n1 - 0.125 * n2 - 0.125 * n3 + 0.25 * n4
 kmb::nodeIdType
 kmb::MiddleNodeManager::createMiddleNode5(kmb::nodeIdType n0, kmb::nodeIdType n1, kmb::nodeIdType n2, kmb::nodeIdType n3, kmb::nodeIdType n4)
 {
@@ -181,7 +186,7 @@ kmb::MiddleNodeManager::createMiddleNode8(kmb::nodeIdType n0, kmb::nodeIdType n1
 	return kmb::nullNodeId;
 }
 
-
+	// -0.25 * (n0 + n1 + n2 + n3) + 0.5 * (n4 + n5 + n6 + n7)
 kmb::nodeIdType
 kmb::MiddleNodeManager::createMiddleNode8s(kmb::nodeIdType n0, kmb::nodeIdType n1,kmb::nodeIdType n2, kmb::nodeIdType n3, kmb::nodeIdType n4, kmb::nodeIdType n5,kmb::nodeIdType n6, kmb::nodeIdType n7)
 {
@@ -263,7 +268,7 @@ kmb::MiddleNodeManager::getDividedNode5(kmb::nodeIdType n0,kmb::nodeIdType n1,km
 }
 
 kmb::nodeIdType
-kmb::MiddleNodeManager::getDividedNodePyrmid2c(int index,kmb::nodeIdType center,kmb::ElementBase &elem,kmb::elementIdType elemId)
+kmb::MiddleNodeManager::getDividedNodePyrmid2c(int index,kmb::nodeIdType center,const kmb::ElementBase &elem,kmb::elementIdType elemId)
 {
 	if( points == NULL ){
 		return kmb::nullNodeId;
@@ -299,22 +304,22 @@ kmb::MiddleNodeManager::getDividedNodePyrmid2c(int index,kmb::nodeIdType center,
 void
 kmb::MiddleNodeManager::appendMiddleNode( kmb::nodeIdType middle, kmb::nodeIdType org0, kmb::nodeIdType org1,kmb::elementIdType elemId)
 {
-
+	// 2点 => 中間点
 	kmb::MiddleNodeManager::NodePair pair(org0,org1);
 	middlePoints.insert( std::pair<NodePair, kmb::nodeIdType>(pair,middle) );
-
+	// 中間点 => 2点
 	kmb::MiddleNodeManager::originalPair orgPair = {org0,org1,elemId};
 	originalPoints.insert( std::pair<kmb::nodeIdType,kmb::MiddleNodeManager::originalPair>(middle,orgPair) );
 }
 
 kmb::nodeIdType
-kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,kmb::elementIdType elementId)
+kmb::MiddleNodeManager::getCenterNode(const kmb::ElementBase &elem,kmb::elementIdType elementId)
 {
 	if( points == NULL ){
 		return kmb::nullNodeId;
 	}
-
-
+	// a が節点番号の最小
+	// b が a の対角方向
 	kmb::nodeIdType a = kmb::nullNodeId;
 	kmb::nodeIdType b = kmb::nullNodeId;
 	switch( elem.getType() )
@@ -469,7 +474,7 @@ kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,kmb::elementIdType 
 }
 
 kmb::nodeIdType
-kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,int faceIndex, kmb::elementIdType elementId)
+kmb::MiddleNodeManager::getCenterNode(const kmb::ElementBase &elem,int faceIndex, kmb::elementIdType elementId)
 {
 	if( points == NULL ){
 		return kmb::nullNodeId;
@@ -559,14 +564,60 @@ kmb::MiddleNodeManager::getCenterNode(kmb::ElementBase &elem,int faceIndex, kmb:
 	return kmb::nullNodeId;
 }
 
-kmb::nodeIdType
-kmb::MiddleNodeManager::getCenterNode2(kmb::ElementBase &elem,kmb::elementIdType elementId)
+kmb::nodeIdType kmb::MiddleNodeManager::getCenterNode4(kmb::nodeIdType n0,kmb::nodeIdType n1,kmb::nodeIdType n2,kmb::nodeIdType n3,kmb::elementIdType elementId)
 {
 	if( points == NULL ){
 		return kmb::nullNodeId;
 	}
+	kmb::nodeIdType minId = n0;
+	kmb::nodeIdType diagonalId = n2;
+	if( minId > n1 ){ minId = n1; diagonalId = n3; }
+	if( minId > n2 ){ minId = n2; diagonalId = n0; }
+	if( minId > n3 ){ minId = n3; diagonalId = n1; }
+	kmb::nodeIdType middleNodeId = this->isDivided(minId,diagonalId);
+	if( middleNodeId != kmb::nullNodeId ){
+		return middleNodeId;
+	}
+	middleNodeId = createMiddleNode4( n0, n1, n2, n3 );
+	if( middleNodeId != kmb::nullNodeId ){
+		appendMiddleNode( middleNodeId, minId,diagonalId, elementId );
+	}
+	return middleNodeId;
+}
 
+kmb::nodeIdType kmb::MiddleNodeManager::getCenterNode8(kmb::nodeIdType n0,kmb::nodeIdType n1,kmb::nodeIdType n2,kmb::nodeIdType n3,kmb::nodeIdType n4,kmb::nodeIdType n5,kmb::nodeIdType n6,kmb::nodeIdType n7,kmb::elementIdType elementId)
+{
+	if( points == NULL ){
+		return kmb::nullNodeId;
+	}
+	kmb::nodeIdType minId = n0;
+	kmb::nodeIdType diagonalId = n6;
+	if( minId > n1 ){ minId = n1; diagonalId = n7; }
+	if( minId > n2 ){ minId = n2; diagonalId = n4; }
+	if( minId > n3 ){ minId = n3; diagonalId = n5; }
+	if( minId > n4 ){ minId = n4; diagonalId = n2; }
+	if( minId > n5 ){ minId = n5; diagonalId = n3; }
+	if( minId > n6 ){ minId = n6; diagonalId = n0; }
+	if( minId > n7 ){ minId = n7; diagonalId = n1; }
+	kmb::nodeIdType middleNodeId = this->isDivided(minId,diagonalId);
+	if( middleNodeId != kmb::nullNodeId ){
+		return middleNodeId;
+	}
+	middleNodeId = createMiddleNode8( n0, n1, n2, n3, n4, n5, n6, n7 );
+	if( middleNodeId != kmb::nullNodeId ){
+		appendMiddleNode( middleNodeId, minId,diagonalId, elementId );
+	}
+	return middleNodeId;
+}
 
+kmb::nodeIdType
+kmb::MiddleNodeManager::getCenterNode2(const kmb::ElementBase &elem,kmb::elementIdType elementId)
+{
+	if( points == NULL ){
+		return kmb::nullNodeId;
+	}
+	// a が節点番号の最小
+	// b が a の対角方向
 	kmb::nodeIdType a = kmb::nullNodeId;
 	kmb::nodeIdType b = kmb::nullNodeId;
 	switch( elem.getType() )
@@ -614,7 +665,7 @@ kmb::MiddleNodeManager::getCenterNode2(kmb::ElementBase &elem,kmb::elementIdType
 		if( middleNodeId != kmb::nullNodeId ){
 			return middleNodeId;
 		}
-
+		// 20点関数
 		kmb::Node pt;
 		double x(0.0),y(0.0),z(0.0);
 		if( points ){
@@ -650,7 +701,7 @@ kmb::MiddleNodeManager::getCenterNode2(kmb::ElementBase &elem,kmb::elementIdType
 }
 
 kmb::nodeIdType
-kmb::MiddleNodeManager::getCenterNode2(kmb::ElementBase &elem,int faceIndex,kmb::elementIdType elementId)
+kmb::MiddleNodeManager::getCenterNode2(const kmb::ElementBase &elem,int faceIndex,kmb::elementIdType elementId)
 {
 	if( points == NULL ){
 		return kmb::nullNodeId;

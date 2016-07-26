@@ -12,9 +12,9 @@
 #                                     Multi Dynamics Simulator"        #
 #                                                                      #
 ----------------------------------------------------------------------*/
-
-
-
+//
+// std::getLine は Win32 と Linux で separator が違うので注意すること!
+//
 
 #include "RevocapIO/kmbFFbIO.h"
 
@@ -50,7 +50,7 @@ kmb::FFbIO::~FFbIO(void)
 bool
 kmb::FFbIO::checkFormat(std::ifstream &input)
 {
-
+	// ascii か unformat かの判断をする
 	input.seekg(0,std::ios::beg);
 	char buf[80];
  	input.read(buf,80);
@@ -58,7 +58,7 @@ kmb::FFbIO::checkFormat(std::ifstream &input)
 		unformatFlag = false;
 	}else if( strncmp( "#U_GF_V1", buf+4, 8) == 0 ){
 		unformatFlag = true;
-
+		// endian の判断をする
 		input.seekg( 0, std::ios_base::beg );
 		int size = 0;
 		input.read(reinterpret_cast<char*>(&size),sizeof(int));
@@ -144,7 +144,6 @@ kmb::FFbIO::loadFromMeshFile(const char* filename,kmb::MeshData* mesh)
 			return -1;
 		}
 		readString( input, line );
-
 		if( line != "#U_GF_V1" ){
 			input.close();
 			return -1;
@@ -155,7 +154,6 @@ kmb::FFbIO::loadFromMeshFile(const char* filename,kmb::MeshData* mesh)
 			return -1;
 		}
 		readString( input, line );
-
 		if( line != "#A_GF_V1" ){
 			input.close();
 			return -1;
@@ -168,7 +166,7 @@ kmb::FFbIO::loadFromMeshFile(const char* filename,kmb::MeshData* mesh)
 		return -1;
 	}
 
-
+	// 先頭が "#" の行を探す
 	while( !input.eof() ){
 		readString( input, line );
 		if( line == "#NEW_SET" ){
@@ -249,7 +247,7 @@ kmb::FFbIO::loadPostStep(const char* filename,kmb::MeshData* mesh,int step)
 		return -1;
 	}
 
-
+	// 先頭が "#" の行を探す
 	while( !input.eof() ){
 		readString( input, line );
 		if( line == "#NEW_SET" ){
@@ -278,7 +276,7 @@ kmb::FFbIO::loadPostStep(const char* filename,kmb::MeshData* mesh,int step)
 		}else if( line == "#INT_ARY" ){
 			readString( input, line );
 			readHeaderInt(input,mesh);
-
+			// 読み込む STEP 値かどうかの判定
 			const kmb::PhysicalValue* v = mesh->getPhysicalValue( "PRESENT STEP" );
 			if( v!=NULL && v->getType()==kmb::PhysicalValue::Integer && step==reinterpret_cast<const kmb::IntegerValue*>(v)->getValue() ){
 				readPost = true;
@@ -346,7 +344,7 @@ kmb::FFbIO::loadFromBoundaryFile(const char* filename,kmb::MeshData* mesh)
 		return -1;
 	}
 
-
+	// 先頭が "#" の行を探す
 	while( !input.eof() ){
 		readString( input, line );
 		if( line == "#NEW_SET" ){
@@ -471,7 +469,7 @@ kmb::FFbIO::saveToBoundaryFile(const char* filename,const kmb::MeshData* mesh)
 	writeBC( output, mesh, kmb::FFbIO::TEMP, "BC_TEMP" );
 	writeBC( output, mesh, kmb::FFbIO::HEAT, "BC_HEAT" );
 	writeBC( output, mesh, kmb::FFbIO::BODY, "BC_BODY" );
-
+	// custom bc
 	const std::multimap< std::string, kmb::DataBindings* > mapper = mesh->getDataBindingsMap();
 	std::multimap< std::string, kmb::DataBindings*>::const_iterator dIter = mapper.begin();
 	while( dIter != mapper.end() ){
@@ -522,12 +520,12 @@ kmb::FFbIO::saveToBoundaryFileAcoustic(const char* filename,const kmb::MeshData*
 #pragma warning(disable:869)
 #endif
 
-
-
-
-
-
-
+//
+// マニュアルに規定はないが
+// 1行目がコメントの行数 n 
+// 2行目からn+1行目まで空読み
+// このフォーマットじゃない場合は -1 を返す
+//
 int
 kmb::FFbIO::readHeader(std::ifstream &input,kmb::MeshData* mesh)
 {
@@ -546,7 +544,7 @@ kmb::FFbIO::readHeader(std::ifstream &input,kmb::MeshData* mesh)
 		if( len < 0 ){
 			return -1;
 		}
-		std::getline( input, line );
+		std::getline( input, line ); // 改行クリア
 		std::cout << line << std::endl;
 		for(int i=0;i<len;++i){
 			std::getline( input, line );
@@ -567,7 +565,7 @@ kmb::FFbIO::readHeader(std::ifstream &input,std::string &str)
 		std::string line;
 		std::vector<int> intArray;
 		readArray<int>(input,intArray);
-		int len = intArray[0];
+		int len = intArray[0]; // 行数
 		for(int i=0;i<len;++i){
 			readString( input, line );
 			str.append( line );
@@ -580,7 +578,7 @@ kmb::FFbIO::readHeader(std::ifstream &input,std::string &str)
 		if( len < 0 ){
 			return -1;
 		}
-		std::getline( input, line );
+		std::getline( input, line ); // 改行クリア
 		for(int i=0;i<len;++i){
 			std::getline( input, line );
 			str.append( line );
@@ -616,12 +614,12 @@ kmb::FFbIO::writeFooter(std::ofstream &output,const kmb::MeshData* mesh)
 	return 0;
 }
 
-
-
-
-
-
-
+//
+// マニュアルに規定はないが
+// 1行目がコメントの行数 n 
+// 2行目からn+1行目まで空読み
+// このフォーマットじゃない場合は -1 を返す
+//
 int
 kmb::FFbIO::readNewSet(std::ifstream &input,kmb::MeshData* mesh)
 {
@@ -631,18 +629,18 @@ kmb::FFbIO::readNewSet(std::ifstream &input,kmb::MeshData* mesh)
 		readArray<int>(input,intArray);
 		int len = intArray[0];
 		for(int i=0;i<len;++i){
-			readString( input, str );
+			readString( input, str ); // 空読み
 		}
 	}else{
 		int len = 0;
 		std::string str;
 		input >> len;
-		readString( input, str );
+		readString( input, str ); // 空読み
 		if( len < 0 ){
 			return -1;
 		}
 		for(int i=0;i<len;++i){
-			readString( input, str );
+			readString( input, str ); // 空読み
 		}
 	}
 	return 0;
@@ -820,7 +818,7 @@ kmb::FFbIO::readNode2D(std::ifstream &input,kmb::MeshData* mesh)
 	return 0;
 }
 
-
+// 節点配列の順番は注意
 int
 kmb::FFbIO::readNode3D(std::ifstream &input,kmb::MeshData* mesh)
 {
@@ -944,7 +942,7 @@ kmb::FFbIO::readNode3D(std::ifstream &input,kmb::MeshData* mesh)
 				}else if( nodes[5] >= 0 ){
 					mesh->addElement( kmb::WEDGE, nodes );
 				}else if( nodes[4] >= 0 ){
-					nodes[5] = nodes[4];
+					nodes[5] = nodes[4]; //temp
 					nodes[4] = nodes[3];
 					nodes[3] = nodes[2];
 					nodes[2] = nodes[1];
@@ -967,7 +965,7 @@ kmb::FFbIO::writeNode2D(std::ofstream &output,const kmb::MeshData* mesh,kmb::bod
 	output << "#INT_ARY" << std::endl;
 	output << "*NODE_2D" << std::endl;
 	output << "NODE TABLE (2-D)" << std::endl;
-	kmb::nodeIdType nodes[15];
+	kmb::nodeIdType nodes[15];  // 6(1行の幅)-1+4(要素の最大節点数) < 15 (余裕を持っている)
 	int index = 0;
 	output.width(12);
 	output.setf( std::ios::right );
@@ -1418,7 +1416,7 @@ kmb::FFbIO::readHeaderFlt(std::ifstream &input,kmb::MeshData* mesh)
 		std::vector<float> floatArray;
 		readString( input, line );
 		readArray<int>( input, intArray );
-
+		// １次元の値の時だけ登録
 		if( intArray[0] == 1 && intArray[1] == 1 ){
 			strip(line);
 			mesh->createDataBindings( line.c_str(), kmb::DataBindings::Global, kmb::PhysicalValue::Scalar );
@@ -1428,12 +1426,12 @@ kmb::FFbIO::readHeaderFlt(std::ifstream &input,kmb::MeshData* mesh)
 	}else{
 		std::string line,dummy;
 		std::getline( input, line );
-
+		// 前後の空白を取る
 		strip(line);
 		int dim=0, size=0;
 		input >> dim >> size;
 		std::getline( input, dummy );
-
+		// １次元の値の時だけ登録
 		if( dim == 1 && size == 1 ){
 			strip(line);
 			mesh->createDataBindings( line.c_str(), kmb::DataBindings::Global, kmb::PhysicalValue::Scalar );
@@ -1453,7 +1451,7 @@ kmb::FFbIO::readHeaderInt(std::ifstream &input,kmb::MeshData* mesh)
 		std::vector<int> intArray;
 		readString( input, line );
 		readArray<int>( input, intArray );
-
+		// １次元の値の時だけ登録
 		if( intArray[0] == 1 && intArray[1] == 1 ){
 			strip(line);
 			mesh->createDataBindings( line.c_str(), kmb::DataBindings::Global, kmb::PhysicalValue::Integer );
@@ -1463,16 +1461,16 @@ kmb::FFbIO::readHeaderInt(std::ifstream &input,kmb::MeshData* mesh)
 	}else{
 		std::string line,dummy;
 		std::getline( input, line );
-
+		// 前後の空白を取る
 		strip(line);
-
-
-
-
+		//std::string::size_type notwhite = line.find_last_not_of(" ");
+		//line.erase( notwhite+1 );
+		//notwhite = line.find_first_not_of(" ");
+		//line.erase( 0, notwhite );
 		int dim=0, size=0;
 		input >> dim >> size;
 		std::getline( input, dummy );
-
+		// １次元の値の時だけ登録
 		if( dim == 1 && size == 1 ){
 			strip(line);
 			mesh->createDataBindings( line.c_str(), kmb::DataBindings::Global, kmb::PhysicalValue::Integer );
@@ -1557,10 +1555,6 @@ kmb::FFbIO::readPres2E(std::ifstream &input,kmb::MeshData* mesh)
 		std::string line,dummy;
 		std::getline( input, line );
 		strip( line );
-
-
-
-
 		long dim=0, size=0;
 		input >> dim >> size;
 		long eCount = static_cast<long>(mesh->getElementCountOfDim(3));
@@ -1627,10 +1621,6 @@ kmb::FFbIO::readPres3E(std::ifstream &input,kmb::MeshData* mesh)
 		std::string line,dummy;
 		std::getline( input, line );
 		strip( line );
-
-
-
-
 		long dim=0, size=0;
 		input >> dim >> size;
 		long eCount = static_cast<long>(mesh->getElementCountOfDim(3));
@@ -1697,10 +1687,6 @@ kmb::FFbIO::readPres3D(std::ifstream &input,kmb::MeshData* mesh)
 		std::string line,dummy;
 		std::getline( input, line );
 		strip( line );
-
-
-
-
 		long dim=0, size=0;
 		input >> dim >> size;
 		long nCount = static_cast<long>(mesh->getNodeCount());
@@ -1771,10 +1757,6 @@ kmb::FFbIO::readVelo3D(std::ifstream &input,kmb::MeshData* mesh)
 		std::getline( input, line );
 		std::cout << line << std::endl;
 		strip( line );
-
-
-
-
 		long dim=0, size=0;
 		input >> dim >> size;
 		long nCount = static_cast<long>(mesh->getNodeCount());
@@ -1846,10 +1828,6 @@ kmb::FFbIO::readVelo2D(std::ifstream &input,kmb::MeshData* mesh)
 		std::getline( input, line );
 		std::cout << line << std::endl;
 		strip( line );
-
-
-
-
 		long dim=0, size=0;
 		input >> dim >> size;
 		long nCount = static_cast<long>(mesh->getNodeCount());
@@ -1880,7 +1858,7 @@ kmb::FFbIO::readVelo2D(std::ifstream &input,kmb::MeshData* mesh)
 	return 0;
 }
 
-
+// name と 2 行目に出力する文字列は必ずしも同じではないことに注意
 int
 kmb::FFbIO::writeBC(std::ofstream &output,const kmb::MeshData* mesh,boundaryType btype,const char* name)
 {
@@ -2214,8 +2192,8 @@ kmb::FFbIO::readBC(std::ifstream &input,kmb::MeshData* mesh,boundaryType btype,c
 	return 0;
 }
 
-
-
+// Temp と Heat について
+// tmpv hfxv の前に tmpn hfxn があると仮定する
 int
 kmb::FFbIO::readBCV(std::ifstream &input,kmb::MeshData* mesh,boundaryType btype,const char* name)
 {
@@ -2305,8 +2283,8 @@ kmb::FFbIO::readBCV(std::ifstream &input,kmb::MeshData* mesh,boundaryType btype,
 	return 0;
 }
 
-
-
+// inlet と moving wall について
+// iv3d mv3d の前に inlt mwal があると仮定する
 int
 kmb::FFbIO::readBC3D(std::ifstream &input,kmb::MeshData* mesh,boundaryType btype,const char* name)
 {
