@@ -348,12 +348,6 @@ public:
 
 		int getIndex() const{ return it->first; };
 
-		void getIndices(int &i,int &j,int &k) const{
-			i = it->first / (ynum*znum);
-			j = (it->first - i*ynum*znum) / znum;
-			k = it->first - i*ynum*znum - j*znum;
-		};
-
 		iterator& operator++(void){ ++it; return *this; };
 
 		iterator  operator++(int n){
@@ -390,12 +384,6 @@ public:
 		const T& get(void) const{ return it->second; };
 
 		int getIndex() const{ return it->first; };
-
-		void getIndices(int &i,int &j,int &k) const{
-			i = it->first / (ynum*znum);
-			j = (it->first - i*ynum*znum) / znum;
-			k = it->first - i*ynum*znum - j*znum;
-		};
 
 		const_iterator& operator++(void){ ++it; return *this; };
 
